@@ -11,7 +11,7 @@ namespace App\Ldaplibs\Delivery;
 
 class DBExtractor
 {
-    public function __construct($data_input_reader, $setting)
+    public function __construct($data_input_reader)
     {
 
     }
