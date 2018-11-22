@@ -14,3 +14,13 @@
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| Import Routes
+|--------------------------------------------------------------------------
+| Description
+|
+*/
+Route::get('upload-file','ImportController@showFormUpload')->name('get.upload.file');
