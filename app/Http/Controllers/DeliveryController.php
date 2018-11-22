@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Ldaplibs\Delivery\CSVDelivery;
+use App\Ldaplibs\Delivery\DBExtractor;
 use App\Ldaplibs\Import\DeliveryQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class DeliveryController extends Controller
         $queue = new DeliveryQueueManager();
         foreach ($file_list as $data_structure){
 //           data_structure: data extracted + type of Delivery.
-            $delivery = DeliveryFactory::get_data_delivery_from_structure($data_structure);
+            $extracted_data = new DBExtractor($data_structure, $settings);
+            $delivery = DeliveryFactory::get_data_delivery_from_structure($extracted_data);
             $queue->push($delivery);
         }
         $queue->process();
@@ -23,7 +25,7 @@ class DeliveryController extends Controller
 }
 
 class DeliveryFactory{
-    public static function get_data_delivery_from_structure($data_structure){
+    public static function get_data_delivery_from_structure($extracted_data){
 //        Check type here!
         return new CSVDelivery();
     }
