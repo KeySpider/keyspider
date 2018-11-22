@@ -23,4 +23,4 @@ Route::get('/', function () {
 | Description
 |
 */
-Route::get('upload-file','ImportController@showFormUpload')->name('get.upload.file');
+Route::get('import/upload','ImportController@showFormUpload')->name('get.upload.file');
