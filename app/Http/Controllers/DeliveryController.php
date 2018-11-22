@@ -16,7 +16,7 @@ class DeliveryController extends Controller
         $queue = new DeliveryQueueManager();
         foreach ($file_list as $data_structure){
 //           data_structure: data extracted + type of Delivery.
-            $extracted_data = new DBExtractor($data_structure, $settings);
+            $extracted_data = new DBExtractor($data_structure);
             $delivery = DeliveryFactory::get_data_delivery_from_structure($extracted_data);
             $queue->push($delivery);
         }
