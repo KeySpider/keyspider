@@ -24,7 +24,7 @@ class DeliveryController extends Controller
     }
 }
 
-class DeliveryFactory{
+class DeliveryFactory {
     public static function get_data_delivery_from_structure($extracted_data){
 //        Check type here!
         return new CSVDelivery();
