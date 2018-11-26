@@ -25,7 +25,6 @@ class DBImporter
         }
         $queue->process();
     }
-
     private function get_file_list_from_json($file_name)
     {
 
