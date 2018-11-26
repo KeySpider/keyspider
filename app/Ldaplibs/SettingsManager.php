@@ -132,11 +132,11 @@ class SettingsManager
 
     public function get_rule_of_import(){
         $string = Storage::disk('local')->get('import_settings.json');
-        $json_encode = json_decode($string, true);
-//        echo $json_encode;
+        $json_decode = json_decode($string, true);
+//        echo $json_decode;
         echo '<pre>';
-        var_dump( $json_encode['data_transform']);
+        var_dump( $json_decode['data_transform']);
         echo '</pre>';
-        return $json_encode;
+        return $json_decode;
     }
 }
