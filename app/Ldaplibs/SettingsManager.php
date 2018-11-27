@@ -149,7 +149,7 @@ class SettingsManager
             }
         $user[self::CONVERSION]=$user_conversion;
 
-        return json_encode($user, JSON_PRETTY_PRINT);;
+        return $user;
     }
 
     /**
