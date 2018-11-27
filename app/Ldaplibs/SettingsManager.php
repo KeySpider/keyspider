@@ -123,6 +123,8 @@ class SettingsManager
     private $json_path;
     const CONVERSION = "CSV Import Process Format Conversion";
 
+    const INI_CONFIGS = "ini_configs";
+
     public function __construct($json_path=null)
     {
         $this->$json_path = $json_path;
@@ -157,7 +159,7 @@ class SettingsManager
      */
     public function get_inifile_content($filename): array
     {
-        $ini_path = storage_path($filename);
+        $ini_path = storage_path("" . self::INI_CONFIGS . "/$filename");
         $ini_array = parse_ini_file($ini_path, true);
         return $ini_array;
     }
