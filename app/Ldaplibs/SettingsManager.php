@@ -131,12 +131,8 @@ class SettingsManager
     }
 
     public function get_rule_of_import(){
-        $string = Storage::disk('local')->get('import_settings.json');
-        $json_decode = json_decode($string, true);
-//        echo $json_decode;
-        echo '<pre>';
-        var_dump( $json_decode['data_transform']);
-        echo '</pre>';
+        $string = Storage::get('import_settings.json');
+        $json_decode = json_decode($string);
         return $json_decode;
     }
 }

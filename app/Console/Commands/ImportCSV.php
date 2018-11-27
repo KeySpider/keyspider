@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use DB;
 
 class ImportCSV extends Command
 {
@@ -18,7 +19,7 @@ class ImportCSV extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Reader setting import file and process it';
 
     /**
      * Create a new command instance.
@@ -34,9 +35,15 @@ class ImportCSV extends Command
      * Execute the console command.
      *
      * @return mixed
+     * @throws \Exception
      */
     public function handle()
     {
-        echo "OKOK \n";
+        DB::insert('insert into users (id, name, email, password) values (?, ?, ?, ?)', [
+            random_int(1,1000),
+            'Dayle',
+            random_int(1,1000).'lebangu@gmail.com',
+            '123123'
+        ]);
     }
 }

@@ -23,6 +23,6 @@ class ImportController extends Controller
     public function readSettings()
     {
         $import_settings = new SettingsManager();
-        $import_settings->get_rule_of_import();
+        $file_setting = $import_settings->get_rule_of_import();
     }
 }
