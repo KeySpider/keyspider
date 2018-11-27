@@ -147,7 +147,6 @@ class SettingsManager
                 unset($user_conversion[$key]);
             }
         $user[self::CONVERSION]=$user_conversion;
-
         return $user;
     }
 
