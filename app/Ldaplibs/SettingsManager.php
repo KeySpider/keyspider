@@ -140,7 +140,6 @@ class SettingsManager
         $user = $this->get_inifile_content('UserInfoCSVImport.ini');
 
         $mater_users = $master['User'];
-        echo '<p><h2>DB Convert standard</h2></p>';
         $user_conversion = $user[self::CONVERSION];
         foreach ($user_conversion as $key=> $value )
             if (isset($mater_users[$key])){
