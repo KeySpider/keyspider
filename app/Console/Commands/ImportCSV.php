@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
 
@@ -22,6 +23,12 @@ class ImportCSV extends Command
     protected $description = 'Reader setting import file and process it';
 
     /**
+     * define const
+     */
+    const CONVERSION = "CSV Import Process Format Conversion";
+    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+
+    /**
      * Create a new command instance.
      *
      * @return void
@@ -39,11 +46,19 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-        DB::insert('insert into users (id, name, email, password) values (?, ?, ?, ?)', [
-            random_int(1,1000),
-            'Dayle',
-            random_int(1,1000).'lebangu@gmail.com',
-            '123123'
-        ]);
+//        $setting = $this->setting();
+//        dump($setting);
+    }
+
+    protected function createTable()
+    {
+
+    }
+
+    protected function setting()
+    {
+//        $import_settings = new SettingsManager();
+//        $setting = $import_settings->get_rule_of_import();
+//        return json_decode($setting);
     }
 }

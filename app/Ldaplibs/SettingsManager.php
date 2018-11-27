@@ -141,7 +141,6 @@ class SettingsManager
 
         $mater_users = $master['User'];
         echo '<p><h2>DB Convert standard</h2></p>';
-        var_dump($mater_users);
         $user_conversion = $user[self::CONVERSION];
         foreach ($user_conversion as $key=> $value )
             if (isset($mater_users[$key])){
@@ -149,7 +148,6 @@ class SettingsManager
                 unset($user_conversion[$key]);
             }
         $user[self::CONVERSION]=$user_conversion;
-
 
         return json_encode($user, JSON_PRETTY_PRINT);;
     }
