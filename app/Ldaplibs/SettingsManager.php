@@ -133,12 +133,12 @@ class SettingsManager
     }
 
     public function get_rule_of_import(){
-        $filename = 'sample.ini';
+        $filename = 'MasterDBConf.ini';
         $master = $this->get_inifile_content($filename);
         $user = $this->get_inifile_content('UserInfoCSVImport.ini');
 
-        echo '<pre>';
         $mater_users = $master['User'];
+        echo '<p><h2>DB Convert standard</h2></p>';
         var_dump($mater_users);
         $user_conversion = $user[self::CONVERSION];
         foreach ($user_conversion as $key=> $value )

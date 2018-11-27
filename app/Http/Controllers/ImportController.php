@@ -19,6 +19,7 @@ class ImportController extends Controller
         return view('imports.form_upload');
     }
     public function readSettings(){
+        echo '<pre>';
         $import_settings = new SettingsManager();
         $user_rule = $import_settings->get_rule_of_import();
 
