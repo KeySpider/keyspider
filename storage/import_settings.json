@@ -1,5 +1,6 @@
 {
   "schedule": {
+    "interval":{"start":"YYYYMMDD:HHMM", "end":"YYYYMMDD:HHMM", "execute":[]}
     "date": "",
     "time": ""
   },

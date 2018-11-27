@@ -20,6 +20,10 @@ class ImportController extends Controller
     }
     public function readSettings(){
         $import_settings = new SettingsManager();
-        $import_settings->get_rule_of_import();
+        $user_rule = $import_settings->get_rule_of_import();
+
+        echo '<p><h2>.INI to .JSON adapter:</h2></p>';
+        print ($user_rule);
+        echo '</pre>';
     }
 }

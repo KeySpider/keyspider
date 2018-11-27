@@ -121,6 +121,8 @@ function pretty_json($json) {
 class SettingsManager
 {
     private $json_path;
+    const CONVERSION = "CSV Import Process Format Conversion";
+
     public function __construct($json_path=null)
     {
         $this->$json_path = $json_path;
@@ -131,12 +133,32 @@ class SettingsManager
     }
 
     public function get_rule_of_import(){
-        $string = Storage::disk('local')->get('import_settings.json');
-        $json_decode = json_decode($string, true);
-//        echo $json_decode;
+        $filename = 'sample.ini';
+        $master = $this->get_inifile_content($filename);
+        $user = $this->get_inifile_content('UserInfoCSVImport.ini');
+
         echo '<pre>';
-        var_dump( $json_decode['data_transform']);
-        echo '</pre>';
-        return $json_decode;
+        $mater_users = $master['User'];
+        var_dump($mater_users);
+        $user_conversion = $user[self::CONVERSION];
+        foreach ($user_conversion as $key=> $value )
+            if (isset($mater_users[$key])){
+                $user_conversion[$mater_users[$key]] = $value;
+                unset($user_conversion[$key]);
+            }
+        $user[self::CONVERSION]=$user_conversion;
+
+
+        return json_encode($user, JSON_PRETTY_PRINT);;
+    }
+
+    /**
+     * @param $filename
+     */
+    public function get_inifile_content($filename): array
+    {
+        $ini_path = storage_path($filename);
+        $ini_array = parse_ini_file($ini_path, true);
+        return $ini_array;
     }
 }
