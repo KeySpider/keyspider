@@ -16,7 +16,7 @@ interface DataInputReader
     public function get_all_column_from_setting($setting);
     public function create_table($name_table, $columns);
     public function scan_file($path, $options = []);
-    public function get_data_from_all_file($list_file = []);
-    public function get_data_from_one_file($file);
-    public function insert_all_data_DB($big_data);
+    public function get_data_from_all_file($list_file = [], $options = []);
+    public function get_data_from_one_file($file, $options = []);
+    public function insert_all_data_DB($big_data, $setting);
 }

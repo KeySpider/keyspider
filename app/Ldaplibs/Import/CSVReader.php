@@ -36,30 +36,37 @@ class CSVReader implements DataInputReader
     public function process()
     {
         // get name table from file setting
-        $setting = $this->setting->get_rule_of_import();
-        $name_table = $this->get_name_table_from_setting($setting);
+        $settings = $this->setting->get_rule_of_import();
 
-        // get all columns from file setting
-        $columns = $this->get_all_column_from_setting($setting);
+        foreach ($settings as $setting) {
+            $name_table = $this->get_name_table_from_setting($setting);
 
-        // New table from file setting
-        $this->create_table($name_table, $columns);
+            // get all columns from file setting
+            $columns = $this->get_all_column_from_setting($setting);
 
-        // Scan file csv from path, setting
-        $path = $setting[self::CONFIGURATION]['FilePath'];
-        $options = [
-            'file_type' => 'csv',
-            'pattern' => $setting[self::CONFIGURATION]['FileName'],
-        ];
-        $list_file_csv = $this->scan_file($path, $options);
-        if (empty($list_file_csv)) {
-            dd('ko co file csv nao ca');
-        } else {
-            // get all data from all file csv
-            $all_data = $this->get_data_from_all_file($list_file_csv);
+            // New table from file setting
+            $this->create_table($name_table, $columns);
 
-            // finish , insert data into pgsql
-            $this->insert_all_data_DB($all_data);
+            // Scan file csv from path, setting
+            $path = $setting[self::CONFIGURATION]['FilePath'];
+
+            $options = [
+                'file_type' => 'csv',
+                'pattern' => $setting[self::CONFIGURATION]['FileName'],
+            ];
+            $list_file_csv = $this->scan_file($path, $options);
+            if (empty($list_file_csv)) {
+                dump('ko co file csv nao ca');
+            } else {
+                // get all data from all file csv
+                $params = [
+                    'CONVERSATION' => $setting[self::CONVERSION],
+                ];
+                $all_data = $this->get_data_from_all_file($list_file_csv, $params);
+
+                // finish , insert data into pgsql
+                $this->insert_all_data_DB($all_data, $setting);
+            }
         }
     }
 
@@ -69,7 +76,7 @@ class CSVReader implements DataInputReader
      */
     public function get_name_table_from_setting($setting)
     {
-        $name_table = 'AAA';
+        $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
         return $name_table;
     }
 
@@ -80,7 +87,6 @@ class CSVReader implements DataInputReader
     public function get_all_column_from_setting($setting)
     {
         $name_table = $this->get_name_table_from_setting($setting);
-        $setting = $this->setting->get_rule_of_import();
         $params = $setting[self::CONVERSION];
 
         $fields = [];
@@ -138,45 +144,47 @@ class CSVReader implements DataInputReader
             }
             return $list_file_csv;
         } else {
-            die;
+            dump('dir nay ko ton tai');
+            return [];
         }
     }
 
     /**
      * @param array $list_file
+     * @param array $options
      * @return array
      */
-    public function get_data_from_all_file($list_file = [])
+    public function get_data_from_all_file($list_file = [], $options = [])
     {
         $all_data = [];
         foreach ($list_file as $file_csv) {
-            $all_data[] = $this->get_data_from_one_file($file_csv);
+            $all_data[] = $this->get_data_from_one_file($file_csv, $options);
         }
         return $all_data;
     }
 
     /**
      * @param $file_csv
+     * @param array $options
      * @return array
      */
-    public function get_data_from_one_file($file_csv)
+    public function get_data_from_one_file($file_csv, $options = [])
     {
         $data = [];
         $path = $pathDir = storage_path("{$file_csv}");
         foreach (file($path) as $line) {
             $data_line = str_getcsv($line);
-            $data[] = $this->get_data_after_process($data_line);
+            $data[] = $this->get_data_after_process($data_line, $options);
         }
         return $data;
     }
 
     /**
      * @param $big_data
+     * @param $setting
      */
-    public function insert_all_data_DB($big_data)
+    public function insert_all_data_DB($big_data, $setting)
     {
-        $setting = $this->setting->get_rule_of_import();
-
         $name_table = $this->get_name_table_from_setting($setting);
         $columns = $this->get_all_column_from_setting($setting);
         $columns = implode(",", $columns);
@@ -201,13 +209,13 @@ class CSVReader implements DataInputReader
 
     /**
      * @param $data_line
+     * @param array $options
      * @return array
      */
-    protected function get_data_after_process($data_line)
+    protected function get_data_after_process($data_line, $options = [])
     {
         $data = [];
-        $setting     = $this->setting->get_rule_of_import();
-        $conversions = $setting[self::CONVERSION];
+        $conversions = $options['CONVERSATION'];
 
         foreach ($conversions as $key => $item) {
             if ($key === "" || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
