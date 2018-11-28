@@ -19,8 +19,8 @@ class ImportQueueManager extends QueueManager
         $this->file_list = $file_list;
     }
 
-    public function process(){
-
+    public function process()
+    {
+        dd('ok');
     }
-
 }
