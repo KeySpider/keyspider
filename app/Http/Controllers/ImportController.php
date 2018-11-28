@@ -17,6 +17,7 @@ class ImportController extends Controller
 //        $csv->test();
 //        $scim = new SCIMReader();
 
+
         return view('imports.form_upload');
     }
 
@@ -26,7 +27,7 @@ class ImportController extends Controller
         $user_rule = $import_settings->get_rule_of_import();
 
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
-        print ($user_rule);
+        print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
 }
