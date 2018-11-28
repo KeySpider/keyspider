@@ -137,29 +137,24 @@ class SettingsManager
     const CONVERSION = "CSV Import Process Format Conversion";
     const INI_CONFIGS = "ini_configs";
     private $ini_import_settings_files = array();
-    private $master_db_ini_file = null;
+    private $ini_master_db_file = null;
 
     const BASIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
 
     public function __construct($ini_settings_files = null)
     {
         $this->ini_settings_folders = storage_path("" . self::INI_CONFIGS . "/");
-        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders."</h3>";
+        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders . "</h3>";
         $all_files = scandir($this->ini_settings_folders);
-        foreach ($all_files as $file) {
-            if (contains('.ini', $file)) {
-//                print '<p>' . $file . '<p>';
-                if (contains('Master', $file)) {
-                    $this->master_db_ini_file = $file;
+        foreach ($all_files as $file_name) {
+            if (contains('.ini', $file_name)) {
+                if (contains('Master', $file_name)) {
+                    $this->ini_master_db_file = $file_name;
                 } else {
-                    $this->ini_import_settings_files[] = $file;
+                    $this->ini_import_settings_files[] = $file_name;
                 }
             }
         }
-//        var_dump($this->master_db_ini_file);
-//        var_dump($this->ini_import_settings_files);
-
-//        var_dump($ini_files_list);
     }
 
     public function get_list_of_data_extract()
@@ -169,15 +164,13 @@ class SettingsManager
 
     public function get_rule_of_import()
     {
-        $filename = $this->master_db_ini_file;
+        $filename = $this->ini_master_db_file;
 
         $master = $this->get_inifile_content($filename);
 
         $all_table_settings_content = array();
 
-//        $ini_import_settings_file = 'UserInfoCSVImport.ini';
-
-        foreach ($this->ini_import_settings_files as $ini_import_settings_file){
+        foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
             $table_contents = $this->get_inifile_content($ini_import_settings_file);
 //            set filename in json file
             $table_contents['IniFileName'] = $ini_import_settings_file;
@@ -186,13 +179,7 @@ class SettingsManager
             $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
             $table_contents[self::BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
-//            var_dump($table_contents);
-//            print_r($tableNameInput);
-
             $master_users = $master[$tableNameInput];
-//            echo '<p><h2>DB Convert standard</h2></p>';
-//            echo 'Master users: <p>';
-//            var_dump($master);
 
 //            Column conversion
             $column_name_conversion = $table_contents[self::CONVERSION];
@@ -209,7 +196,7 @@ class SettingsManager
     }
 
     /**
-     * @param $filename
+     * @param $filename     ini file name to read
      */
     public function get_inifile_content($filename): array
     {
