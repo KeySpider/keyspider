@@ -4,6 +4,9 @@
  * User: tuanla
  * Date: 11/22/18
  * Time: 6:50 PM
+ *
+ * Updated by Le Ba Ngu
+ * Date: 2108/11/28
  */
 
 namespace App\Ldaplibs\Import;
@@ -49,12 +52,15 @@ class CSVReader implements DataInputReader
             'pattern' => $setting[self::CONFIGURATION]['FileName'],
         ];
         $list_file_csv = $this->scan_file($path, $options);
+        if (empty($list_file_csv)) {
+            dd('ko co file csv nao ca');
+        } else {
+            // get all data from all file csv
+            $all_data = $this->get_data_from_all_file($list_file_csv);
 
-        // get all data from all file csv
-        $all_data = $this->get_data_from_all_file_csv($list_file_csv);
-
-        // finish , insert data into pgsql
-        $this->insert_all_data_DB($all_data);
+            // finish , insert data into pgsql
+            $this->insert_all_data_DB($all_data);
+        }
     }
 
     /**
@@ -117,25 +123,34 @@ class CSVReader implements DataInputReader
     public function scan_file($path, $options = [])
     {
         $pattern = $options['pattern'];
-        $files = [];
+        $list_file_csv = [];
         $pathDir = storage_path("{$path}");
-        foreach (scandir($pathDir) as $key => $file) {
-            if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
-                array_push($files, "{$path}/{$file}");
+        $validate_file = ['csv'];
+
+        if (is_dir($pathDir)) {
+            foreach (scandir($pathDir) as $key => $file) {
+                $ext = pathinfo($file, PATHINFO_EXTENSION);
+                if (in_array($ext, $validate_file)) {
+                    if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
+                        array_push($list_file_csv, "{$path}/{$file}");
+                    }
+                }
             }
+            return $list_file_csv;
+        } else {
+            die;
         }
-        return $files;
     }
 
     /**
-     * @param array $list_file_csv
+     * @param array $list_file
      * @return array
      */
-    public function get_data_from_all_file_csv($list_file_csv = [])
+    public function get_data_from_all_file($list_file = [])
     {
         $all_data = [];
-        foreach ($list_file_csv as $file_csv) {
-            $all_data[] = $this->get_data_from_one_file_csv($file_csv);
+        foreach ($list_file as $file_csv) {
+            $all_data[] = $this->get_data_from_one_file($file_csv);
         }
         return $all_data;
     }
@@ -144,7 +159,7 @@ class CSVReader implements DataInputReader
      * @param $file_csv
      * @return array
      */
-    public function get_data_from_one_file_csv($file_csv)
+    public function get_data_from_one_file($file_csv)
     {
         $data = [];
         $path = $pathDir = storage_path("{$file_csv}");
@@ -180,7 +195,6 @@ class CSVReader implements DataInputReader
                 DB::statement("
                     INSERT INTO {$name_table}({$columns}) values ({$tmp});
                 ");
-                $tmp = [];
             }
         }
     }
