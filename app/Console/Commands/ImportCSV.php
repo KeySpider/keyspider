@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Ldaplibs\SettingsManager;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use DB;
 use Illuminate\Support\Facades\Storage;
 use Marquine\Etl\Job;
+use function Symfony\Component\Console\Tests\Command\createClosure;
 
 class ImportCSV extends Command
 {
@@ -61,7 +63,25 @@ class ImportCSV extends Command
         $list_file = $this->scanFileCSV($filePath, $fileName);
 
         // reader data from list csv
-        $this->readerDataFromListCSV($table, $list_file);
+        $this->renderAllFileCSV($table, $list_file);
+    }
+
+    /**
+     * @param $table
+     * @param $params
+     * @return array
+     */
+    protected function getColumn($table, $params)
+    {
+        $fields = [];
+        foreach ($params as $key => $item) {
+            if ($key !== "" && preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) !== 1) {
+                $search = "{$table}.";
+                $newKey = str_replace($search, '', $key);
+                array_push($fields, $newKey);
+            }
+        }
+        return $fields;
     }
 
     /**
@@ -73,15 +93,7 @@ class ImportCSV extends Command
      */
     protected function createTable($table, $params)
     {
-        $fields = [];
-        foreach ($params as $key => $item) {
-            if ($key !== "" && preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) !== 1) {
-                $search = "{$table}.";
-                $newKey = str_replace($search, '', $key);
-                array_push($fields, $newKey);
-            }
-        }
-
+        $fields = $this->getColumn($table, $params);
         $sql = "";
         foreach ($fields as $key => $column) {
             if ($key < count($fields) - 1) {
@@ -142,25 +154,63 @@ class ImportCSV extends Command
     /**
      * @param array $files
      */
-    protected function readerDataFromListCSV($table, $files = [])
+    protected function renderAllFileCSV($table, $files = [])
     {
-        foreach ($files as $file) {
-            $this->processFileCSV($table, $file);
+        foreach ($files as $fileName) {
+            $data[] = $this->processFileCSV($fileName);
+        }
+
+        $setting = $this->setting();
+        $columns = $this->getColumn($table, $setting[self::CONVERSION]);
+
+        $prColumn = [];
+        foreach ($columns as $cl) {
+            array_push($prColumn, "\"{$cl}\"");
+        }
+        $columns = implode(",", $prColumn);
+
+        // bulk insert
+        foreach ($data as $key => $item) {
+            foreach ($item as $key2 => $item2) {
+                $tmp = [];
+                foreach ($item2 as $key3 => $item3) {
+                    array_push($tmp, "'{$item3}'");
+                }
+
+                $tmp = implode(",", $tmp);
+
+                // insert
+                DB::statement("
+                    INSERT INTO {$table}({$columns}) values ({$tmp});
+                ");
+                $tmp = [];
+            }
         }
     }
 
-    protected function processFileCSV($table, $fileName)
+    /**
+     * @param $fileName
+     * @return array
+     */
+    protected function processFileCSV($fileName)
     {
-        $path        = $pathDir = storage_path("{$fileName}");
+        $path = $pathDir = storage_path("{$fileName}");
 
         foreach (file($path) as $line) {
             $data_line = str_getcsv($line);
-            $this->saveData($data_line);
+            $data[] = $this->getDataMaster($data_line);
         }
+
+        return $data;
     }
 
-    protected function saveData($dataRows)
+    /**
+     * @param $dataRows
+     * @return array
+     */
+    protected function getDataMaster($dataRows)
     {
+        $data = [];
         $setting     = $this->setting();
         $conversions = $setting[self::CONVERSION];
 
@@ -170,15 +220,56 @@ class ImportCSV extends Command
             }
         }
 
-        $data = [];
-
         foreach ($conversions as $col => $pattern) {
+            if ($pattern === 'admin') {
+                $data[$col] = 'admin';
+            } else if ($pattern === 'TODAY()') {
+                $data[$col] = Carbon::now()->format('Y/m/d');
+            } else if ($pattern === '0') {
+                $data[$col] = '0';
+            } else {
+                $data[$col] = $this->convertData($pattern, $dataRows);
+            }
+        }
 
-            $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
-            if ($success) {
-                foreach ($dataRows as $key => $value) {
-                    $tmp = $conversions;
+        return $data;
+    }
 
+    /**
+     * @param $pattern
+     * @param $data
+     * @return mixed|string
+     */
+    protected function convertData($pattern, $data)
+    {
+        $stt = null;
+        $group = null;
+        $regx = null;
+
+        $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
+        if ($success) {
+            $stt = (int)$match['exp1'];
+            $regx = $match['exp2'];
+            $group = (int) str_replace('$','',$match['exp3']);
+        } else {
+            print_r('Error');
+        }
+
+        foreach ($data as $key => $item) {
+            if ($stt === $key + 1) {
+                if ($regx === "") {
+                    return $item;
+                } else {
+                    if ($regx === '\s') {
+                        return str_replace(' ', '', $item);
+                    }
+                    if ($regx === '\w') {
+                        return strtolower($item);
+                    }
+                    $check = preg_match("/{$regx}/", $item, $str);
+                    if ($check) {
+                        return $str[$group];
+                    }
                 }
             }
         }
