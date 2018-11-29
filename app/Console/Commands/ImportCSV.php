@@ -56,8 +56,6 @@ class ImportCSV extends Command
             }
         }
 
-        $this->info('
-            **======= Import Data CSV is successfully generated! ======****
-        ');
+        $this->info('**======= Import Data CSV is successfully generated! ======****');
     }
 }

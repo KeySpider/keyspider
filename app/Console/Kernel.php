@@ -2,18 +2,12 @@
 
 namespace App\Console;
 
-use App\Console\Commands\ImportCSV;
-use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
 
 class Kernel extends ConsoleKernel
 {
-
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
-
     /**
      * The Artisan commands provided by your application.
      *
@@ -31,7 +25,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('command:ImportCSV');
+        // do something
     }
 
     /**
