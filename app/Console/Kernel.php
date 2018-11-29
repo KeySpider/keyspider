@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Console\Commands\ImportCSV;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -30,26 +31,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-//        $setting_management = new SettingsManager();
-//        $list_setting = $setting_management->get_rule_of_import();
-//
-//        $schedule->call(function () {
-//            // do something
-//        })->dailyAt('');
-//
-//        dd($list_setting);
-//
-//        foreach ($list_setting as $setting) {
-////            $execution_time
-//        }
-//
-//        $schedule->command('command:ImportCSV', [])
-//                ->timezone('Asia/Ho_Chi_Minh')
-//                ->dailyAt('15:25');
-//
-//        $schedule->command('command:ImportCSV')
-//            ->timezone('Asia/Ho_Chi_Minh')
-//            ->dailyAt('');
+//        $schedule->command(ImportCSV::class)
     }
 
     /**
