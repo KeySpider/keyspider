@@ -100,15 +100,23 @@ class SettingsManager
 
     public function get_schedule_import_execution()
     {
-        $json_settings = $this->get_rule_of_import();
-//        print (json_encode($json_settings, JSON_PRETTY_PRINT));
+        $rule = ($this->get_rule_of_import());
         $time_array = array();
-        foreach ($json_settings as $a_setting){
-            $executionTime = $a_setting[self::BASIC_CONFIGURATION]['ExecutionTime'];
-            print (json_encode($executionTime, JSON_PRETTY_PRINT));
-            $time_array = array_merge($time_array,$executionTime);
+//        foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
+        foreach ($rule as $table_contents) {
+//            $table_contents = $this->get_inifile_content($ini_import_settings_file);
+            foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time){
+                $files_array = array();
+                $files_array['setting'] = $table_contents;
+                $files_array['files'] = $this->get_files_from_pattern($table_contents[$this::BASIC_CONFIGURATION]['FilePath'],
+                    $table_contents[$this::BASIC_CONFIGURATION]['FileName']);
+
+                $time_array[$specify_time][] = $files_array;
+            }
         }
+
         return $time_array;
+//        return $this->get_files_from_pattern('/file_csv/user', 'hogehoge[0-9]{3}.csv');
     }
 
     public function get_files_from_pattern($path, $pattern)
@@ -123,7 +131,7 @@ class SettingsManager
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
                 if (in_array($ext, $validate_file)) {
                     if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
-                        array_push($data['file_csv'], "{$path}/{$file}");
+                        array_push($data, "{$path}/{$file}");
                     }
                 }
             }
@@ -136,5 +144,16 @@ class SettingsManager
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
+    }
+
+
+}
+
+class ReadableCSVFile{
+    public $setting_array;
+    public $file_path;
+    public function __construct()
+    {
+
     }
 }
