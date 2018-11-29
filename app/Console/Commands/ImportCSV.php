@@ -42,7 +42,8 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-        $import_csv = new CSVReader(new SettingsManager());
-        $import_csv->process();
+        $csv_reader = new CSVReader(new SettingsManager());
+        $csv_reader->process();
+
     }
 }

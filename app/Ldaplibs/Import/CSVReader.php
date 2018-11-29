@@ -14,6 +14,7 @@ use App\Ldaplibs\Import\DataInputReader;
 use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
+use Mockery\Exception;
 
 class CSVReader implements DataInputReader
 {
@@ -35,38 +36,53 @@ class CSVReader implements DataInputReader
      */
     public function process()
     {
-        // get name table from file setting
-        $settings = $this->setting->get_rule_of_import();
+        try {
+            // get name table from file setting
+            $settings = $this->setting->get_rule_of_import();
 
-        foreach ($settings as $setting) {
-            $name_table = $this->get_name_table_from_setting($setting);
+            if (!empty($settings)) {
+                foreach ($settings as $setting) {
+                    $name_table = $this->get_name_table_from_setting($setting);
 
-            // get all columns from file setting
-            $columns = $this->get_all_column_from_setting($setting);
+                    // get all columns from file setting
+                    $columns = $this->get_all_column_from_setting($setting);
 
-            // New table from file setting
-            $this->create_table($name_table, $columns);
+                    // New table from file setting
+                    $this->create_table($name_table, $columns);
 
-            // Scan file csv from path, setting
-            $path = $setting[self::CONFIGURATION]['FilePath'];
+                    // Scan file csv from path, setting
+                    $path = $setting[self::CONFIGURATION]['FilePath'];
 
-            $options = [
-                'file_type' => 'csv',
-                'pattern' => $setting[self::CONFIGURATION]['FileName'],
-            ];
-            $list_file_csv = $this->scan_file($path, $options);
-            if (empty($list_file_csv)) {
-                dump('ko co file csv nao ca');
+                    $options = [
+                        'file_type' => 'csv',
+                        'pattern' => $setting[self::CONFIGURATION]['FileName'],
+                    ];
+                    $list_file_csv = $this->scan_file($path, $options);
+                    if (empty($list_file_csv)) {
+                        dump('ko co file csv nao ca');
+                    } else {
+                        // get all data from all file csv
+                        $params = [
+                            'CONVERSATION' => $setting[self::CONVERSION],
+                        ];
+                        $all_data = $this->get_data_from_all_file($list_file_csv, $params);
+
+                        if (!empty($all_data)) {
+                            // finish , insert data into pgsql
+                            $this->insert_all_data_DB($all_data, $setting);
+
+                            // move file after insert data success
+
+                        } else {
+                            dump('ko co data de insert');
+                        }
+                    }
+                }
             } else {
-                // get all data from all file csv
-                $params = [
-                    'CONVERSATION' => $setting[self::CONVERSION],
-                ];
-                $all_data = $this->get_data_from_all_file($list_file_csv, $params);
-
-                // finish , insert data into pgsql
-                $this->insert_all_data_DB($all_data, $setting);
+                dump('ko ton tai file setting');
             }
+        } catch (Exception $err) {
+
         }
     }
 
@@ -76,8 +92,12 @@ class CSVReader implements DataInputReader
      */
     public function get_name_table_from_setting($setting)
     {
-        $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
-        return $name_table;
+        try {
+            $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
+            return $name_table;
+        } catch (Exception $exception) {
+
+        }
     }
 
     /**
@@ -255,7 +275,7 @@ class CSVReader implements DataInputReader
             $regx = $match['exp2'];
             $group = (int) str_replace('$','',$match['exp3']);
         } else {
-            print_r('Error');
+            print_r("Error \n");
         }
 
         foreach ($data as $key => $item) {
