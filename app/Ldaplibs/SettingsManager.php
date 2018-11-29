@@ -123,7 +123,7 @@ class SettingsManager
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
                 if (in_array($ext, $validate_file)) {
                     if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
-                        array_push($data['file_csv'], "{$path}/{$file}");
+                        array_push($data, "{$path}/{$file}");
                     }
                 }
             }
