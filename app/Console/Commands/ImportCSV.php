@@ -51,7 +51,7 @@ class ImportCSV extends Command
             $list_file = $item['file_csv'];
 
             foreach ($list_file as $file) {
-                $db_importer = new DBImporter($setting, $file, $csv_reader);
+                $db_importer = new DBImporter($setting, $file);
                 $db_importer->import();
             }
         }
