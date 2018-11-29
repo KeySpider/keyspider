@@ -55,5 +55,9 @@ class ImportCSV extends Command
                 $db_importer->import();
             }
         }
+
+        $this->info('
+            **======= Import Data CSV is successfully generated! ======****
+        ');
     }
 }

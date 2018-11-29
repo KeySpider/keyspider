@@ -31,7 +31,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-//        $schedule->command(ImportCSV::class)
+        $schedule->command('command:ImportCSV');
     }
 
     /**
