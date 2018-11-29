@@ -110,4 +110,31 @@ class SettingsManager
         }
         return $time_array;
     }
+
+    public function get_files_from_pattern($path, $pattern)
+    {
+        $data = [];
+
+        $pathDir = storage_path("{$path}");
+        $validate_file = ['csv'];
+
+        if (is_dir($pathDir)) {
+            foreach (scandir($pathDir) as $key => $file) {
+                $ext = pathinfo($file, PATHINFO_EXTENSION);
+                if (in_array($ext, $validate_file)) {
+                    if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
+                        array_push($data['file_csv'], "{$path}/{$file}");
+                    }
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    protected function remove_ext($file_name)
+    {
+        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+        return $file;
+    }
 }
