@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\DBImporterJob;
+use App\Jobs\QueueJobTesting;
 use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Http\Request;
 use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\Import\DataInputReader;
 use App\Http\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class ImportController extends Controller
 {
@@ -29,5 +32,9 @@ class ImportController extends Controller
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
+
+        Log::info("Process the queue...");
+//        $this->dispatch(new QueueJobTesting());
+        $this->dispatch(new DBImporterJob());
     }
 }

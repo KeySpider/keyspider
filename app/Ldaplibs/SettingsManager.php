@@ -44,6 +44,9 @@ class SettingsManager
         return [];
     }
 
+    /**
+     * @return array
+     */
     public function get_rule_of_import()
     {
         $filename = $this->ini_master_db_file;
@@ -79,6 +82,7 @@ class SettingsManager
 
     /**
      * @param $filename     ini file name to read
+     * @return array of key/value from ini file.
      */
     public function get_inifile_content($filename): array
     {
