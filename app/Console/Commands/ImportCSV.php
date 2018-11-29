@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
+use Marquine\Etl\Job;
 
 class ImportCSV extends Command
 {
@@ -21,12 +23,6 @@ class ImportCSV extends Command
      * @var string
      */
     protected $description = 'Reader setting import file and process it';
-
-    /**
-     * define const
-     */
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
 
     /**
      * Create a new command instance.
@@ -46,19 +42,7 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-//        $setting = $this->setting();
-//        dump($setting);
-    }
-
-    protected function createTable()
-    {
-
-    }
-
-    protected function setting()
-    {
-//        $import_settings = new SettingsManager();
-//        $setting = $import_settings->get_rule_of_import();
-//        return json_decode($setting);
+        $import_csv = new CSVReader(new SettingsManager());
+        $import_csv->process();
     }
 }
