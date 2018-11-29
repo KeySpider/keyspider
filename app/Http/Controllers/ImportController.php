@@ -27,14 +27,30 @@ class ImportController extends Controller
     public function readSettings(){
         echo '<pre>';
         $import_settings = new SettingsManager();
-        $user_rule = $import_settings->get_rule_of_import();
+//        $user_rule = $import_settings->get_rule_of_import();
+        $user_rule = $import_settings->get_schedule_import_execution();
 
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
 
-        Log::info("Process the queue...");
+        $csv_reader = new CSVReader(new SettingsManager());
+        $list_file_csv = $csv_reader->get_list_file_csv_setting();
+
+        foreach ($list_file_csv as $item) {
+            $setting = $item['setting'];
+            $list_file = $item['file_csv'];
+
+            foreach ($list_file as $file) {
+//                $db_importer = new DBImporter($setting, $file);
+//                $db_importer->import();
+                $db_importer = new DBImporterJob($setting, $file);
+                dispatch($db_importer);
+            }
+        }
+
+//        Log::info("Process the queue...");
 //        $this->dispatch(new QueueJobTesting());
-        $this->dispatch(new DBImporterJob());
+//        $this->dispatch(new DBImporterJob());
     }
 }
