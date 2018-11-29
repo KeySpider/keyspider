@@ -8,12 +8,30 @@
 
 namespace App\Ldaplibs\Import;
 
-
 use App\Ldaplibs\SettingsManager;
+use DB;
 
 class DBImporter
 {
-    public function import(){
+    protected $setting;
+    protected $file_name;
+    protected $csv_reader;
+
+    const CONVERSION = "CSV Import Process Format Conversion";
+    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+
+    public function __construct($setting, $file_name, $csv_reader)
+    {
+        $this->setting = $setting;
+        $this->file_name = $file_name;
+        $this->csv_reader = $csv_reader;
+    }
+
+    /**
+     * import
+     */
+    public function import_test()
+    {
         $file_list = $this->get_file_list_from_json($file_name='');
         $queue = new ImportQueueManager($file_list);
         $settings = new SettingsManager();
@@ -25,12 +43,39 @@ class DBImporter
         }
         $queue->process();
     }
+
     private function get_file_list_from_json($file_name)
     {
-
-//        $file_name is the file list container
-//        [{'file_name':'1.csv', 'file_type':'csv'}]
         return [];
+    }
+
+    public function import()
+    {
+        $name_table = $this->csv_reader->get_name_table_from_setting($this->setting);
+        $columns = $this->csv_reader->get_all_column_from_setting($this->setting);
+
+        $this->csv_reader->create_table($name_table, $columns);
+
+        $params = [
+            'CONVERSATION' => $this->setting[self::CONVERSION],
+        ];
+        $data = $this->csv_reader->get_data_from_one_file($this->file_name, $params);
+        $columns = implode(",", $columns);
+
+         // bulk insert
+        foreach ($data as $key2 => $item2) {
+            $tmp = [];
+            foreach ($item2 as $key3 => $item3) {
+                array_push($tmp, "'{$item3}'");
+            }
+
+            $tmp = implode(",", $tmp);
+
+            // insert
+            DB::statement("
+                INSERT INTO {$name_table}({$columns}) values ({$tmp});
+            ");
+        }
     }
 }
 

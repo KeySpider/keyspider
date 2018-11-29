@@ -47,9 +47,9 @@ class Kernel extends ConsoleKernel
 //                ->timezone('Asia/Ho_Chi_Minh')
 //                ->dailyAt('15:25');
 //
-//        $schedule->command('command:ImportCSV')
-//            ->timezone('Asia/Ho_Chi_Minh')
-//            ->dailyAt('15:30');
+        $schedule->command('command:ImportCSV')
+            ->timezone('Asia/Ho_Chi_Minh')
+            ->dailyAt('');
     }
 
     /**
