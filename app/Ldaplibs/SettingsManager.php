@@ -8,6 +8,8 @@
 
 namespace App\Ldaplibs;
 
+use App\Ldaplibs\Import\CSVReader;
+
 function contains($needle, $haystack)
 {
     return strpos($haystack, $needle) !== false;
@@ -20,6 +22,7 @@ class SettingsManager
     const INI_CONFIGS = "ini_configs";
     private $ini_import_settings_files = array();
     private $ini_master_db_file = null;
+    private $all_table_settings_content = null;
 
     const BASIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
 
@@ -49,11 +52,15 @@ class SettingsManager
      */
     public function get_rule_of_import()
     {
+        if ($this->all_table_settings_content){
+            return $this->all_table_settings_content;
+        }
+
         $filename = $this->ini_master_db_file;
 
         $master = $this->get_inifile_content($filename);
 
-        $all_table_settings_content = array();
+        $this->all_table_settings_content = array();
 
         foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
             $table_contents = $this->get_inifile_content($ini_import_settings_file);
@@ -75,9 +82,9 @@ class SettingsManager
                 }
             $table_contents[self::CONVERSION] = $column_name_conversion;
 
-            $all_table_settings_content[] = $table_contents;
+            $this->all_table_settings_content[] = $table_contents;
         }
-        return $all_table_settings_content;
+        return $this->all_table_settings_content;
     }
 
     /**
@@ -89,5 +96,18 @@ class SettingsManager
         $ini_path = $this->ini_settings_folders . $filename;
         $ini_array = parse_ini_file($ini_path, true);
         return $ini_array;
+    }
+
+    public function get_schedule_import_execution()
+    {
+        $json_settings = $this->get_rule_of_import();
+//        print (json_encode($json_settings, JSON_PRETTY_PRINT));
+        $time_array = array();
+        foreach ($json_settings as $a_setting){
+            $executionTime = $a_setting[self::BASIC_CONFIGURATION]['ExecutionTime'];
+            print (json_encode($executionTime, JSON_PRETTY_PRINT));
+            $time_array = array_merge($time_array,$executionTime);
+        }
+        return $time_array;
     }
 }
