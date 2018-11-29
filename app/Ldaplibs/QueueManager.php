@@ -9,14 +9,21 @@
 namespace App\Ldaplibs;
 
 
+use App\Jobs\DBImporterJob;
+
 class QueueManager
 {
 
-    public function push($file)
+    public function push()
     {
-
+        $importer = new DBImporterJob();
+        dispatch($importer);
     }
 
+    public function push_high_priority(){
+        $importer = new DBImporterJob();
+        dispatch($importer)->onQueue('high');
+    }
     public function pop($file)
     {
 

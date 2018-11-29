@@ -20,11 +20,11 @@ class DBImporter
     const CONVERSION = "CSV Import Process Format Conversion";
     const CONFIGURATION = "CSV Import Process Bacic Configuration";
 
-    public function __construct($setting, $file_name, $csv_reader)
+    public function __construct($setting, $file_name)
     {
         $this->setting = $setting;
         $this->file_name = $file_name;
-        $this->csv_reader = $csv_reader;
+        $this->csv_reader = new CSVReader(new SettingsManager());
     }
 
     /**
