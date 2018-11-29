@@ -14,6 +14,7 @@ use App\Ldaplibs\Import\DataInputReader;
 use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
+use Mockery\Exception;
 
 class CSVReader implements DataInputReader
 {
@@ -30,43 +31,46 @@ class CSVReader implements DataInputReader
         $this->setting = $setting;
     }
 
-    /**
-     * Process reader file csv
-     */
-    public function process()
+    public function get_list_file_csv_setting()
     {
         // get name table from file setting
+        $data_csv = [];
         $settings = $this->setting->get_rule_of_import();
 
-        foreach ($settings as $setting) {
-            $name_table = $this->get_name_table_from_setting($setting);
+        if (!empty($settings)) {
+            foreach ($settings as $setting) {
+                // Scan file csv from path, setting
+                $path = $setting[self::CONFIGURATION]['FilePath'];
 
-            // get all columns from file setting
-            $columns = $this->get_all_column_from_setting($setting);
-
-            // New table from file setting
-            $this->create_table($name_table, $columns);
-
-            // Scan file csv from path, setting
-            $path = $setting[self::CONFIGURATION]['FilePath'];
-
-            $options = [
-                'file_type' => 'csv',
-                'pattern' => $setting[self::CONFIGURATION]['FileName'],
-            ];
-            $list_file_csv = $this->scan_file($path, $options);
-            if (empty($list_file_csv)) {
-                dump('ko co file csv nao ca');
-            } else {
-                // get all data from all file csv
-                $params = [
-                    'CONVERSATION' => $setting[self::CONVERSION],
+                $options = [
+                    'file_type' => 'csv',
+                    'pattern' => $setting[self::CONFIGURATION]['FileName'],
                 ];
-                $all_data = $this->get_data_from_all_file($list_file_csv, $params);
 
-                // finish , insert data into pgsql
-                $this->insert_all_data_DB($all_data, $setting);
+                $pattern = $options['pattern'];
+                $list_file_csv = [
+                    "setting" => $setting,
+                    "file_csv" => [],
+                ];
+                $pathDir = storage_path("{$path}");
+                $validate_file = ['csv'];
+
+                if (is_dir($pathDir)) {
+                    foreach (scandir($pathDir) as $key => $file) {
+                        $ext = pathinfo($file, PATHINFO_EXTENSION);
+                        if (in_array($ext, $validate_file)) {
+                            if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
+                                array_push($list_file_csv['file_csv'], "{$path}/{$file}");
+                            }
+                        }
+                    }
+
+                    array_push($data_csv, $list_file_csv);
+                }
             }
+            return $data_csv;
+        } else {
+            dump('ko ton tai file setting');
         }
     }
 
@@ -76,8 +80,12 @@ class CSVReader implements DataInputReader
      */
     public function get_name_table_from_setting($setting)
     {
-        $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
-        return $name_table;
+        try {
+            $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
+            return $name_table;
+        } catch (Exception $exception) {
+
+        }
     }
 
     /**
@@ -122,48 +130,6 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $path
-     * @param array $options
-     * @return array
-     */
-    public function scan_file($path, $options = [])
-    {
-        $pattern = $options['pattern'];
-        $list_file_csv = [];
-        $pathDir = storage_path("{$path}");
-        $validate_file = ['csv'];
-
-        if (is_dir($pathDir)) {
-            foreach (scandir($pathDir) as $key => $file) {
-                $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if (in_array($ext, $validate_file)) {
-                    if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
-                        array_push($list_file_csv, "{$path}/{$file}");
-                    }
-                }
-            }
-            return $list_file_csv;
-        } else {
-            dump('dir nay ko ton tai');
-            return [];
-        }
-    }
-
-    /**
-     * @param array $list_file
-     * @param array $options
-     * @return array
-     */
-    public function get_data_from_all_file($list_file = [], $options = [])
-    {
-        $all_data = [];
-        foreach ($list_file as $file_csv) {
-            $all_data[] = $this->get_data_from_one_file($file_csv, $options);
-        }
-        return $all_data;
-    }
-
-    /**
      * @param $file_csv
      * @param array $options
      * @return array
@@ -177,34 +143,6 @@ class CSVReader implements DataInputReader
             $data[] = $this->get_data_after_process($data_line, $options);
         }
         return $data;
-    }
-
-    /**
-     * @param $big_data
-     * @param $setting
-     */
-    public function insert_all_data_DB($big_data, $setting)
-    {
-        $name_table = $this->get_name_table_from_setting($setting);
-        $columns = $this->get_all_column_from_setting($setting);
-        $columns = implode(",", $columns);
-
-        // bulk insert
-        foreach ($big_data as $key => $item) {
-            foreach ($item as $key2 => $item2) {
-                $tmp = [];
-                foreach ($item2 as $key3 => $item3) {
-                    array_push($tmp, "'{$item3}'");
-                }
-
-                $tmp = implode(",", $tmp);
-
-                // insert
-                DB::statement("
-                    INSERT INTO {$name_table}({$columns}) values ({$tmp});
-                ");
-            }
-        }
     }
 
     /**
@@ -255,7 +193,7 @@ class CSVReader implements DataInputReader
             $regx = $match['exp2'];
             $group = (int) str_replace('$','',$match['exp3']);
         } else {
-            print_r('Error');
+            print_r("Error \n");
         }
 
         foreach ($data as $key => $item) {

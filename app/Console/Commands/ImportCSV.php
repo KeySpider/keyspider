@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Ldaplibs\Import\CSVReader;
+use App\Ldaplibs\Import\DBImporter;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
@@ -42,7 +43,17 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-        $import_csv = new CSVReader(new SettingsManager());
-        $import_csv->process();
+        $csv_reader = new CSVReader(new SettingsManager());
+        $list_file_csv = $csv_reader->get_list_file_csv_setting();
+
+        foreach ($list_file_csv as $item) {
+            $setting = $item['setting'];
+            $list_file = $item['file_csv'];
+
+            foreach ($list_file as $file) {
+                $db_importer = new DBImporter($setting, $file, $csv_reader);
+                $db_importer->import();
+            }
+        }
     }
 }

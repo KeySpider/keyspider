@@ -9,6 +9,10 @@ use DB;
 
 class Kernel extends ConsoleKernel
 {
+
+    const CONVERSION = "CSV Import Process Format Conversion";
+    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+
     /**
      * The Artisan commands provided by your application.
      *
@@ -26,9 +30,26 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-//        $schedule->command('command:ImportCSV')
+//        $setting_management = new SettingsManager();
+//        $list_setting = $setting_management->get_rule_of_import();
+//
+//        $schedule->call(function () {
+//            // do something
+//        })->dailyAt('');
+//
+//        dd($list_setting);
+//
+//        foreach ($list_setting as $setting) {
+////            $execution_time
+//        }
+//
+//        $schedule->command('command:ImportCSV', [])
 //                ->timezone('Asia/Ho_Chi_Minh')
-//                ->dailyAt('09:25');
+//                ->dailyAt('15:25');
+//
+//        $schedule->command('command:ImportCSV')
+//            ->timezone('Asia/Ho_Chi_Minh')
+//            ->dailyAt('');
     }
 
     /**
