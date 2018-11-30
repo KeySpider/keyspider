@@ -25,6 +25,9 @@ class ImportCSV extends Command
      */
     protected $description = 'Reader setting import file and process it';
 
+    const CONVERSION = "CSV Import Process Format Conversion";
+    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+
     /**
      * Create a new command instance.
      *
@@ -45,13 +48,23 @@ class ImportCSV extends Command
     {
         $csv_reader = new CSVReader(new SettingsManager());
         $list_file_csv = $csv_reader->get_list_file_csv_setting();
+        dd($list_file_csv);
 
         foreach ($list_file_csv as $item) {
             $setting = $item['setting'];
             $list_file = $item['file_csv'];
 
+            $table = $csv_reader->get_name_table_from_setting($setting);
+            $columns = $csv_reader->get_all_column_from_setting($setting);
+            $csv_reader->create_table($table, $columns);
+
+            $params = [
+                'CONVERSATION' => $setting[self::CONVERSION],
+            ];
+            
             foreach ($list_file as $file) {
-                $db_importer = new DBImporter($setting, $file);
+                $data = $csv_reader->get_data_from_one_file($file, $params);
+                $db_importer = new DBImporter($table, implode(",", $columns), $data);
                 $db_importer->import();
             }
         }

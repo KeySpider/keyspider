@@ -13,18 +13,15 @@ use DB;
 
 class DBImporter
 {
-    protected $setting;
-    protected $file_name;
-    protected $csv_reader;
+    protected $table;
+    protected $columns;
+    protected $data;
 
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
-
-    public function __construct($setting, $file_name)
+    public function __construct($table, $columns, $data)
     {
-        $this->setting = $setting;
-        $this->file_name = $file_name;
-        $this->csv_reader = new CSVReader(new SettingsManager());
+        $this->table = $table;
+        $this->columns = $columns;
+        $this->data = $data;
     }
 
     /**
@@ -51,19 +48,8 @@ class DBImporter
 
     public function import()
     {
-        $name_table = $this->csv_reader->get_name_table_from_setting($this->setting);
-        $columns = $this->csv_reader->get_all_column_from_setting($this->setting);
-
-        $this->csv_reader->create_table($name_table, $columns);
-
-        $params = [
-            'CONVERSATION' => $this->setting[self::CONVERSION],
-        ];
-        $data = $this->csv_reader->get_data_from_one_file($this->file_name, $params);
-        $columns = implode(",", $columns);
-
          // bulk insert
-        foreach ($data as $key2 => $item2) {
+        foreach ($this->data as $key2 => $item2) {
             $tmp = [];
             foreach ($item2 as $key3 => $item3) {
                 array_push($tmp, "'{$item3}'");
@@ -72,9 +58,13 @@ class DBImporter
             $tmp = implode(",", $tmp);
 
             // insert
-            DB::statement("
-                INSERT INTO {$name_table}({$columns}) values ({$tmp});
+            $is_insert_db = DB::statement("
+                INSERT INTO {$this->table}({$this->columns}) values ({$tmp});
             ");
+            if ($is_insert_db) {
+                return true;
+            }
+            return false;
         }
     }
 }
