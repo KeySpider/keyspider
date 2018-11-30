@@ -81,6 +81,7 @@ class CSVReader implements DataInputReader
     public function get_name_table_from_setting($setting)
     {
         $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
+        $name_table = "\"{$name_table}\"";
         return $name_table;
     }
 
@@ -118,7 +119,6 @@ class CSVReader implements DataInputReader
                 $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
-        $name_table = "\"{$name_table}\"";
         DB::statement("
             CREATE TABLE IF NOT EXISTS {$name_table}(
                 {$sql}
