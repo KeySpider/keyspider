@@ -118,6 +118,7 @@ class CSVReader implements DataInputReader
                 $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
+        $name_table = "\"{$name_table}\"";
         DB::statement("
             CREATE TABLE IF NOT EXISTS {$name_table}(
                 {$sql}
