@@ -113,9 +113,9 @@ class CSVReader implements DataInputReader
         $sql = "";
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
-                $sql .= "{$col} VARCHAR (50) NULL,";
+                $sql .= "{$col} VARCHAR (250) NULL,";
             } else {
-                $sql .= "{$col} VARCHAR (50) NULL";
+                $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
         DB::statement("
