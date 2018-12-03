@@ -81,6 +81,7 @@ class CSVReader implements DataInputReader
     public function get_name_table_from_setting($setting)
     {
         $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
+        $name_table = "\"{$name_table}\"";
         return $name_table;
     }
 
@@ -113,9 +114,9 @@ class CSVReader implements DataInputReader
         $sql = "";
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
-                $sql .= "{$col} VARCHAR (50) NULL,";
+                $sql .= "{$col} VARCHAR (250) NULL,";
             } else {
-                $sql .= "{$col} VARCHAR (50) NULL";
+                $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
         DB::statement("
