@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use File;
-use Illuminate\Support\Facades\Storage;
+use DB;
 
 class ProcessPodcast implements ShouldQueue
 {
@@ -41,53 +41,37 @@ class ProcessPodcast implements ShouldQueue
     {
         $data_process = $this->data_setting;
 
-        foreach ($data_process as $one_file) {
-            $this->process($one_file);
-        }
-        die;
-    }
+        if (!empty($data_process)) {
+            foreach ($data_process as $one_file) {
+                $csv_reader = new CSVReader(new SettingsManager());
+                $setting    = $one_file['setting'];
+                $files      = $one_file['files'];
 
-    /**
-     * @param $one_file
-     */
-    protected function process($one_file)
-    {
-        $csv_reader = new CSVReader(new SettingsManager());
-        $setting = $one_file['setting'];
-        $files = $one_file['files'];
+                $table = $csv_reader->get_name_table_from_setting($setting);
+                $columns = $csv_reader->get_all_column_from_setting($setting);
+                $csv_reader->create_table($table, $columns);
 
-        $table = $csv_reader->get_name_table_from_setting($setting);
-        $columns = $csv_reader->get_all_column_from_setting($setting);
-        $csv_reader->create_table($table, $columns);
+                $columns = implode(",", $columns);
 
-        $params = [
-            'CONVERSATION' => $setting[self::CONVERSION],
-        ];
+                $params = [
+                    'CONVERSATION' => $setting[self::CONVERSION],
+                ];
 
-        foreach ($files as $file) {
-            $data = $csv_reader->get_data_from_one_file($file, $params);
-            $db_importer = new DBImporter($table, implode(",", $columns), $data);
-            $check_import = $db_importer->import();
+                foreach ($files as $file) {
+                    $data = $csv_reader->get_data_from_one_file($file, $params);
+                    foreach ($data as $key2 => $item2) {
+                        $tmp = [];
+                        foreach ($item2 as $key3 => $item3) {
+                            array_push($tmp, "'{$item3}'");
+                        }
+                        $tmp = implode(",", $tmp);
 
-            if ($check_import) {
-                // move file with new name
-                $this->move_file_after_process($setting[self::CONFIGURATION]['ProcessedFilePath'], $file);
+                        DB::statement("
+                                    INSERT INTO {$table}({$columns}) values ({$tmp});
+                                ");
+                    }
+                }
             }
         }
-    }
-
-    protected function move_file_after_process($file_path, $file)
-    {
-        // check exit dir
-        $file_path = storage_path($file_path);
-
-        if (!is_dir($file_path)) {
-            File::makeDirectory($file_path, 0755, true);
-        }
-
-        dump($file);
-        dump($file_path);
-        Storage::move($file, "{$file_path}/abc.csv");
-        die;
     }
 }
