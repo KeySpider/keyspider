@@ -17,20 +17,25 @@ function contains($needle, $haystack)
 
 class SettingsManager
 {
-    private $ini_settings_folders;
+    private $ini_import_settings_folders;
+    private $ini_export_settings_folders;
     const CONVERSION = "CSV Import Process Format Conversion";
     const INI_CONFIGS = "ini_configs";
     private $ini_import_settings_files = array();
+    private $ini_export_settings_files = array();
     private $ini_master_db_file = null;
     private $all_table_settings_content = null;
 
     const BASIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
 
+    const EXTRACTION_PROCESS_BACIC_CONFIGURATION = "Extraction Process Bacic Configuration";
+
     public function __construct($ini_settings_files = null)
     {
-        $this->ini_settings_folders = storage_path("" . self::INI_CONFIGS . "/import/");
+        $this->ini_import_settings_folders = storage_path("" . self::INI_CONFIGS . "/import/");
+        $this->ini_export_settings_folders = storage_path("" . self::INI_CONFIGS . "/extract/");
 //        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders . "</h3>";
-        $all_files = scandir($this->ini_settings_folders);
+        $all_files = scandir($this->ini_import_settings_folders);
         foreach ($all_files as $file_name) {
             if (contains('.ini', $file_name)) {
                 if (contains('Master', $file_name)) {
@@ -40,11 +45,29 @@ class SettingsManager
                 }
             }
         }
+
+        $all_files = scandir($this->ini_export_settings_folders);
+        foreach ($all_files as $file_name) {
+            if (contains('.ini', $file_name) && contains('Extraction', $file_name)) {
+                $this->ini_export_settings_files[] = $file_name;
+            }
+        }
+
     }
 
-    public function get_list_of_data_extract()
+    public function get_rule_of_data_extract()
     {
-        return [];
+        $time_array = array();
+        foreach ($this->ini_export_settings_files as $ini_export_settings_file) {
+            $table_contents = $this->get_ini_export_file_content($ini_export_settings_file);
+            foreach ($table_contents[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
+                $files_array['setting'] = $table_contents;
+                $time_array[$specify_time][] = $files_array;
+            }
+//            $all_table_contents[] = $table_contents;
+        }
+        ksort($time_array);
+        return $time_array;
     }
 
     /**
@@ -58,12 +81,12 @@ class SettingsManager
 
         $filename = $this->ini_master_db_file;
 
-        $master = $this->get_inifile_content($filename);
+        $master = $this->get_ini_import_file_content($filename);
 
         $this->all_table_settings_content = array();
 
         foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
-            $table_contents = $this->get_inifile_content($ini_import_settings_file);
+            $table_contents = $this->get_ini_import_file_content($ini_import_settings_file);
 //            set filename in json file
             $table_contents['IniFileName'] = $ini_import_settings_file;
 //            Set destination table in database
@@ -91,9 +114,16 @@ class SettingsManager
      * @param $filename     ini file name to read
      * @return array of key/value from ini file.
      */
-    public function get_inifile_content($filename): array
+    public function get_ini_import_file_content($filename): array
     {
-        $ini_path = $this->ini_settings_folders . $filename;
+        $ini_path = $this->ini_import_settings_folders . $filename;
+        $ini_array = parse_ini_file($ini_path, true);
+        return $ini_array;
+    }
+
+    public function get_ini_export_file_content($filename): array
+    {
+        $ini_path = $this->ini_export_settings_folders . $filename;
         $ini_array = parse_ini_file($ini_path, true);
         return $ini_array;
     }
@@ -147,13 +177,4 @@ class SettingsManager
     }
 
 
-}
-
-class ReadableCSVFile{
-    public $setting_array;
-    public $file_path;
-    public function __construct()
-    {
-
-    }
 }
