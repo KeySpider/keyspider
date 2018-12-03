@@ -28,7 +28,7 @@ class SettingsManager
 
     public function __construct($ini_settings_files = null)
     {
-        $this->ini_settings_folders = storage_path("" . self::INI_CONFIGS . "/");
+        $this->ini_settings_folders = storage_path("" . self::INI_CONFIGS . "/import/");
 //        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders . "</h3>";
         $all_files = scandir($this->ini_settings_folders);
         foreach ($all_files as $file_name) {
