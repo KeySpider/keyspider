@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Import\CSVReader;
-use App\Ldaplibs\Import\DBImporter;
 use App\Ldaplibs\SettingsManager;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -12,6 +12,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use File;
 use DB;
+use Illuminate\Support\Facades\Log;
+use Storage;
 
 class ProcessPodcast implements ShouldQueue
 {
@@ -57,6 +59,12 @@ class ProcessPodcast implements ShouldQueue
                     'CONVERSATION' => $setting[self::CONVERSION],
                 ];
 
+                $processedFilePath = storage_path($setting[self::CONFIGURATION]['ProcessedFilePath']);
+
+                if (!File::exists($processedFilePath)) {
+                    File::makeDirectory($processedFilePath, 0755, true);
+                }
+
                 foreach ($files as $file) {
                     $data = $csv_reader->get_data_from_one_file($file, $params);
                     foreach ($data as $key2 => $item2) {
@@ -66,9 +74,19 @@ class ProcessPodcast implements ShouldQueue
                         }
                         $tmp = implode(",", $tmp);
 
-                        DB::statement("
+                        $isInsert = DB::statement("
                                     INSERT INTO {$table}({$columns}) values ({$tmp});
                                 ");
+                        if ($isInsert) {
+                            Log::info("Insert {$table} database, file {$file} is successful");
+                            $now = Carbon::now()->format('Ymd_h:i:s');
+                            $fileName = "H_{$now}.csv";
+                            if (is_file(storage_path($file))) {
+                                File::move(storage_path($file), $processedFilePath.'/'.$fileName);
+                            }
+                        } else {
+                            Log::info("Insert {$table} database, file {$file} is fail");
+                        }
                     }
                 }
             }

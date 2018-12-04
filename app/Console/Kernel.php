@@ -31,7 +31,7 @@ class Kernel extends ConsoleKernel
         $schedule_setting = $setting->get_schedule_import_execution();
 
         foreach ($schedule_setting as $time => $data_setting) {
-            $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+            $schedule->job(new ProcessPodcast($data_setting))->everyMinute();
         }
     }
 
