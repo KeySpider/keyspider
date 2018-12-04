@@ -2,16 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\Import\DBImporter;
-use App\Ldaplibs\SettingsManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-class DBImporterJob extends DBImporter implements ShouldQueue
+class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -32,8 +30,21 @@ class DBImporterJob extends DBImporter implements ShouldQueue
      */
     public function handle()
     {
-//        $import_csv = new CSVReader(new SettingsManager());
-//        $import_csv->process();
         parent::import();
+    }
+
+    public function get_job_name(){
+        return "Import to database";
+    }
+
+    public function get_job_details(){
+        $details = array();
+        $basic_setting = $this->setting['CSV Import Process Bacic Configuration'];
+        $details['File to import'] = $this->file_name;
+        $details['File path'] = $basic_setting['FilePath'];
+        $details['Processed File Path'] = $basic_setting['ProcessedFilePath'];
+        $details['Table Name In DB'] = $basic_setting['TableNameInDB'];
+        $details['Settings File Name'] = $this->setting['IniFileName'];
+        return $details;
     }
 }
