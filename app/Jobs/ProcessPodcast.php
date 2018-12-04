@@ -14,6 +14,7 @@ use File;
 use DB;
 use Illuminate\Support\Facades\Log;
 use Storage;
+use Exception;
 
 class ProcessPodcast implements ShouldQueue
 {
@@ -28,6 +29,8 @@ class ProcessPodcast implements ShouldQueue
      * Create a new job instance.
      *
      * @param $data_setting
+     *
+     * @author ngulb@tect.est-rouge.com
      */
     public function __construct($data_setting)
     {
@@ -41,9 +44,13 @@ class ProcessPodcast implements ShouldQueue
      */
     public function handle()
     {
-        $data_process = $this->data_setting;
+        try {
+            $data_process = $this->data_setting;
 
-        if (!empty($data_process)) {
+            if (empty($data_process)) {
+                Log::channel('import')->info("File setting is empty");
+            }
+
             foreach ($data_process as $one_file) {
                 $csv_reader = new CSVReader(new SettingsManager());
                 $setting    = $one_file['setting'];
@@ -85,11 +92,13 @@ class ProcessPodcast implements ShouldQueue
                                 File::move(storage_path($file), $processedFilePath.'/'.$fileName);
                             }
                         } else {
-                            Log::info("Insert {$table} database, file {$file} is fail");
+                            Log::channel('import')->error("Insert {$table} database, file {$file} is fail");
                         }
                     }
                 }
             }
+        } catch (Exception $e) {
+            Log::channel('import')->error($e);
         }
     }
 }

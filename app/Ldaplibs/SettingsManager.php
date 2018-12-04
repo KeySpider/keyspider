@@ -132,9 +132,7 @@ class SettingsManager
     {
         $rule = ($this->get_rule_of_import());
         $time_array = array();
-//        foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
         foreach ($rule as $table_contents) {
-//            $table_contents = $this->get_inifile_content($ini_import_settings_file);
             foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time){
                 $files_array = array();
                 $files_array['setting'] = $table_contents;
@@ -146,7 +144,6 @@ class SettingsManager
         }
 
         return $time_array;
-//        return $this->get_files_from_pattern('/file_csv/user', 'hogehoge[0-9]{3}.csv');
     }
 
     public function get_files_from_pattern($path, $pattern)

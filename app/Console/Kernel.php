@@ -7,6 +7,8 @@ use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -27,11 +29,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $setting = new SettingsManager();
-        $schedule_setting = $setting->get_schedule_import_execution();
+        try {
+            $setting = new SettingsManager();
+            $schedule_setting = $setting->get_schedule_import_execution();
 
-        foreach ($schedule_setting as $time => $data_setting) {
-            $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+            foreach ($schedule_setting as $time => $data_setting) {
+                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+            }
+        } catch (Exception $e) {
+            Log::channel('import')->error($e);
         }
     }
 
