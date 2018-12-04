@@ -2,7 +2,7 @@
 
 namespace App\Console;
 
-use App\Console\Commands\ImportCSV;
+use App\Jobs\ProcessPodcast;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -10,10 +10,6 @@ use DB;
 
 class Kernel extends ConsoleKernel
 {
-
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
-
     /**
      * The Artisan commands provided by your application.
      *
@@ -31,7 +27,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-//        $schedule->command(ImportCSV::class)
+        $setting = new SettingsManager();
+        $schedule_setting = $setting->get_schedule_import_execution();
+
+        foreach ($schedule_setting as $time => $data_setting) {
+            $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+        }
     }
 
     /**

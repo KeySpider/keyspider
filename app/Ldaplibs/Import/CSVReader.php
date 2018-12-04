@@ -80,12 +80,9 @@ class CSVReader implements DataInputReader
      */
     public function get_name_table_from_setting($setting)
     {
-        try {
-            $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
-            return $name_table;
-        } catch (Exception $exception) {
-
-        }
+        $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
+        $name_table = "\"{$name_table}\"";
+        return $name_table;
     }
 
     /**
@@ -117,9 +114,9 @@ class CSVReader implements DataInputReader
         $sql = "";
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
-                $sql .= "{$col} VARCHAR (50) NULL,";
+                $sql .= "{$col} VARCHAR (250) NULL,";
             } else {
-                $sql .= "{$col} VARCHAR (50) NULL";
+                $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
         DB::statement("
@@ -188,12 +185,11 @@ class CSVReader implements DataInputReader
         $regx = null;
 
         $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
+
         if ($success) {
             $stt = (int)$match['exp1'];
             $regx = $match['exp2'];
-            $group = (int) str_replace('$','',$match['exp3']);
-        } else {
-            print_r("Error \n");
+            $group = $match['exp3'];
         }
 
         foreach ($data as $key => $item) {
@@ -208,12 +204,34 @@ class CSVReader implements DataInputReader
                         return strtolower($item);
                     }
                     $check = preg_match("/{$regx}/", $item, $str);
+
                     if ($check) {
-                        return $str[$group];
+                        return $this->processGroup($str, $group);
                     }
                 }
             }
         }
+    }
+
+    protected function processGroup($str, $group)
+    {
+        if ($group === "$1") {
+            return $str[1];
+        }
+
+        if ($group === "$2") {
+            return $str[2];
+        }
+
+        if ($group === "$3") {
+            return $str[3];
+        }
+
+        if ($group === "$1/$2/$3") {
+            return "{$str[1]}/{$str[2]}/{$str[3]}";
+        }
+
+        return '';
     }
 
     /**
