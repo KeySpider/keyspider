@@ -3,7 +3,6 @@
 namespace App\Console;
 
 use App\Jobs\ProcessPodcast;
-use App\Jobs\TestScheduleJob;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
