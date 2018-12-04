@@ -30,6 +30,10 @@ class SettingsManager
 
     const EXTRACTION_PROCESS_BACIC_CONFIGURATION = "Extraction Process Bacic Configuration";
 
+    const EXTRACTION_CONDITION = "Extraction Condition";
+
+    const EXTRACTION_CONVERSION = "Extraction Process Format Conversion";
+
     public function __construct($ini_settings_files = null)
     {
         $this->ini_import_settings_folders = storage_path("" . self::INI_CONFIGS . "/import/");
@@ -60,11 +64,16 @@ class SettingsManager
         $time_array = array();
         foreach ($this->ini_export_settings_files as $ini_export_settings_file) {
             $table_contents = $this->get_ini_export_file_content($ini_export_settings_file);
+            $extract_table_name = $table_contents[$this::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
+            $filename = $this->ini_master_db_file;
+            $master_db = $this->get_ini_import_file_content($filename);
+            $master_table = $master_db[$extract_table_name];
+            $table_contents = $this->convert_following_db_master($table_contents, self::EXTRACTION_CONDITION, $master_table);
+            $table_contents = $this->convert_value_from_db_master($table_contents, $master_table);
             foreach ($table_contents[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
                 $files_array['setting'] = $table_contents;
                 $time_array[$specify_time][] = $files_array;
             }
-//            $all_table_contents[] = $table_contents;
         }
         ksort($time_array);
         return $time_array;
@@ -75,12 +84,11 @@ class SettingsManager
      */
     public function get_rule_of_import()
     {
-        if ($this->all_table_settings_content){
+        if ($this->all_table_settings_content) {
             return $this->all_table_settings_content;
         }
 
         $filename = $this->ini_master_db_file;
-
         $master = $this->get_ini_import_file_content($filename);
 
         $this->all_table_settings_content = array();
@@ -132,21 +140,17 @@ class SettingsManager
     {
         $rule = ($this->get_rule_of_import());
         $time_array = array();
-//        foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
         foreach ($rule as $table_contents) {
-//            $table_contents = $this->get_inifile_content($ini_import_settings_file);
-            foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time){
+            foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
                 $files_array = array();
                 $files_array['setting'] = $table_contents;
                 $files_array['files'] = $this->get_files_from_pattern($table_contents[$this::BASIC_CONFIGURATION]['FilePath'],
                     $table_contents[$this::BASIC_CONFIGURATION]['FileName']);
-
                 $time_array[$specify_time][] = $files_array;
             }
         }
-
+        ksort($time_array);
         return $time_array;
-//        return $this->get_files_from_pattern('/file_csv/user', 'hogehoge[0-9]{3}.csv');
     }
 
     public function get_files_from_pattern($path, $pattern)
@@ -176,5 +180,34 @@ class SettingsManager
         return $file;
     }
 
+    /**
+     * @param $table_contents
+     * @param $tag_to_conversion
+     * @param $master_table
+     * @return mixed
+     */
+    public function convert_following_db_master($table_contents, $tag_to_conversion, $master_table)
+    {
+        $column_name_conversion = $table_contents[$tag_to_conversion];
+        foreach ($column_name_conversion as $key => $value)
+            if (isset($master_table[$key])) {
+                $column_name_conversion[$master_table[$key]] = $value;
+                unset($column_name_conversion[$key]);
+            }
+        $table_contents[$tag_to_conversion] = $column_name_conversion;
+        return $table_contents;
+    }
+
+
+    public function convert_value_from_db_master($table_contents, $master_table)
+    {
+        $json_data = json_encode($table_contents);
+        foreach ($master_table as $key => $value) {
+            if (strpos($key, '.') !== false) {
+                $json_data = str_replace($key, $value, $json_data);
+            }
+        }
+        return (json_decode($json_data, true));
+    }
 
 }
