@@ -24,7 +24,8 @@ class ImportController extends Controller
         return view('imports.form_upload');
     }
 
-    public function readSettings(){
+    /*public function readSettings()
+    {
         echo '<pre>';
         $import_settings = new SettingsManager();
 //        $user_rule = $import_settings->get_rule_of_import();
@@ -42,15 +43,22 @@ class ImportController extends Controller
             $list_file = $item['file_csv'];
 
             foreach ($list_file as $file) {
-//                $db_importer = new DBImporter($setting, $file);
-//                $db_importer->import();
                 $db_importer = new DBImporterJob($setting, $file);
                 dispatch($db_importer);
             }
         }
 
-//        Log::info("Process the queue...");
-//        $this->dispatch(new QueueJobTesting());
-//        $this->dispatch(new DBImporterJob());
+    }*/
+
+    public function readSettings()
+    {
+        echo '<pre>';
+        $import_settings = new SettingsManager();
+//        $user_rule = $import_settings->get_rule_of_import();
+        $user_rule = $import_settings->get_rule_of_data_extract();
+
+        echo '<p><h2>.INI to .JSON adapter:</h2></p>';
+        print (json_encode($user_rule, JSON_PRETTY_PRINT));
+        echo '</pre>';
     }
 }
