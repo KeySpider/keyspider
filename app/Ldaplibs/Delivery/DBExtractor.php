@@ -2,11 +2,18 @@
 
 namespace App\Ldaplibs\Delivery;
 
+use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
 
 class DBExtractor
 {
+    /**
+     * define const
+     */
+    const EXTRACT_FORMAT_CONVENTION = "Extraction Process Format Conversion";
+    const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
+
     /**
      * Extract data by condition in setting file
      *
@@ -58,5 +65,27 @@ class DBExtractor
         return false;
 
         return false;
+    }
+
+    /**
+     * Extract CSV file from setting
+     *
+     * @param array $data
+     * @param array $setting
+     *
+     * @author ngulb@tech.est-rouge.com
+     */
+    public function extractCSVBySetting($data = [], $setting = [])
+    {
+        $extractFormatConvention = $setting[self::EXTRACT_FORMAT_CONVENTION];
+        $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+
+        $settingManagement = new SettingsManager();
+        $infoDelivery = $settingManagement->get_ini_export_file_content($outputProcessConvention);
+        dd($infoDelivery);
+
+        dump($setting);
+        dump($extractFormatConvention);
+        dd($data[0]);
     }
 }

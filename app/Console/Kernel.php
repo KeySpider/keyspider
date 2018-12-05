@@ -34,9 +34,7 @@ class Kernel extends ConsoleKernel
 
         // schedule for import
         try {
-
             $schedule_setting = $setting->get_schedule_import_execution();
-
             foreach ($schedule_setting as $time => $data_setting) {
                 $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
             }

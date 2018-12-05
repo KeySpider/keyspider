@@ -20,6 +20,7 @@ class ExtractionData implements ShouldQueue
 
     const EXTRACTION_CONDITION = 'Extraction Condition';
     const EXTRACTION_CONFIGURATION = "Extraction Process Bacic Configuration";
+    const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
 
     /**
      * Create a new job instance.
@@ -41,15 +42,40 @@ class ExtractionData implements ShouldQueue
         try {
             foreach ($this->setting as $data) {
                 $setting = $data['setting'];
-                dump($setting);
+
+                if (!isset($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']) ||
+                    $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'] == ""
+                ) {
+                    Log::channel('export')->error("Extract table is empty");
+                    break;
+                }
+
+                if (empty($setting)) {
+                    Log::channel('export')->error("Setting is empty");
+                    break;
+                }
+
                 $condition = $setting[self::EXTRACTION_CONDITION];
 
                 $DBExtractor = new DBExtractor();
                 $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
                 $results = $DBExtractor->extractDataByCondition($condition, $this->switchTable($table));
+
+                if (empty($results)) {
+                    Log::channel('export')->error("Data is empty with {$setting}");
+                    break;
+                }
+
+                $outputProcess = $setting[self::OUTPUT_PROCESS_CONVERSION];
+                if (empty($outputProcess)) {
+                    Log::channel('export')->error("Output Process Conversion is empty");
+                    break;
+                }
+
+                $DBExtractor->extractCSVBySetting($results, $setting);
             }
         } catch (Exception $e) {
-            Log::channel('import')->error($e);
+            Log::channel('export')->error($e);
         }
     }
 
