@@ -81,7 +81,7 @@ class DBExtractor
         $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
 
         $settingManagement = new SettingsManager();
-        $infoDelivery = $settingManagement->get_ini_export_file_content($outputProcessConvention);
+        $infoDelivery = $settingManagement->test($outputProcessConvention);
         dd($infoDelivery);
 
         dump($setting);

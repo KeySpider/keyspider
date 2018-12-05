@@ -209,5 +209,4 @@ class SettingsManager
         }
         return (json_decode($json_data, true));
     }
-
 }
