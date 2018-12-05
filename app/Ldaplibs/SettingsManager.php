@@ -209,4 +209,8 @@ class SettingsManager
         }
         return (json_decode($json_data, true));
     }
+
+    public function get_ini_output_content($file_name){
+        return $this->get_ini_export_file_content($file_name);
+    }
 }
