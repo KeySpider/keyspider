@@ -31,25 +31,27 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $setting = new SettingsManager();
-//        try {
-//
-//            $schedule_setting = $setting->get_schedule_import_execution();
-//
-//            foreach ($schedule_setting as $time => $data_setting) {
-//                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
-//            }
-//        } catch (Exception $e) {
-//            Log::channel('import')->error($e);
-//        }
 
-        $extractSetting = $setting->get_rule_of_data_extract();
-        dd($extractSetting);
+        // schedule for import
         try {
-            $schedule->command(function(){
-                dd('ok');
-            });
+
+            $schedule_setting = $setting->get_schedule_import_execution();
+
+            foreach ($schedule_setting as $time => $data_setting) {
+                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+            }
         } catch (Exception $e) {
-            dd($e);
+            Log::channel('import')->error($e);
+        }
+
+        // schedule for extract data
+        try {
+            $extractSetting = $setting->get_rule_of_data_extract();
+            foreach ($extractSetting as $time => $setting) {
+                $schedule->job(new ExtractionData($setting))->everyMinute();
+            }
+        } catch (Exception $e) {
+            Log::channel('export')->error($e);
         }
     }
 

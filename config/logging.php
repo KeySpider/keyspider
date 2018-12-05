@@ -51,6 +51,12 @@ return [
             'level' => 'debug',
         ],
 
+        'export' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/export.log'),
+            'level' => 'debug',
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

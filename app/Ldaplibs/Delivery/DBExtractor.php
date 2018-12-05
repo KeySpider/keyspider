@@ -1,23 +1,62 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: tuanla
- * Date: 11/23/18
- * Time: 1:12 AM
- */
 
 namespace App\Ldaplibs\Delivery;
 
+use Carbon\Carbon;
+use DB;
 
 class DBExtractor
 {
-    public function __construct($data_input_reader)
+    /**
+     * Extract data by condition in setting file
+     *
+     * @param array $condition
+     * @param string $table
+     *
+     * @author ngulb@tech.est-rouge.com
+     *
+     * @return array
+     */
+    public function extractDataByCondition($condition = [], $table)
     {
+        $table   = "\"{$table}\"";
+        $queries = [];
 
+        foreach ($condition as $column => $where) {
+            if ($this->checkExitsString($where)) {
+                $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
+                $query = "\"{$column}\" <= '{$where}'";
+            } else {
+                $query = "\"{$column}\" = '{$where}'";
+            }
+            array_push($queries, $query);
+        }
+
+        // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
+        $queries = implode(' AND ', $queries);
+
+        $sql = "SELECT * FROM {$table} WHERE {$queries} ";
+        $result = DB::select($sql);
+        $resultArray = json_decode(json_encode($result), true);
+        return $resultArray;
     }
 
-    public function extract()
+    /**
+     * Check exits string
+     *
+     * @param string $str
+     *
+     * @author ngulb@tech.est-rouge.com
+     *
+     * @return bool
+     */
+    public function checkExitsString($str)
     {
-        return array();
+        if (strpos($str, 'TODAY()') !== false) {
+            return (int)substr($str, -1);
+        }
+        return false;
+
+        return false;
     }
 }
