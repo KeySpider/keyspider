@@ -16,7 +16,8 @@ class DBExtractor
 
     }
 
-    public function extract(){
+    public function extract()
+    {
         return array();
     }
 }

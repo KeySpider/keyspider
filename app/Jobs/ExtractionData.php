@@ -2,14 +2,13 @@
 
 namespace App\Jobs;
 
-use App\Ldaplibs\Import\DBImporter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-class DBImporterJob extends DBImporter implements ShouldQueue
+class ExtractionData implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -18,9 +17,9 @@ class DBImporterJob extends DBImporter implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($setting, $file_name)
+    public function __construct()
     {
-        parent::__construct($setting, $file_name);
+        //
     }
 
     /**
@@ -30,6 +29,6 @@ class DBImporterJob extends DBImporter implements ShouldQueue
      */
     public function handle()
     {
-        parent::import();
+        //
     }
 }

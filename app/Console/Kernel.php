@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Jobs\ExtractionData;
 use App\Jobs\ProcessPodcast;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
@@ -29,15 +30,26 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        try {
-            $setting = new SettingsManager();
-            $schedule_setting = $setting->get_schedule_import_execution();
+        $setting = new SettingsManager();
+//        try {
+//
+//            $schedule_setting = $setting->get_schedule_import_execution();
+//
+//            foreach ($schedule_setting as $time => $data_setting) {
+//                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
+//            }
+//        } catch (Exception $e) {
+//            Log::channel('import')->error($e);
+//        }
 
-            foreach ($schedule_setting as $time => $data_setting) {
-                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
-            }
+        $extractSetting = $setting->get_rule_of_data_extract();
+        dd($extractSetting);
+        try {
+            $schedule->command(function(){
+                dd('ok');
+            });
         } catch (Exception $e) {
-            Log::channel('import')->error($e);
+            dd($e);
         }
     }
 
