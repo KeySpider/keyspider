@@ -79,9 +79,12 @@ class DBExtractor
     {
         $extractFormatConvention = $setting[self::EXTRACT_FORMAT_CONVENTION];
         $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+        dd($outputProcessConvention);
+
+        dd(parse_ini_file("OrganizationInfoOutput4CSV.ini", true));
 
         $settingManagement = new SettingsManager();
-        $infoDelivery = $settingManagement->test($outputProcessConvention);
+        $infoDelivery = $settingManagement->get_ini_output_content("OrganizationInfoOutput4CSV.ini");
         dd($infoDelivery);
 
         dump($setting);

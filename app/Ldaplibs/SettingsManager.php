@@ -198,7 +198,6 @@ class SettingsManager
         return $table_contents;
     }
 
-
     public function convert_value_from_db_master($table_contents, $master_table)
     {
         $json_data = json_encode($table_contents);
