@@ -44,8 +44,6 @@ class DBExtractor
             $formatConvention        = $setting[self::Extraction_Process_Format_Conversion];
 
             // get data by condition setting file
-//            $results = $this->extractDataByCondition($extractCondition, $this->switchTable($extractTable));
-
             $table = $this->switchTable($extractTable);
             $table   = "\"{$table}\"";
             $queries = [];
