@@ -5,14 +5,101 @@ namespace App\Ldaplibs\Delivery;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
+use Exception;
+use function Symfony\Component\Console\Tests\Command\createClosure;
+use Illuminate\Support\Facades\Log;
 
 class DBExtractor
 {
     /**
      * define const
      */
-    const EXTRACT_FORMAT_CONVENTION = "Extraction Process Format Conversion";
-    const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
+    const EXTRACTION_CONDITION                 = 'Extraction Condition';
+    const EXTRACTION_CONFIGURATION             = "Extraction Process Bacic Configuration";
+    const OUTPUT_PROCESS_CONVERSION            = "Output Process Conversion";
+    const Extraction_Process_Format_Conversion = "Extraction Process Format Conversion";
+
+    protected $setting;
+
+    /**
+     * DBExtractor constructor.
+     * @param $setting
+     */
+    public function __construct($setting)
+    {
+        $this->setting = $setting;
+    }
+
+    /**
+     *
+     */
+    public function process()
+    {
+        try {
+            $setting = $this->setting;
+
+            $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+            $extractTable            = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractCondition        = $setting[self::EXTRACTION_CONDITION];
+            $formatConvention        = $setting[self::Extraction_Process_Format_Conversion];
+
+            // get data by condition setting file
+//            $results = $this->extractDataByCondition($extractCondition, $this->switchTable($extractTable));
+
+            $table = $this->switchTable($extractTable);
+            $table   = "\"{$table}\"";
+            $queries = [];
+
+            foreach ($extractCondition as $column => $where) {
+                if ($this->checkExitsString($where)) {
+                    $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
+                    $query = "\"{$column}\" <= '{$where}'";
+                } else {
+                    $query = "\"{$column}\" = '{$where}'";
+                }
+                array_push($queries, $query);
+            }
+
+            // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
+            $queries = implode(' AND ', $queries);
+
+            $sql = "SELECT * FROM {$table} WHERE {$queries} ";
+
+            $result = DB::select($sql);
+            $results = json_decode(json_encode($result), true);
+
+            if (!empty($results)) {
+                $infoOutputIni = parse_ini_file(storage_path($outputProcessConvention));
+
+                $fileName = $infoOutputIni['FileName'];
+                $tempPath = $infoOutputIni['TempPath'];
+
+                if (file_exists(storage_path("{$tempPath}"))) {
+                    $fileName = $this->remove_ext($fileName).'_'.rand(100, 900).'.csv';
+                }
+
+                $file = fopen(storage_path("{$tempPath}/{$fileName}"), 'wb');
+
+                // create csv file
+                foreach ($results as $data) {
+                    $tmp = [];
+                    foreach ($data as $column => $line) {
+                        foreach ($formatConvention as $format) {
+                            if ($format === "({$column})") {
+                                array_push($tmp, $line);
+                            }
+                        }
+                    }
+                    fputcsv($file, $tmp, ',');
+                }
+                fclose($file);
+            } else {
+                Log::channel('export')->info("Data is empty");
+            }
+        } catch (Exception $e) {
+            Log::channel('export')->error($e);
+        }
+    }
 
     /**
      * Extract data by condition in setting file
@@ -26,26 +113,30 @@ class DBExtractor
      */
     public function extractDataByCondition($condition = [], $table)
     {
-        $table   = "\"{$table}\"";
-        $queries = [];
+        try {
+            $table   = "\"{$table}\"";
+            $queries = [];
 
-        foreach ($condition as $column => $where) {
-            if ($this->checkExitsString($where)) {
-                $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
-                $query = "\"{$column}\" <= '{$where}'";
-            } else {
-                $query = "\"{$column}\" = '{$where}'";
+            foreach ($condition as $column => $where) {
+                if ($this->checkExitsString($where)) {
+                    $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
+                    $query = "\"{$column}\" <= '{$where}'";
+                } else {
+                    $query = "\"{$column}\" = '{$where}'";
+                }
+                array_push($queries, $query);
             }
-            array_push($queries, $query);
+
+            // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
+            $queries = implode(' AND ', $queries);
+
+            $sql = "SELECT * FROM {$table} WHERE {$queries} ";
+            $result = DB::select($sql);
+            $resultArray = json_decode(json_encode($result), true);
+            return $resultArray[0];
+        } catch (Exception $e) {
+            Log::channel('export')->error($e);
         }
-
-        // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
-        $queries = implode(' AND ', $queries);
-
-        $sql = "SELECT * FROM {$table} WHERE {$queries} ";
-        $result = DB::select($sql);
-        $resultArray = json_decode(json_encode($result), true);
-        return $resultArray;
     }
 
     /**
@@ -68,27 +159,35 @@ class DBExtractor
     }
 
     /**
-     * Extract CSV file from setting
+     * Switch table by name table
      *
-     * @param array $data
-     * @param array $setting
-     *
-     * @author ngulb@tech.est-rouge.com
+     * @param $extractTable
+     * @return string|null
      */
-    public function extractCSVBySetting($data = [], $setting = [])
+    public function switchTable($extractTable)
     {
-        $extractFormatConvention = $setting[self::EXTRACT_FORMAT_CONVENTION];
-        $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-        dd($outputProcessConvention);
+        switch ($extractTable) {
+            case 'Role':
+                return 'CCC';
+                break;
+            case 'User':
+                return 'AAA';
+                break;
+            case 'Organization':
+                return 'BBB';
+                break;
+            default:
+                return null;
+        }
+    }
 
-        dd(parse_ini_file("OrganizationInfoOutput4CSV.ini", true));
-
-        $settingManagement = new SettingsManager();
-        $infoDelivery = $settingManagement->get_ini_output_content("OrganizationInfoOutput4CSV.ini");
-        dd($infoDelivery);
-
-        dump($setting);
-        dump($extractFormatConvention);
-        dd($data[0]);
+    /**
+     * @param $file_name
+     * @return string|string[]|null
+     */
+    public function remove_ext($file_name)
+    {
+        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+        return $file;
     }
 }
