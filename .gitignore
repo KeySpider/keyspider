@@ -2,6 +2,9 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/temp_path/organization
+/storage/temp_path/role
+/storage/temp_path/user
 /storage/file_processed
 /vendor
 /.idea
