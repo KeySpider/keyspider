@@ -36,7 +36,7 @@ class Kernel extends ConsoleKernel
         try {
             $schedule_setting = $setting->get_schedule_import_execution();
             foreach ($schedule_setting as $time => $data_setting) {
-//                $schedule->job(new ProcessPodcast($data_setting));
+                $schedule->job(new ProcessPodcast($data_setting));
             }
         } catch (Exception $e) {
             Log::channel('import')->error($e);
@@ -46,7 +46,7 @@ class Kernel extends ConsoleKernel
         try {
             $extractSetting = $setting->get_rule_of_data_extract();
             foreach ($extractSetting as $time => $setting) {
-//                $schedule->job(new ExtractionData($setting));
+                $schedule->job(new ExtractionData($setting));
             }
         } catch (Exception $e) {
             Log::channel('export')->error($e);

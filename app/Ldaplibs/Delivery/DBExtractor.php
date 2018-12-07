@@ -82,6 +82,7 @@ class DBExtractor
                 foreach ($results as $data) {
                     $tmp = [];
                     foreach ($data as $column => $line) {
+//                        array_push($tmp, $line);
                         foreach ($formatConvention as $format) {
                             if ($format === "({$column})") {
                                 array_push($tmp, $line);
