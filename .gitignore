@@ -2,10 +2,8 @@
 /public/hot
 /public/storage
 /storage/*.key
-/storage/temp_path/organization
-/storage/temp_path/role
-/storage/temp_path/user
-/storage/file_processed
+storage/extract_csv_temp/
+/storage/import_csv
 /vendor
 /.idea
 /.vscode
