@@ -4,8 +4,6 @@ namespace App\Console;
 
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
-use App\Jobs\ExtractionData;
-use App\Jobs\ProcessPodcast;
 use App\Ldaplibs\Delivery\DBExtractor;
 use App\Ldaplibs\Delivery\ExtractQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
