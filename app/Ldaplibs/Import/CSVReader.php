@@ -35,7 +35,7 @@ class CSVReader implements DataInputReader
     {
         // get name table from file setting
         $data_csv = [];
-        $settings = $this->setting->get_rule_of_import();
+        $settings = $this->setting->getRuleOfImport();
 
         if (!empty($settings)) {
             foreach ($settings as $setting) {

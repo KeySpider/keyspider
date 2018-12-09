@@ -37,7 +37,7 @@ class Kernel extends ConsoleKernel
     {
         $setting = new SettingsManager();
 
-        $timeExecutionList = $setting->get_schedule_import_execution();
+        $timeExecutionList = $setting->getScheduleImportExecution();
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->importDataForTimeExecution($settingOfTimeExecution);
@@ -45,7 +45,7 @@ class Kernel extends ConsoleKernel
         }
 
 
-        $extractSetting = $setting->get_rule_of_data_extract();
+        $extractSetting = $setting->getRuleOfDataExtract();
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);

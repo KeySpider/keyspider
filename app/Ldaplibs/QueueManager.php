@@ -10,6 +10,7 @@ namespace App\Ldaplibs;
 
 
 use App\Jobs\DBImporterJob;
+use App\Jobs\JobInterface;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -20,16 +21,10 @@ class QueueManager
     public function push($job)
     {
         dispatch($job);
-//        Queue::after(function (JobProcessed $event) {
-////            $this->assertTrue($event->job->isReleased());
-//            Log::alert('after done');
-//        });
-
         Log::alert("---------------Job logger---------------");
-        Log::info("Job type:");
-        Log::info($job->get_job_name());
+        Log::info("Job type: ". $job->getJobName());
         Log::info("Job details:");
-        Log::info(json_encode($job->get_job_details(), JSON_PRETTY_PRINT));
+        Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 
     public function push_high_priority(){
@@ -41,7 +36,7 @@ class QueueManager
 
     }
 
-    public function get_job_info(){
+    public function getJobInfo(){
         return null;
     }
 

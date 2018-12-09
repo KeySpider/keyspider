@@ -23,7 +23,7 @@ class ImportQueueManager extends QueueManager
         dd('ok');
     }
 
-    public function get_job_info(){
+    public function getJobInfo(){
 
     }
 }

@@ -11,6 +11,6 @@ namespace App\Jobs;
 
 interface JobInterface
 {
-    public function get_job_name();
-    public function get_job_details();
+    public function getJobName();
+    public function getJobDetails();
 }

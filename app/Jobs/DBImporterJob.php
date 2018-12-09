@@ -33,11 +33,11 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
         parent::import();
     }
 
-    public function get_job_name(){
+    public function getJobName(){
         return "Import to database";
     }
 
-    public function get_job_details(){
+    public function getJobDetails(){
         $details = array();
         $basic_setting = $this->setting['CSV Import Process Bacic Configuration'];
         $details['File to import'] = $this->file_name;

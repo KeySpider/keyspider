@@ -31,7 +31,7 @@ class ImportController extends Controller
         $import_settings = new SettingsManager();
 //        $user_rule = $import_settings->get_rule_of_import();
 //        $user_rule = $import_settings->get_rule_of_data_extract();
-           $user_rule = $import_settings->get_ini_output_content('UserInfoOutput4CSV.ini');
+           $user_rule = $import_settings->getIniOutputContent('UserInfoOutput4CSV.ini');
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
@@ -42,7 +42,7 @@ class ImportController extends Controller
         echo '<pre>';
         $import_settings = new SettingsManager();
 //        $user_rule = $import_settings->get_rule_of_import();
-        $user_rule = $import_settings->get_schedule_import_execution();
+        $user_rule = $import_settings->getScheduleImportExecution();
 
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
