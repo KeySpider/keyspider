@@ -2,8 +2,10 @@
 
 namespace App\Console;
 
+use App\Jobs\DBImporterJob;
 use App\Jobs\ExtractionData;
 use App\Jobs\ProcessPodcast;
+use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -32,8 +34,17 @@ class Kernel extends ConsoleKernel
     {
         $setting = new SettingsManager();
 
+        $setting = new SettingsManager();
+//        $timeExecutionList = $setting->getScheduleImportExecution();
+        $timeExecutionList = $setting->get_schedule_import_execution();
+        foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
+            $schedule->call(function() use ($settingOfTimeExecution){
+                $this->importDataForTimeExecution($settingOfTimeExecution);
+            })->dailyAt($timeExecutionString);
+        }
+
         // schedule for import
-        try {
+/*        try {
             $schedule_setting = $setting->get_schedule_import_execution();
             foreach ($schedule_setting as $time => $data_setting) {
                 $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
@@ -50,7 +61,7 @@ class Kernel extends ConsoleKernel
             }
         } catch (Exception $e) {
             Log::channel('export')->error($e);
-        }
+        }*/
     }
 
     /**
@@ -64,4 +75,22 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+
+    /**
+     * @param $dataSchedule
+     */
+    private function importDataForTimeExecution($dataSchedule): void
+    {
+        foreach ($dataSchedule as $data) {
+            $setting = $data['setting'];
+            $files = $data['files'];
+
+            $queue = new ImportQueueManager();
+            foreach ($files as $file) {
+                $dbImporter = new DBImporterJob($setting, $file);
+                $queue->push($dbImporter);
+            }
+        }
+    }
+
 }
