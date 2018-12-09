@@ -4,12 +4,10 @@ namespace App\Console\Commands;
 
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Import\CSVReader;
-use App\Ldaplibs\Import\DBImporter;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
-use Illuminate\Support\Facades\Log;
 use Marquine\Etl\Job;
 
 class ImportCSV extends Command
@@ -47,19 +45,14 @@ class ImportCSV extends Command
     public function handle()
     {
         $csv_reader = new CSVReader(new SettingsManager());
-        $list_file_csv = $csv_reader->get_list_file_csv_setting();
+        $list_file_csv = $csv_reader->getListFileCsvSetting();
 
         foreach ($list_file_csv as $item) {
             $setting = $item['setting'];
             $list_file = $item['file_csv'];
             $queue = new ImportQueueManager();
             foreach ($list_file as $file) {
-//                $db_importer = new DBImporter($setting, $file);
-//                $db_importer->import();
-//                Log::info('push to queue');
                 $db_importer = new DBImporterJob($setting, $file);
-//                dispatch($db_importer);
-
                 $queue->push($db_importer);
             }
         }

@@ -4,17 +4,12 @@ namespace App\Console;
 
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
-use App\Jobs\ExtractionData;
-use App\Jobs\ProcessPodcast;
-use App\Ldaplibs\Delivery\DBExtractor;
 use App\Ldaplibs\Delivery\ExtractQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
-use Exception;
-use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -41,9 +36,8 @@ class Kernel extends ConsoleKernel
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->importDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+            });
         }
-
 
         $extractSetting = $setting->getRuleOfDataExtract();
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {

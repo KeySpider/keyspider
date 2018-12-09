@@ -10,7 +10,6 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
 use DB;
-use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
@@ -36,19 +35,17 @@ class DBImporter
 
     public function import()
     {
-        $name_table = $this->csv_reader->get_name_table_from_setting($this->setting);
-        $columns = $this->csv_reader->get_all_column_from_setting($this->setting);
+        $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
+        $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
-        $this->csv_reader->create_table($name_table, $columns);
+        $this->csv_reader->createTable($name_table, $columns);
 
         $params = [
             'CONVERSATION' => $this->setting[self::CONVERSION],
         ];
-        $data = $this->csv_reader->get_data_from_one_file($this->file_name, $params);
-//        Log::info('Number of rows: '.stringValue($data->size()))
+        $data = $this->csv_reader->getDataFromOneFile($this->file_name, $params);
         $columns = implode(",", $columns);
 
-        // bulk insert
         foreach ($data as $key2 => $item2) {
             $tmp = [];
             foreach ($item2 as $key3 => $item3) {

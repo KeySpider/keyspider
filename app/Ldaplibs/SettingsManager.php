@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs;
 
-use App\Ldaplibs\Import\CSVReader;
 
 function contains($needle, $haystack)
 {
@@ -38,7 +37,6 @@ class SettingsManager
     {
         $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
         $this->iniExportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
-//        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders . "</h3>";
         $allFiles = scandir($this->iniImportSettingsFolder);
         foreach ($allFiles as $fileName) {
             if (contains('.ini', $fileName)) {

@@ -16,7 +16,8 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
     /**
      * Create a new job instance.
      *
-     * @return void
+     * @param $setting
+     * @param $file_name
      */
     public function __construct($setting, $file_name)
     {

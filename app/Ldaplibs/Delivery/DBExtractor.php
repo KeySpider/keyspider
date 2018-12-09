@@ -2,11 +2,9 @@
 
 namespace App\Ldaplibs\Delivery;
 
-use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
 use Exception;
-use function Symfony\Component\Console\Tests\Command\createClosure;
 use Illuminate\Support\Facades\Log;
 
 class DBExtractor
@@ -73,7 +71,7 @@ class DBExtractor
                 $tempPath = $infoOutputIni['TempPath'];
 
                 if (file_exists(storage_path("{$tempPath}"))) {
-                    $fileName = $this->remove_ext($fileName).'_'.rand(100, 900).'.csv';
+                    $fileName = $this->removeExt($fileName).'_'.rand(100, 900).'.csv';
                 }
 
                 $file = fopen(storage_path("{$tempPath}/{$fileName}"), 'wb');
@@ -184,7 +182,7 @@ class DBExtractor
      * @param $file_name
      * @return string|string[]|null
      */
-    public function remove_ext($file_name)
+    public function removeExt($file_name)
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
