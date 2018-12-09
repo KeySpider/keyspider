@@ -10,11 +10,11 @@
  */
 
 namespace App\Ldaplibs\Import;
+
 use App\Ldaplibs\Import\DataInputReader;
 use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
-use Mockery\Exception;
 
 class CSVReader implements DataInputReader
 {
@@ -31,11 +31,14 @@ class CSVReader implements DataInputReader
         $this->setting = $setting;
     }
 
-    public function get_list_file_csv_setting()
+    /**
+     * @return array
+     */
+    public function getListFileCsvSetting()
     {
         // get name table from file setting
         $data_csv = [];
-        $settings = $this->setting->get_rule_of_import();
+        $settings = $this->setting->getRuleOfImport();
 
         if (!empty($settings)) {
             foreach ($settings as $setting) {
@@ -59,7 +62,7 @@ class CSVReader implements DataInputReader
                     foreach (scandir($pathDir) as $key => $file) {
                         $ext = pathinfo($file, PATHINFO_EXTENSION);
                         if (in_array($ext, $validate_file)) {
-                            if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
+                            if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
                                 array_push($list_file_csv['file_csv'], "{$path}/{$file}");
                             }
                         }
@@ -69,8 +72,6 @@ class CSVReader implements DataInputReader
                 }
             }
             return $data_csv;
-        } else {
-            dump('ko ton tai file setting');
         }
     }
 
@@ -78,7 +79,7 @@ class CSVReader implements DataInputReader
      * @param $setting
      * @return string
      */
-    public function get_name_table_from_setting($setting)
+    public function getNameTableFromSetting($setting)
     {
         $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
         $name_table = "\"{$name_table}\"";
@@ -89,9 +90,9 @@ class CSVReader implements DataInputReader
      * @param $setting
      * @return array
      */
-    public function get_all_column_from_setting($setting)
+    public function getAllColumnFromSetting($setting)
     {
-        $name_table = $this->get_name_table_from_setting($setting);
+        $name_table = $this->getNameTableFromSetting($setting);
         $params = $setting[self::CONVERSION];
 
         $fields = [];
@@ -109,7 +110,7 @@ class CSVReader implements DataInputReader
      * @param $name_table
      * @param array $columns
      */
-    public function create_table($name_table, $columns = [])
+    public function createTable($name_table, $columns = [])
     {
         $sql = "";
         foreach ($columns as $key => $col) {
@@ -131,14 +132,14 @@ class CSVReader implements DataInputReader
      * @param array $options
      * @return array
      */
-    public function get_data_from_one_file($file_csv, $options = [])
+    public function getDataFromOneFile($file_csv, $options = [])
     {
         $data = [];
         $path = storage_path("{$file_csv}");
         if (is_file($path)) {
             foreach (file($path) as $line) {
                 $data_line = str_getcsv($line);
-                $data[] = $this->get_data_after_process($data_line, $options);
+                $data[] = $this->getDataAfterProcess($data_line, $options);
             }
         }
         return $data;
@@ -149,7 +150,7 @@ class CSVReader implements DataInputReader
      * @param array $options
      * @return array
      */
-    protected function get_data_after_process($data_line, $options = [])
+    protected function getDataAfterProcess($data_line, $options = [])
     {
         $data = [];
         $conversions = $options['CONVERSATION'];
@@ -168,7 +169,7 @@ class CSVReader implements DataInputReader
             } else if ($pattern === '0') {
                 $data[$col] = '0';
             } else {
-                $data[$col] = $this->convert_data_follow_setting($pattern, $data_line);
+                $data[$col] = $this->convertDataFollowSetting($pattern, $data_line);
             }
         }
 
@@ -180,7 +181,7 @@ class CSVReader implements DataInputReader
      * @param $data
      * @return mixed|string
      */
-    protected function convert_data_follow_setting($pattern, $data)
+    protected function convertDataFollowSetting($pattern, $data)
     {
         $stt = null;
         $group = null;
@@ -240,7 +241,7 @@ class CSVReader implements DataInputReader
      * @param $file_name
      * @return string|string[]|null
      */
-    protected function remove_ext($file_name)
+    protected function removeExt($file_name)
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;

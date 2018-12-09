@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs;
 
-use App\Ldaplibs\Import\CSVReader;
 
 function contains($needle, $haystack)
 {
@@ -17,147 +16,153 @@ function contains($needle, $haystack)
 
 class SettingsManager
 {
-    private $ini_import_settings_folders;
-    private $ini_export_settings_folders;
+    private $iniImportSettingsFolder;
+    private $iniExportSettingsFolder;
     const CONVERSION = "CSV Import Process Format Conversion";
     const INI_CONFIGS = "ini_configs";
-    private $ini_import_settings_files = array();
-    private $ini_export_settings_files = array();
-    private $ini_master_db_file = null;
-    private $all_table_settings_content = null;
+    private $iniImportSettingsFiles = array();
+    private $iniExportSettingsFiles = array();
+    private $iniMasterDBFile = null;
+    private $allTableSettingsContent = null;
 
     const BASIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
 
     const EXTRACTION_PROCESS_BACIC_CONFIGURATION = "Extraction Process Bacic Configuration";
 
+    const EXTRACTION_CONDITION = "Extraction Condition";
+
+    const EXTRACTION_CONVERSION = "Extraction Process Format Conversion";
+
     public function __construct($ini_settings_files = null)
     {
-        $this->ini_import_settings_folders = storage_path("" . self::INI_CONFIGS . "/import/");
-        $this->ini_export_settings_folders = storage_path("" . self::INI_CONFIGS . "/extract/");
-//        echo '<h3> parsing all ini files in folder: ' . $this->ini_settings_folders . "</h3>";
-        $all_files = scandir($this->ini_import_settings_folders);
-        foreach ($all_files as $file_name) {
-            if (contains('.ini', $file_name)) {
-                if (contains('Master', $file_name)) {
-                    $this->ini_master_db_file = $file_name;
+        $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
+        $this->iniExportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
+        $allFiles = scandir($this->iniImportSettingsFolder);
+        foreach ($allFiles as $fileName) {
+            if (contains('.ini', $fileName)) {
+                if (contains('Master', $fileName)) {
+                    $this->iniMasterDBFile = $fileName;
                 } else {
-                    $this->ini_import_settings_files[] = $file_name;
+                    $this->iniImportSettingsFiles[] = $fileName;
                 }
             }
         }
 
-        $all_files = scandir($this->ini_export_settings_folders);
-        foreach ($all_files as $file_name) {
-            if (contains('.ini', $file_name) && contains('Extraction', $file_name)) {
-                $this->ini_export_settings_files[] = $file_name;
+        $allFiles = scandir($this->iniExportSettingsFolder);
+        foreach ($allFiles as $fileName) {
+            if (contains('.ini', $fileName) && contains('Extraction', $fileName)) {
+                $this->iniExportSettingsFiles[] = $fileName;
             }
         }
 
     }
 
-    public function get_rule_of_data_extract()
+    public function getRuleOfDataExtract()
     {
-        $time_array = array();
-        foreach ($this->ini_export_settings_files as $ini_export_settings_file) {
-            $table_contents = $this->get_ini_export_file_content($ini_export_settings_file);
-            foreach ($table_contents[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
-                $files_array['setting'] = $table_contents;
-                $time_array[$specify_time][] = $files_array;
+        $timeArray = array();
+        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
+            $tableContent = $this->getIniExportFileContent($iniExportSettingsFile);
+            $extract_table_name = $tableContent[$this::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
+            $fileName = $this->iniMasterDBFile;
+            $masterDB = $this->getIniImportFileContent($fileName);
+            $masterTable = $masterDB[$extract_table_name];
+            $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterTable);
+            $tableContent = $this->convertValueFromDBMaster($tableContent, $masterTable);
+            foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+                $filesArray['setting'] = $tableContent;
+                $timeArray[$specifyTime][] = $filesArray;
             }
-//            $all_table_contents[] = $table_contents;
         }
-        ksort($time_array);
-        return $time_array;
+        ksort($timeArray);
+        return $timeArray;
     }
 
     /**
      * @return array
      */
-    public function get_rule_of_import()
+    public function getRuleOfImport()
     {
-        if ($this->all_table_settings_content){
-            return $this->all_table_settings_content;
+        if ($this->allTableSettingsContent) {
+            return $this->allTableSettingsContent;
         }
 
-        $filename = $this->ini_master_db_file;
+        $filename = $this->iniMasterDBFile;
+        $master = $this->getIniImportFileContent($filename);
 
-        $master = $this->get_ini_import_file_content($filename);
+        $this->allTableSettingsContent = array();
 
-        $this->all_table_settings_content = array();
-
-        foreach ($this->ini_import_settings_files as $ini_import_settings_file) {
-            $table_contents = $this->get_ini_import_file_content($ini_import_settings_file);
+        foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
+            $tableContents = $this->getIniImportFileContent($ini_import_settings_file);
 //            set filename in json file
-            $table_contents['IniFileName'] = $ini_import_settings_file;
+            $tableContents['IniFileName'] = $ini_import_settings_file;
 //            Set destination table in database
-            $tableNameInput = $table_contents[self::BASIC_CONFIGURATION]["ImportTable"];
+            $tableNameInput = $tableContents[self::BASIC_CONFIGURATION]["ImportTable"];
             $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
-            $table_contents[self::BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
+            $tableContents[self::BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
-            $master_users = $master[$tableNameInput];
+            $masterDBConversion = $master[$tableNameInput];
 
 //            Column conversion
-            $column_name_conversion = $table_contents[self::CONVERSION];
-            foreach ($column_name_conversion as $key => $value)
-                if (isset($master_users[$key])) {
-                    $column_name_conversion[$master_users[$key]] = $value;
-                    unset($column_name_conversion[$key]);
+            $columnNameConversion = $tableContents[self::CONVERSION];
+            foreach ($columnNameConversion as $key => $value)
+                if (isset($masterDBConversion[$key])) {
+                    $columnNameConversion[$masterDBConversion[$key]] = $value;
+                    unset($columnNameConversion[$key]);
                 }
-            $table_contents[self::CONVERSION] = $column_name_conversion;
+            $tableContents[self::CONVERSION] = $columnNameConversion;
 
-            $this->all_table_settings_content[] = $table_contents;
+            $this->allTableSettingsContent[] = $tableContents;
         }
-        return $this->all_table_settings_content;
+        return $this->allTableSettingsContent;
     }
 
     /**
      * @param $filename     ini file name to read
      * @return array of key/value from ini file.
      */
-    public function get_ini_import_file_content($filename): array
+    public function getIniImportFileContent($filename): array
     {
-        $ini_path = $this->ini_import_settings_folders . $filename;
-        $ini_array = parse_ini_file($ini_path, true);
-        return $ini_array;
+        $iniPath = $this->iniImportSettingsFolder . $filename;
+        $iniArray = parse_ini_file($iniPath, true);
+        return $iniArray;
     }
 
-    public function get_ini_export_file_content($filename): array
+    public function getIniExportFileContent($filename): array
     {
-        $ini_path = $this->ini_export_settings_folders . $filename;
-        $ini_array = parse_ini_file($ini_path, true);
-        return $ini_array;
+        $iniPath = $this->iniExportSettingsFolder . $filename;
+        $iniArray = parse_ini_file($iniPath, true);
+        return $iniArray;
     }
 
-    public function get_schedule_import_execution()
+    public function getScheduleImportExecution()
     {
-        $rule = ($this->get_rule_of_import());
-        $time_array = array();
+        $rule = ($this->getRuleOfImport());
+        $timeArray = array();
         foreach ($rule as $table_contents) {
-            foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time){
-                $files_array = array();
-                $files_array['setting'] = $table_contents;
-                $files_array['files'] = $this->get_files_from_pattern($table_contents[$this::BASIC_CONFIGURATION]['FilePath'],
+            foreach ($table_contents[$this::BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
+                $filesArray = array();
+                $filesArray['setting'] = $table_contents;
+                $filesArray['files'] = $this->getFilesFromPattern($table_contents[$this::BASIC_CONFIGURATION]['FilePath'],
                     $table_contents[$this::BASIC_CONFIGURATION]['FileName']);
-
-                $time_array[$specify_time][] = $files_array;
+                $timeArray[$specify_time][] = $filesArray;
             }
         }
-
-        return $time_array;
+        ksort($timeArray);
+        return $timeArray;
     }
 
-    public function get_files_from_pattern($path, $pattern)
+    public function getFilesFromPattern($path, $pattern)
     {
         $data = [];
 
         $pathDir = storage_path("{$path}");
-        $validate_file = ['csv'];
+        $validateFile = ['csv'];
 
         if (is_dir($pathDir)) {
             foreach (scandir($pathDir) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if (in_array($ext, $validate_file)) {
-                    if (preg_match("/{$this->remove_ext($pattern)}/", $this->remove_ext($file))) {
+                if (in_array($ext, $validateFile)) {
+                    if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
                         array_push($data, "{$path}/{$file}");
                     }
                 }
@@ -167,11 +172,42 @@ class SettingsManager
         return $data;
     }
 
-    protected function remove_ext($file_name)
+    protected function removeExt($file_name)
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
     }
 
+    /**
+     * @param $tableContents
+     * @param $tagToConversion
+     * @param $masterTable
+     * @return mixed
+     */
+    public function convert_following_db_master($tableContents, $tagToConversion, $masterTable)
+    {
+        $columnNameConversion = $tableContents[$tagToConversion];
+        foreach ($columnNameConversion as $key => $value)
+            if (isset($masterTable[$key])) {
+                $columnNameConversion[$masterTable[$key]] = $value;
+                unset($columnNameConversion[$key]);
+            }
+        $tableContents[$tagToConversion] = $columnNameConversion;
+        return $tableContents;
+    }
 
+    public function convertValueFromDBMaster($table_contents, $masterTable)
+    {
+        $jsonData = json_encode($table_contents);
+        foreach ($masterTable as $key => $value) {
+            if (strpos($key, '.') !== false) {
+                $jsonData = str_replace($key, $value, $jsonData);
+            }
+        }
+        return (json_decode($jsonData, true));
+    }
+
+    public function getIniOutputContent($file_name){
+        return $this->getIniExportFileContent($file_name);
+    }
 }

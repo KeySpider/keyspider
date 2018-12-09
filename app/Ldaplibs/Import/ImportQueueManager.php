@@ -14,13 +14,16 @@ use App\Ldaplibs\QueueManager;
 class ImportQueueManager extends QueueManager
 {
     private $file_list = array();
-    public function __construct($file_list)
+    public function __construct()
     {
-        $this->file_list = $file_list;
     }
 
     public function process()
     {
         dd('ok');
+    }
+
+    public function getJobInfo(){
+
     }
 }

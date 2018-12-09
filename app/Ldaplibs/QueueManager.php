@@ -10,22 +10,34 @@ namespace App\Ldaplibs;
 
 
 use App\Jobs\DBImporterJob;
+use App\Jobs\JobInterface;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 
 class QueueManager
 {
 
-    public function push()
+    public function push($job)
     {
-        $importer = new DBImporterJob();
-        dispatch($importer);
+        dispatch($job);
+        Log::alert("---------------Job logger---------------");
+        Log::info("Job type: ". $job->getJobName());
+        Log::info("Job details:");
+        Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 
     public function push_high_priority(){
-        $importer = new DBImporterJob();
-        dispatch($importer)->onQueue('high');
+
     }
+
     public function pop($file)
     {
 
     }
+
+    public function getJobInfo(){
+        return null;
+    }
+
 }

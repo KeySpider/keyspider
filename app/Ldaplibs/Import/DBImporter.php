@@ -13,33 +13,20 @@ use DB;
 
 class DBImporter
 {
-    protected $table;
-    protected $columns;
-    protected $data;
+    protected $setting;
+    protected $file_name;
+    protected $csv_reader;
 
-    public function __construct($table, $columns, $data)
+    const CONVERSION = "CSV Import Process Format Conversion";
+    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+
+    public function __construct($setting, $file_name)
     {
-        $this->table = $table;
-        $this->columns = $columns;
-        $this->data = $data;
+        $this->setting = $setting;
+        $this->file_name = $file_name;
+        $this->csv_reader = new CSVReader(new SettingsManager());
     }
 
-    /**
-     * import
-     */
-    public function import_test()
-    {
-        $file_list = $this->get_file_list_from_json($file_name='');
-        $queue = new ImportQueueManager($file_list);
-        $settings = new SettingsManager();
-        $rule = $settings->get_rule_of_import();
-        $data_input_reader_list = DataInputReaderFactory::build_DataInputReader($file_list,$rule);
-
-        foreach ($data_input_reader_list as $object){
-            $queue->push($object);
-        }
-        $queue->process();
-    }
 
     private function get_file_list_from_json($file_name)
     {
@@ -48,8 +35,18 @@ class DBImporter
 
     public function import()
     {
-         // bulk insert
-        foreach ($this->data as $key2 => $item2) {
+        $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
+        $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
+
+        $this->csv_reader->createTable($name_table, $columns);
+
+        $params = [
+            'CONVERSATION' => $this->setting[self::CONVERSION],
+        ];
+        $data = $this->csv_reader->getDataFromOneFile($this->file_name, $params);
+        $columns = implode(",", $columns);
+
+        foreach ($data as $key2 => $item2) {
             $tmp = [];
             foreach ($item2 as $key3 => $item3) {
                 array_push($tmp, "'{$item3}'");
@@ -58,19 +55,9 @@ class DBImporter
             $tmp = implode(",", $tmp);
 
             // insert
-            $is_insert_db = DB::statement("
-                INSERT INTO {$this->table}({$this->columns}) values ({$tmp});
+            DB::statement("
+                INSERT INTO {$name_table}({$columns}) values ({$tmp});
             ");
-            if ($is_insert_db) {
-                return true;
-            }
-            return false;
         }
-    }
-}
-
-class DataInputReaderFactory{
-    public static function build_DataInputReader($file_list, $rule){
-        return array();//array of DataInputReader objects.
     }
 }

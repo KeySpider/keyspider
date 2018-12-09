@@ -2,13 +2,14 @@
 
 namespace App\Console;
 
-use App\Jobs\ProcessPodcast;
+use App\Jobs\DBExtractorJob;
+use App\Jobs\DBImporterJob;
+use App\Ldaplibs\Delivery\ExtractQueueManager;
+use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
-use Exception;
-use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -29,15 +30,21 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        try {
-            $setting = new SettingsManager();
-            $schedule_setting = $setting->get_schedule_import_execution();
+        $setting = new SettingsManager();
 
-            foreach ($schedule_setting as $time => $data_setting) {
-                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
-            }
-        } catch (Exception $e) {
-            Log::channel('import')->error($e);
+        $timeExecutionList = $setting->getScheduleImportExecution();
+        foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
+            $schedule->call(function() use ($settingOfTimeExecution){
+                $this->importDataForTimeExecution($settingOfTimeExecution);
+            });
+        }
+
+        $extractSetting = $setting->getRuleOfDataExtract();
+        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+            $schedule->call(function() use ($settingOfTimeExecution){
+                $this->exportDataForTimeExecution($settingOfTimeExecution);
+            })->dailyAt($timeExecutionString);
+
         }
     }
 
@@ -52,4 +59,32 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+
+    /**
+     * @param $dataSchedule
+     */
+    private function importDataForTimeExecution($dataSchedule): void
+    {
+        foreach ($dataSchedule as $data) {
+            $setting = $data['setting'];
+            $files = $data['files'];
+
+            $queue = new ImportQueueManager();
+            foreach ($files as $file) {
+                $dbImporter = new DBImporterJob($setting, $file);
+                $queue->push($dbImporter);
+            }
+        }
+    }
+
+    public function exportDataForTimeExecution($settings)
+    {
+        $queue = new ExtractQueueManager();
+        foreach ($settings as $dataSchedule) {
+            $setting = $dataSchedule['setting'];
+            $extractor = new DBExtractorJob($setting);
+            $queue->push($extractor);
+        }
+    }
+
 }
