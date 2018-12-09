@@ -2,9 +2,12 @@
 
 namespace App\Console;
 
+use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
 use App\Jobs\ExtractionData;
 use App\Jobs\ProcessPodcast;
+use App\Ldaplibs\Delivery\DBExtractor;
+use App\Ldaplibs\Delivery\ExtractQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
@@ -34,8 +37,6 @@ class Kernel extends ConsoleKernel
     {
         $setting = new SettingsManager();
 
-        $setting = new SettingsManager();
-//        $timeExecutionList = $setting->getScheduleImportExecution();
         $timeExecutionList = $setting->get_schedule_import_execution();
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
@@ -43,25 +44,14 @@ class Kernel extends ConsoleKernel
             })->dailyAt($timeExecutionString);
         }
 
-        // schedule for import
-/*        try {
-            $schedule_setting = $setting->get_schedule_import_execution();
-            foreach ($schedule_setting as $time => $data_setting) {
-                $schedule->job(new ProcessPodcast($data_setting))->dailyAt($time);
-            }
-        } catch (Exception $e) {
-            Log::channel('import')->error($e);
-        }
 
-        // schedule for extract data
-        try {
-            $extractSetting = $setting->get_rule_of_data_extract();
-            foreach ($extractSetting as $time => $setting) {
-                $schedule->job(new ExtractionData($setting))->dailyAt($time);
-            }
-        } catch (Exception $e) {
-            Log::channel('export')->error($e);
-        }*/
+        $extractSetting = $setting->get_rule_of_data_extract();
+        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+            $schedule->call(function() use ($settingOfTimeExecution){
+                $this->exportDataForTimeExecution($settingOfTimeExecution);
+            })->dailyAt($timeExecutionString);
+
+        }
     }
 
     /**
@@ -90,6 +80,16 @@ class Kernel extends ConsoleKernel
                 $dbImporter = new DBImporterJob($setting, $file);
                 $queue->push($dbImporter);
             }
+        }
+    }
+
+    public function exportDataForTimeExecution($settings)
+    {
+        $queue = new ExtractQueueManager();
+        foreach ($settings as $dataSchedule) {
+            $setting = $dataSchedule['setting'];
+            $extractor = new DBExtractorJob($setting);
+            $queue->push($extractor);
         }
     }
 
