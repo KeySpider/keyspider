@@ -36,6 +36,7 @@ class DBExtractor
     public function process()
     {
         try {
+            sleep(2);
             $setting = $this->setting;
 
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
@@ -65,6 +66,8 @@ class DBExtractor
 
             $result = DB::select($sql);
             $results = json_decode(json_encode($result), true);
+            $nRecords = sizeof($results);
+            Log::info("Number of records to be extracted: $nRecords");
 
             if (!empty($results)) {
                 $infoOutputIni = parse_ini_file(storage_path($outputProcessConvention));
@@ -75,6 +78,8 @@ class DBExtractor
                 if (file_exists(storage_path("{$tempPath}"))) {
                     $fileName = $this->remove_ext($fileName).'_'.rand(100, 900).'.csv';
                 }
+
+                Log::info("Export to file: $fileName");
 
                 $file = fopen(storage_path("{$tempPath}/{$fileName}"), 'wb');
 
