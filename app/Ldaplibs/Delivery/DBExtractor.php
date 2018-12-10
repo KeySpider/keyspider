@@ -35,7 +35,7 @@ class DBExtractor
     {
         // $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
         try {
-            sleep(2);
+//            sleep(2);
             $setting = $this->setting;
 
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
