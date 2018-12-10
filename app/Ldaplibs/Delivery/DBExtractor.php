@@ -34,7 +34,7 @@ class DBExtractor
     public function process()
     {
         try {
-            sleep(2);
+//            sleep(2);
             $setting = $this->setting;
 
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
