@@ -9,7 +9,9 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
+use Carbon\Carbon;
 use DB;
+use File;
 
 class DBImporter
 {
@@ -35,6 +37,8 @@ class DBImporter
 
     public function import()
     {
+        $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
+
         $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
         $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
@@ -54,10 +58,19 @@ class DBImporter
 
             $tmp = implode(",", $tmp);
 
-            // insert
-            DB::statement("
+            $isInsertDb = DB::statement("
                 INSERT INTO {$name_table}({$columns}) values ({$tmp});
             ");
+
+            if ($isInsertDb) {
+                $now = Carbon::now()->format('Ymdhis').rand(1000,9999);
+                $fileName = "hogehoge_{$now}.csv";
+                if (is_file($this->file_name)) {
+                    File::move($this->file_name, $processedFilePath.'/'.$fileName);
+                }
+            } else {
+                dd('ok');
+            }
         }
     }
 }

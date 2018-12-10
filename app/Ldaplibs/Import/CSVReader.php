@@ -135,7 +135,7 @@ class CSVReader implements DataInputReader
     public function getDataFromOneFile($file_csv, $options = [])
     {
         $data = [];
-        $path = storage_path("{$file_csv}");
+        $path = $file_csv;
         if (is_file($path)) {
             foreach (file($path) as $line) {
                 $data_line = str_getcsv($line);

@@ -29,10 +29,11 @@ class DBExtractor
     }
 
     /**
-     *
+     * process extract
      */
     public function process()
     {
+        // $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
         try {
             sleep(2);
             $setting = $this->setting;
