@@ -68,8 +68,6 @@ class DBImporter
                 if (is_file($this->file_name)) {
                     File::move($this->file_name, $processedFilePath.'/'.$fileName);
                 }
-            } else {
-                dd('ok');
             }
         }
     }
