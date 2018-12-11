@@ -38,17 +38,18 @@ class Kernel extends ConsoleKernel
         $importSetting = new ImportSettingsManager();
 
         $timeExecutionList = $importSetting->getScheduleImportExecution();
+
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->importDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+            });
         }
 
         $extractSetting = new ExtractSettingsManager();
-        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+        foreach ($extractSetting->getRuleOfDataExtract() as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
-            });
+            })->dailyAt($timeExecutionString);
         }
     }
 

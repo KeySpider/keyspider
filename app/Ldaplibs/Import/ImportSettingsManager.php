@@ -10,6 +10,7 @@ namespace App\Ldaplibs\Import;
 
 
 use App\Ldaplibs\SettingsManager;
+use Illuminate\Support\Facades\Log;
 
 class ImportSettingsManager extends SettingsManager
 {
