@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\DBImporterJob;
+use App\Ldaplibs\Delivery\ExtractSettingsManager;
+use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Import\CSVReader;
 use Illuminate\Support\Facades\Log;
@@ -28,9 +30,10 @@ class ImportController extends Controller
     public function read_extract_settings(): void
     {
         echo '<pre>';
-        $import_settings = new SettingsManager();
-           $user_rule = $import_settings->getIniOutputContent('UserInfoOutput4CSV.ini');
-        echo '<p><h2>.INI to .JSON adapter:</h2></p>';
+//        $import_settings = new ImportSettingsManager();
+//        $user_rule = $import_settings->getScheduleImportExecution();
+        $export_settings = new ExtractSettingsManager();
+        $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
@@ -38,14 +41,15 @@ class ImportController extends Controller
     public function read_import_settings(): void
     {
         echo '<pre>';
-        $import_settings = new SettingsManager();
+//        $import_settings = new SettingsManager();
+        $import_settings = new ImportSettingsManager();
         $user_rule = $import_settings->getScheduleImportExecution();
 
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
 
-        $this->do_import_by_queue();
+//        $this->do_import_by_queue();
     }
 
     private function do_import_by_queue(): void

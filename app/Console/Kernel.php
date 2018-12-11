@@ -6,7 +6,9 @@ use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Delivery\DBExtractor;
 use App\Ldaplibs\Delivery\ExtractQueueManager;
+use App\Ldaplibs\Delivery\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportQueueManager;
+use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -33,16 +35,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $setting = new SettingsManager();
+        $importSetting = new ImportSettingsManager();
 
-        $timeExecutionList = $setting->getScheduleImportExecution();
+        $timeExecutionList = $importSetting->getScheduleImportExecution();
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             })->dailyAt($timeExecutionString);
         }
 
-        $extractSetting = $setting->getRuleOfDataExtract();
+        $extractSetting = new ExtractSettingsManager();
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
