@@ -35,11 +35,9 @@ class ExtractSettingsManager extends SettingsManager
         foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
             $tableContent = $this->getIniExportFileContent($iniExportSettingsFile);
             $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
-            $fileName = $this->iniMasterDBFile;
             $masterDB = $this->masterDBConfigData;
-            $masterTable = $masterDB[$extract_table_name];
-            $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterTable);
-            $tableContent = $this->convertValueFromDBMaster($tableContent, $masterTable);
+            $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterDB);
+            $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
             foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
                 $filesArray['setting'] = $tableContent;
                 $timeArray[$specifyTime][] = $filesArray;
@@ -74,12 +72,14 @@ class ExtractSettingsManager extends SettingsManager
         return $tableContents;
     }
 
-    private function convertValueFromDBMaster($table_contents, $masterTable)
+    private function convertValueFromDBMaster($table_contents, $masterDB)
     {
         $jsonData = json_encode($table_contents);
-        foreach ($masterTable as $key => $value) {
-            if (strpos($key, '.') !== false) {
-                $jsonData = str_replace($key, $value, $jsonData);
+        foreach ($masterDB as $table=>$masterTable) {
+            foreach ($masterTable as $key => $value) {
+                if (strpos($key, '.') !== false) {
+                    $jsonData = str_replace($key, $value, $jsonData);
+                }
             }
         }
         return (json_decode($jsonData, true));
