@@ -55,7 +55,7 @@ class CSVReader implements DataInputReader
                     "setting" => $setting,
                     "file_csv" => [],
                 ];
-                $pathDir = storage_path("{$path}");
+                $pathDir = $path;
                 $validate_file = ['csv'];
 
                 if (is_dir($pathDir)) {
@@ -135,9 +135,8 @@ class CSVReader implements DataInputReader
     public function getDataFromOneFile($file_csv, $options = [])
     {
         $data = [];
-        $path = $file_csv;
-        if (is_file($path)) {
-            foreach (file($path) as $line) {
+        if (is_file($file_csv)) {
+            foreach (file($file_csv) as $line) {
                 $data_line = str_getcsv($line);
                 $data[] = $this->getDataAfterProcess($data_line, $options);
             }

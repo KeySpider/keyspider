@@ -14,11 +14,6 @@ use Illuminate\Support\Facades\Log;
 
 class ImportSettingsManager extends SettingsManager
 {
-    public const EXTRACTION_CONDITION = "Extraction Condition";
-    public const EXTRACTION_CONVERSION = "Extraction Process Format Conversion";
-    public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = "CSV Import Process Format Conversion";
-    public const EXTRACTION_PROCESS_BACIC_CONFIGURATION = "Extraction Process Bacic Configuration";
-    public const CSV_IMPORT_PROCESS_BACIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
     protected $iniExportSettingsFolder;
     protected $iniExportSettingsFiles = array();
     private $iniImportSettingsFiles = array();
@@ -26,6 +21,7 @@ class ImportSettingsManager extends SettingsManager
     private $allTableSettingsContent = null;
     public function __construct($ini_settings_files = null)
     {
+        Log::info("ImportSettingsManager");
         parent::__construct($ini_settings_files);
         $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
         $allFiles = scandir($this->iniImportSettingsFolder);
@@ -44,7 +40,7 @@ class ImportSettingsManager extends SettingsManager
     /**
      * @return array
      */
-    private function getRuleOfImport()
+    public function getRuleOfImport()
     {
         if ($this->allTableSettingsContent) {
             return $this->allTableSettingsContent;
@@ -82,6 +78,7 @@ class ImportSettingsManager extends SettingsManager
     public function getScheduleImportExecution()
     {
         $rule = ($this->getRuleOfImport());
+
         $timeArray = array();
         foreach ($rule as $table_contents) {
             foreach ($table_contents[self::CSV_IMPORT_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
@@ -100,11 +97,10 @@ class ImportSettingsManager extends SettingsManager
     {
         $data = [];
 
-        $pathDir = storage_path("{$path}");
         $validateFile = ['csv'];
 
-        if (is_dir($pathDir)) {
-            foreach (scandir($pathDir) as $key => $file) {
+        if (is_dir($path)) {
+            foreach (scandir($path) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
                 if (in_array($ext, $validateFile)) {
                     if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {

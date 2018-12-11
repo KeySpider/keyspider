@@ -26,13 +26,11 @@ class SettingsManager
         $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
     }
 
-
     protected function removeExt($file_name)
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
     }
-
 
     protected function contains($needle, $haystack)
     {
