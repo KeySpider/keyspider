@@ -46,7 +46,7 @@ class Kernel extends ConsoleKernel
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+            });
         }
     }
 

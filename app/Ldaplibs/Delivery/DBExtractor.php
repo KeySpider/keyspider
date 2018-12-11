@@ -35,58 +35,38 @@ class DBExtractor
     {
         // $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
         try {
-//            sleep(2);
-            $setting = $this->setting;
-
+            $setting                 = $this->setting;
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
             $extractTable            = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractCondition        = $setting[self::EXTRACTION_CONDITION];
             $formatConvention        = $setting[self::Extraction_Process_Format_Conversion];
 
-            // get data by condition setting file
+            // get sql query by condition in setting file
             $table = $this->switchTable($extractTable);
-            $table   = "\"{$table}\"";
-            $queries = [];
+            $sql = $this->getSQLQueryByExtractCondition("\"{$table}\"", $extractCondition, $formatConvention);
 
-            foreach ($extractCondition as $column => $where) {
-                if ($this->checkExitsString($where)) {
-                    $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
-                    $query = "\"{$column}\" <= '{$where}'";
-                } else {
-                    $query = "\"{$column}\" = '{$where}'";
-                }
-                array_push($queries, $query);
-            }
+            // get data by query
+            $results = $this->getDataByQuery($sql);
 
-            // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
-            $queries = implode(' AND ', $queries);
-
-            $sql = "SELECT * FROM {$table} WHERE {$queries} ";
-
-            $result = DB::select($sql);
-            $results = json_decode(json_encode($result), true);
-            $nRecords = sizeof($results);
-            Log::info("Number of records to be extracted: $nRecords");
-
+            // extract csv file into temp
             if (!empty($results)) {
-                $infoOutputIni = parse_ini_file(storage_path($outputProcessConvention));
+                $infoOutputIni = parse_ini_file($outputProcessConvention);
 
                 $fileName = $infoOutputIni['FileName'];
                 $tempPath = $infoOutputIni['TempPath'];
 
-                if (file_exists(storage_path("{$tempPath}"))) {
-                    $fileName = $this->removeExt($fileName).'_'.rand(100, 900).'.csv';
+                if (is_file("{$tempPath}/$fileName")) {
+                    $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
                 }
 
                 Log::info("Export to file: $fileName");
 
-                $file = fopen(storage_path("{$tempPath}/{$fileName}"), 'wb');
+                $file = fopen("{$tempPath}/{$fileName}", 'wb');
 
                 // create csv file
                 foreach ($results as $data) {
                     $tmp = [];
                     foreach ($data as $column => $line) {
-//                        array_push($tmp, $line);
                         foreach ($formatConvention as $format) {
                             if ($format === "({$column})") {
                                 array_push($tmp, $line);
@@ -102,6 +82,45 @@ class DBExtractor
         } catch (Exception $e) {
             Log::channel('export')->error($e);
         }
+    }
+
+    /**
+     * Get sql query by condition
+     *
+     * @param $table
+     * @param $extractCondition
+     * @return string
+     */
+    public function getSQLQueryByExtractCondition($table, $extractCondition, $formatConvention)
+    {
+        $queries = [];
+
+        foreach ($extractCondition as $column => $where) {
+            if ($this->checkExitsString($where)) {
+                $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
+                $query = "\"{$column}\" <= '{$where}'";
+            } else {
+                $query = "\"{$column}\" = '{$where}'";
+            }
+            array_push($queries, $query);
+        }
+
+        $queries = implode(' AND ', $queries);
+        $sql = "SELECT * FROM {$table} WHERE {$queries} ";
+        return $sql;
+    }
+
+    /**
+     * @param $sql
+     * @return mixed
+     */
+    public function getDataByQuery($sql)
+    {
+        $result = DB::select($sql);
+        $results = json_decode(json_encode($result), true);
+        $nRecords = sizeof($results);
+        Log::info("Number of records to be extracted: $nRecords");
+        return $results;
     }
 
     /**
