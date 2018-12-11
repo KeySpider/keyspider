@@ -99,11 +99,10 @@ class ImportSettingsManager extends SettingsManager
     {
         $data = [];
 
-        $pathDir = storage_path("{$path}");
         $validateFile = ['csv'];
 
-        if (is_dir($pathDir)) {
-            foreach (scandir($pathDir) as $key => $file) {
+        if (is_dir($path)) {
+            foreach (scandir($path) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
                 if (in_array($ext, $validateFile)) {
                     if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {

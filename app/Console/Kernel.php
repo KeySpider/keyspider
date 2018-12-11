@@ -45,7 +45,7 @@ class Kernel extends ConsoleKernel
         }
 
         $extractSetting = new ExtractSettingsManager();
-        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+        foreach ($extractSetting->getRuleOfDataExtract() as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
             })->dailyAt($timeExecutionString);
