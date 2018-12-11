@@ -35,17 +35,18 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $importSetting = new ImportSettingsManager();
+        $importSettingsManager = new ImportSettingsManager();
 
-        $timeExecutionList = $importSetting->getScheduleImportExecution();
+        $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             })->dailyAt($timeExecutionString);
         }
 
-        $extractSetting = new ExtractSettingsManager();
-        foreach ($extractSetting->getRuleOfDataExtract() as $timeExecutionString => $settingOfTimeExecution) {
+        $extractSettingManager = new ExtractSettingsManager();
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
             })->dailyAt($timeExecutionString);
