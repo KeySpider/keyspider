@@ -24,26 +24,6 @@ class SettingsManager
     {
         $this->iniMasterDBFile = storage_path("" . self::INI_CONFIGS . "/MasterDBConf.ini");
         $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
-/*        $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
-        $this->iniExportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
-        $allFiles = scandir($this->iniImportSettingsFolder);
-        foreach ($allFiles as $fileName) {
-            if (contains('.ini', $fileName)) {
-                if (contains('Master', $fileName)) {
-                    $this->iniMasterDBFile = $fileName;
-                } else {
-                    $this->iniImportSettingsFiles[] = $fileName;
-                }
-            }
-        }
-
-        $allFiles = scandir($this->iniExportSettingsFolder);
-        foreach ($allFiles as $fileName) {
-            if (contains('.ini', $fileName) && contains('Extraction', $fileName)) {
-                $this->iniExportSettingsFiles[] = $fileName;
-            }
-        }*/
-
     }
 
 
