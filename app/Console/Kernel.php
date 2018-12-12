@@ -79,6 +79,15 @@ class Kernel extends ConsoleKernel
             foreach ($dataSchedule as $data) {
                 $setting = $data['setting'];
                 $files = $data['files'];
+
+                if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
+                    Log::channel('import')->error(
+                        "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
+                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
+                    );
+                    break;
+                }
+
                 if (empty($files)) {
                     Log::channel('import')->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT)." WITH FILES EMPTY");
                 } else {
