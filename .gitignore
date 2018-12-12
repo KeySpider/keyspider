@@ -3,7 +3,8 @@
 /public/storage
 /storage/*.key
 storage/extract_csv_temp/
-/storage/import_csv
+/storage/import_csv/
+/storage/import_csv_processed/
 /vendor
 /.idea
 /.vscode

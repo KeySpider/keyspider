@@ -34,6 +34,17 @@ class DBExtractor
     public function process()
     {
         // $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
+        // \(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)
+
+        /**
+         * select "AAA.003","AAA.004","AAA.005", "AAA.009","AAA.008",
+            "BBB.001","BBB.004",
+            "CCC.001", "CCC.003"
+            from "AAA"
+            left join "BBB" on "AAA.004" = "BBB.001"
+            left join "CCC" on "AAA.005" = "CCC.001";
+         */
+
         try {
             $setting                 = $this->setting;
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
@@ -94,6 +105,9 @@ class DBExtractor
     public function getSQLQueryByExtractCondition($table, $extractCondition, $formatConvention)
     {
         $queries = [];
+        $selectColumn = [];
+
+        $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
         foreach ($extractCondition as $column => $where) {
             if ($this->checkExitsString($where)) {
@@ -102,11 +116,38 @@ class DBExtractor
             } else {
                 $query = "\"{$column}\" = '{$where}'";
             }
+            array_push($selectColumn, "\"{$column}\"");
             array_push($queries, $query);
         }
 
-        $queries = implode(' AND ', $queries);
-        $sql = "SELECT * FROM {$table} WHERE {$queries} ";
+        foreach ($formatConvention as $key => $value) {
+            $isFormat = preg_match($pattern, $value, $data);
+            if ($isFormat) {
+                $cl = "\"{$data['exp1']}\"";
+                array_push($selectColumn, $cl);
+            }
+        }
+
+        $queries = empty($queries) ? '' : "WHERE ".implode(' AND ', $queries);
+        $selectColumn = empty($selectColumn) ? "*" : implode(',', $selectColumn);
+
+
+        $sql = "SELECT {$selectColumn} FROM {$table} {$queries}";
+
+        if ($table === "\"AAA\"") {
+            foreach ($formatConvention as $key => $item) {
+                $isCheckPattern = preg_match($pattern, $item, $data);
+                if ($isCheckPattern) {
+                    if (isset($data['exp3'])) {
+
+                        $joinTable = $this->getJoinTable();
+                        $str = "left join \"BBB\" on \"{$data['exp1']}\" = \"BBB.001\" ";
+                    }
+                }
+            }
+            die;
+        }
+
         return $sql;
     }
 
