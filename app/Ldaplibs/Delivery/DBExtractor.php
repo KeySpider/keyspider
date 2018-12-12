@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use DB;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use File;
 
 class DBExtractor
 {
@@ -56,11 +57,16 @@ class DBExtractor
             $fileName = $infoOutputIni['FileName'];
             $tempPath = $infoOutputIni['TempPath'];
 
+            if (!is_dir($tempPath)) {
+                Log::info("$tempPath is not exits");
+                File::makeDirectory($tempPath, 0755, true);
+            }
+
             if (is_file("{$tempPath}/$fileName")) {
                 $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
             }
 
-            Log::info("Export to file: $fileName");
+            Log::info("Export to file: $fileName into $tempPath");
 
             $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
