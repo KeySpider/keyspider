@@ -21,7 +21,7 @@ class ImportSettingsManager extends SettingsManager
     private $allTableSettingsContent = null;
     public function __construct($ini_settings_files = null)
     {
-        Log::info("ImportSettingsManager");
+//        Log::info("ImportSettingsManager");
         parent::__construct($ini_settings_files);
         $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
         $allFiles = scandir($this->iniImportSettingsFolder);
