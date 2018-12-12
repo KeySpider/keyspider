@@ -10,12 +10,16 @@ namespace App\Ldaplibs\Delivery;
 
 
 use App\Ldaplibs\SettingsManager;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ExtractSettingsManager extends SettingsManager
 {
-    public const EXTRACTION_CONVERSION = "Extraction Process Format Conversion";
+    public const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
     protected $iniExportSettingsFolder;
     protected $iniExportSettingsFiles = array();
+
+    const OUTPUT_PROCESS_CONVERSION = 'Output Process Conversion';
 
     public function __construct($ini_settings_files = null)
     {
@@ -24,7 +28,7 @@ class ExtractSettingsManager extends SettingsManager
         $allFiles = scandir($this->iniExportSettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Extraction', $fileName)) {
-                $this->iniExportSettingsFiles[] = $fileName;
+                $this->iniExportSettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/").$fileName;
             }
         }
     }
@@ -32,19 +36,24 @@ class ExtractSettingsManager extends SettingsManager
     public function getRuleOfDataExtract()
     {
         $timeArray = array();
-        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
-            $tableContent = $this->getIniExportFileContent($iniExportSettingsFile);
-            $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
-            $masterDB = $this->masterDBConfigData;
-            $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterDB);
-            $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
-            foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                $filesArray['setting'] = $tableContent;
-                $timeArray[$specifyTime][] = $filesArray;
+        if($this->areAllExtractIniFilesValid()) {
+            foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
+                $tableContent = parse_ini_file($iniExportSettingsFile, true);
+                $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
+                $masterDB = $this->masterDBConfigData;
+                $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterDB);
+                $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
+                foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+                    $filesArray['setting'] = $tableContent;
+                    $timeArray[$specifyTime][] = $filesArray;
+                }
             }
+            ksort($timeArray);
+            return $timeArray;
+        }else{
+            Log::info("Error in Extract INI file");
+            return [];
         }
-        ksort($timeArray);
-        return $timeArray;
     }
 
     private function getIniExportFileContent($filename): array
@@ -90,6 +99,64 @@ class ExtractSettingsManager extends SettingsManager
         return $this->getIniExportFileContent($file_name);
     }
 
+    private function getIniFileContent($filename)
+    {
+        try {
+            $iniPath = $filename;
+            $iniArray = parse_ini_file($iniPath, true);
+            $isValid = $this->isExtractIniValid($iniArray);
+//            Log::info('validation result'.$isValid?'True':'False');
+            return $isValid?$iniArray:null;
+        } catch (\Exception $e) {
+            Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
+            return null;
+        }
+    }
+
+    private function areAllExtractIniFilesValid(){
+        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
+            if(!$this->getIniFileContent($iniExportSettingsFile))
+                return false;
+        }
+        Log::info('areAllExtractIniFilesValid: YES');
+        return true;
+    }
+    private function isExtractIniValid($iniArray):bool {
+        $rules = [
+            self::EXTRACTION_PROCESS_BACIC_CONFIGURATION => 'required',
+            self::EXTRACTION_CONDITION => 'required',
+            self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
+            self::OUTPUT_PROCESS_CONVERSION => 'required'
+        ];
+
+        $validate = Validator::make($iniArray, $rules);
+        if ($validate->fails()) {
+            Log::error("Key error validation");
+            Log::error($validate->getMessageBag());
+            return false;
+        } else {
+            Log::error(json_encode($iniArray, JSON_PRETTY_PRINT));
+//                Validate children
+            $tempIniArray['EXTRACTION_PROCESS_BACIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION];
+            $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
+            Log::error(json_encode($tempIniArray, JSON_PRETTY_PRINT));
+            $rules = [
+                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExtractionTable' => 'required',
+                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExecutionTime' => 'required',
+                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.OutputType' => 'required',
+                'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
+            ];
+            $validate = Validator::make($tempIniArray, $rules);
+            if ($validate->fails()) {
+                Log::error("Key error validation");
+                Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+                return false;
+            } else {
+                Log::info('Validation PASSED');
+                return true;
+            }
+        }
+    }
 /*
     public function getRuleOfDataExtract()
     {

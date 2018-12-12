@@ -35,11 +35,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $importSettingsManager = new ImportSettingsManager();
-
+/*        $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        Log::info("Importing schedule");
-        Log::info(json_encode($timeExecutionList, JSON_PRETTY_PRINT));
+//        Log::info("Importing schedule");
+//        Log::info(json_encode($timeExecutionList, JSON_PRETTY_PRINT));
         if($timeExecutionList)
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function() use ($settingOfTimeExecution){
@@ -48,13 +47,13 @@ class Kernel extends ConsoleKernel
             }
         else{
             Log::error("Can not run import schedule, getting error from config ini files");
-        }
+        }*/
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+            });
         }
     }
 
