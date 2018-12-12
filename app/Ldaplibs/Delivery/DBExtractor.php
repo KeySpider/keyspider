@@ -61,7 +61,7 @@ class DBExtractor
 
             // extract csv file into temp
             if (!empty($results)) {
-                $infoOutputIni = parse_ini_file($outputProcessConvention);
+                $infoOutputIni = parse_ini_file(($outputProcessConvention));
 
                 $fileName = $infoOutputIni['FileName'];
                 $tempPath = $infoOutputIni['TempPath'];
@@ -72,7 +72,7 @@ class DBExtractor
 
                 Log::info("Export to file: $fileName");
 
-                $file = fopen("{$tempPath}/{$fileName}", 'wb');
+                $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
                 // create csv file
                 foreach ($results as $data) {
