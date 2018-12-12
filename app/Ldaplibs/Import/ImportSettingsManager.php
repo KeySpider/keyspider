@@ -11,6 +11,7 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ImportSettingsManager extends SettingsManager
 {
@@ -19,20 +20,21 @@ class ImportSettingsManager extends SettingsManager
     private $iniImportSettingsFiles = array();
     private $iniImportSettingsFolder;
     private $allTableSettingsContent = null;
+    const CSV_IMPORT_PROCESS_CONFIGRATION = 'CSV Import Process Configration';
+
     public function __construct($ini_settings_files = null)
     {
 //        Log::info("ImportSettingsManager");
         parent::__construct($ini_settings_files);
-        $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
-        $allFiles = scandir($this->iniImportSettingsFolder);
+//        $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
+        $this->iniImportSettingsFolder = '';
+        $allFiles = $this->key_spider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
+//        var_dump($allFiles);
+
+//        $allFiles = scandir($this->iniImportSettingsFolder);
+
         foreach ($allFiles as $fileName) {
-            if ($this->contains('.ini', $fileName)) {
-                if ($this->contains('Master', $fileName)) {
-                    $this->iniMasterDBFile = $fileName;
-                } else {
-                    $this->iniImportSettingsFiles[] = $fileName;
-                }
-            }
+            $this->iniImportSettingsFiles[] = $fileName;
         }
 
     }
@@ -50,8 +52,15 @@ class ImportSettingsManager extends SettingsManager
 
         $this->allTableSettingsContent = array();
 
+        if(!$this->areAllImportIniFilesValid())
+            return [];
+
         foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
-            $tableContents = $this->getIniImportFileContent($ini_import_settings_file);
+            $tableContents = parse_ini_file($ini_import_settings_file, true);
+            if ($tableContents == null) {
+                Log::error("Can not run import schedule");
+                return [];
+            }
 //            set filename in json file
             $tableContents['IniFileName'] = $ini_import_settings_file;
 //            Set destination table in database
@@ -116,13 +125,60 @@ class ImportSettingsManager extends SettingsManager
     /**
      * @return array of key/value from ini file.
      */
-    private function getIniImportFileContent($filename): array
+    private function getIniFileContent($filename)
     {
-        $iniPath = $this->iniImportSettingsFolder . $filename;
-        $iniArray = parse_ini_file($iniPath, true);
-        return $iniArray;
+        try {
+            $iniPath = $filename;
+            $iniArray = parse_ini_file($iniPath, true);
+            $isValid = $this->isImportIniValid($iniArray);
+//            Log::info('validation result'.$isValid?'True':'False');
+            return $isValid?$iniArray:null;
+        } catch (\Exception $e) {
+            Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
+            return null;
+        }
     }
 
+    private function areAllImportIniFilesValid(){
+        foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
+            if(!$this->getIniFileContent($ini_import_settings_file))
+                return false;
+        }
+        Log::info('areAllImportIniFilesValid: YES');
+        return true;
+    }
+    private function isImportIniValid($iniArray):bool {
+        $rules = [
+            self::CSV_IMPORT_PROCESS_BACIC_CONFIGURATION => 'required',
+            self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
+        ];
+
+        $validate = Validator::make($iniArray, $rules);
+        if ($validate->fails()) {
+            Log::error("Key error validation");
+            Log::error($validate->getMessageBag());
+            return false;
+        } else {
+//                Validate children
+            $tempIniArray['CSV_IMPORT_PROCESS_BACIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BACIC_CONFIGURATION];
+            $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+            $rules = [
+                'CSV_IMPORT_PROCESS_BACIC_CONFIGURATION.ImportTable' => 'required',
+                'CSV_IMPORT_PROCESS_BACIC_CONFIGURATION.FilePath' => 'required',
+                'CSV_IMPORT_PROCESS_BACIC_CONFIGURATION.FileName' => 'required',
+                'CSV_IMPORT_PROCESS_BACIC_CONFIGURATION.ProcessedFilePath' => 'required',
+            ];
+            $validate = Validator::make($tempIniArray, $rules);
+            if ($validate->fails()) {
+                Log::error("Key error validation");
+                Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+                return false;
+            } else {
+                Log::info('Validation PASSED');
+                return true;
+            }
+        }
+    }
 
     private function getIniExportFileContent($filename): array
     {

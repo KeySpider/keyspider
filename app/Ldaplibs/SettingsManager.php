@@ -19,9 +19,12 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_BACIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
     public $iniMasterDBFile = null;
     public $masterDBConfigData = null;
+    protected $key_spider;
 
     public function __construct($ini_settings_files = null)
     {
+        $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
+//        var_dump($this->key_spider);
         $this->iniMasterDBFile = storage_path("" . self::INI_CONFIGS . "/MasterDBConf.ini");
         $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
     }
