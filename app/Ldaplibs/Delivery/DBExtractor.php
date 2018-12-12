@@ -134,19 +134,19 @@ class DBExtractor
 
         $sql = "SELECT {$selectColumn} FROM {$table} {$queries}";
 
-        if ($table === "\"AAA\"") {
-            foreach ($formatConvention as $key => $item) {
-                $isCheckPattern = preg_match($pattern, $item, $data);
-                if ($isCheckPattern) {
-                    if (isset($data['exp3'])) {
-
-                        $joinTable = $this->getJoinTable();
-                        $str = "left join \"BBB\" on \"{$data['exp1']}\" = \"BBB.001\" ";
-                    }
-                }
-            }
-            die;
-        }
+//        if ($table === "\"AAA\"") {
+//            foreach ($formatConvention as $key => $item) {
+//                $isCheckPattern = preg_match($pattern, $item, $data);
+//                if ($isCheckPattern) {
+//                    if (isset($data['exp3'])) {
+//
+//                        $joinTable = $this->getJoinTable();
+//                        $str = "left join \"BBB\" on \"{$data['exp1']}\" = \"BBB.001\" ";
+//                    }
+//                }
+//            }
+//            die;
+//        }
 
         return $sql;
     }
