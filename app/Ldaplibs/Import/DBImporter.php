@@ -12,6 +12,8 @@ use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
 use File;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class DBImporter
 {
@@ -37,38 +39,42 @@ class DBImporter
 
     public function import()
     {
-        $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
+        try {
+            $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
 
-        $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
-        $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
+            $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
+            $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
-        $this->csv_reader->createTable($name_table, $columns);
+            $this->csv_reader->createTable($name_table, $columns);
 
-        $params = [
-            'CONVERSATION' => $this->setting[self::CONVERSION],
-        ];
-        $data = $this->csv_reader->getDataFromOneFile($this->file_name, $params);
-        $columns = implode(",", $columns);
+            $params = [
+                'CONVERSATION' => $this->setting[self::CONVERSION],
+            ];
+            $data = $this->csv_reader->getDataFromOneFile($this->file_name, $params);
+            $columns = implode(",", $columns);
 
-        foreach ($data as $key2 => $item2) {
-            $tmp = [];
-            foreach ($item2 as $key3 => $item3) {
-                array_push($tmp, "'{$item3}'");
-            }
+            foreach ($data as $key2 => $item2) {
+                $tmp = [];
+                foreach ($item2 as $key3 => $item3) {
+                    array_push($tmp, "\$\${$item3}\$\$");
+                }
 
-            $tmp = implode(",", $tmp);
+                $tmp = implode(",", $tmp);
 
-            $isInsertDb = DB::statement("
-                INSERT INTO {$name_table}({$columns}) values ({$tmp});
-            ");
+                $isInsertDb = DB::statement("
+                    INSERT INTO {$name_table}({$columns}) values ({$tmp});
+                ");
 
-            if ($isInsertDb) {
-                $now = Carbon::now()->format('Ymdhis').rand(1000,9999);
-                $fileName = "hogehoge_{$now}.csv";
-                if (is_file($this->file_name)) {
-                    File::move($this->file_name, $processedFilePath.'/'.$fileName);
+                if ($isInsertDb) {
+                    $now = Carbon::now()->format('Ymdhis').rand(1000,9999);
+                    $fileName = "hogehoge_{$now}.csv";
+                    if (is_file($this->file_name)) {
+                        File::move($this->file_name, $processedFilePath.'/'.$fileName);
+                    }
                 }
             }
+        } catch (Exception $e) {
+            Log::channel('import')->error($e);
         }
     }
 }
