@@ -4,12 +4,13 @@ namespace App\Console;
 
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
-use App\Ldaplibs\Delivery\DBExtractor;
-use App\Ldaplibs\Delivery\ExtractQueueManager;
-use App\Ldaplibs\Delivery\ExtractSettingsManager;
+use App\Jobs\DeliveryJob;
+use App\Ldaplibs\Delivery\DeliverySettingsManager;
+use App\Ldaplibs\Extract\ExtractQueueManager;
+use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\Ldaplibs\Import\DeliveryQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
-use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
@@ -30,23 +31,26 @@ class Kernel extends ConsoleKernel
     /**
      * Define the application's command schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @param  \Illuminate\Console\Scheduling\Schedule $schedule
      * @return void
      */
     protected function schedule(Schedule $schedule)
     {
+
+//        Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if($timeExecutionList)
+        if ($timeExecutionList)
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function() use ($settingOfTimeExecution){
+                $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->importDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        else{
+        else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }
 
+//        Setup schedule for Extract
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -55,9 +59,22 @@ class Kernel extends ConsoleKernel
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        }else{
+        } else {
             Log::error("Can not run export schedule, getting error from config ini files");
         }
+
+//        Setup schedule for Delivery
+        $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
+        if ($scheduleDeliveryExecution)
+            foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->deliveryDataForTimeExecution($settingOfTimeExecution);
+                });
+            }
+        else {
+            Log::error("Can not run import schedule, getting error from config ini files");
+        }
+
     }
 
     /**
@@ -67,7 +84,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }
@@ -96,6 +113,17 @@ class Kernel extends ConsoleKernel
             $setting = $dataSchedule['setting'];
             $extractor = new DBExtractorJob($setting);
             $queue->push($extractor);
+        }
+    }
+
+    public function deliveryDataForTimeExecution($settings)
+    {
+        $queue = new DeliveryQueueManager();
+        foreach ($settings as $dataSchedule) {
+            $setting = $dataSchedule['setting'];
+            Log::info(json_encode($setting, JSON_PRETTY_PRINT));
+            $delivery = new DeliveryJob($setting);
+            $queue->push($delivery);
         }
     }
 

@@ -6,7 +6,7 @@
  * Time: 10:12 AM
  */
 
-namespace App\Ldaplibs\Delivery;
+namespace App\Ldaplibs\Extract;
 
 
 use App\Ldaplibs\SettingsManager;

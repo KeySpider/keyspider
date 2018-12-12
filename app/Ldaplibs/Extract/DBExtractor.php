@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ldaplibs\Delivery;
+namespace App\Ldaplibs\Extract;
 
 use Carbon\Carbon;
 use DB;
