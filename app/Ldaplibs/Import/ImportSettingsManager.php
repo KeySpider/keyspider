@@ -129,9 +129,8 @@ class ImportSettingsManager extends SettingsManager
     private function getIniFileContent($filename)
     {
         try {
-            $iniPath = $filename;
-            $iniArray = parse_ini_file($iniPath, true);
-            $isValid = $this->isImportIniValid($iniArray);
+            $iniArray = parse_ini_file($filename, true);
+            $isValid = $this->isImportIniValid($iniArray, $filename);
 //            Log::info('validation result'.$isValid?'True':'False');
             return $isValid?$iniArray:null;
         } catch (\Exception $e) {
@@ -148,7 +147,7 @@ class ImportSettingsManager extends SettingsManager
         Log::info('areAllImportIniFilesValid: YES');
         return true;
     }
-    private function isImportIniValid($iniArray):bool {
+    private function isImportIniValid($iniArray, $fileName=null):bool {
         $rules = [
             self::CSV_IMPORT_PROCESS_BACIC_CONFIGURATION => 'required',
             self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
@@ -157,6 +156,7 @@ class ImportSettingsManager extends SettingsManager
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error("Key error validation");
+            Log::error("Error file: ".$fileName?$fileName:'');
             Log::error($validate->getMessageBag());
             return false;
         } else {
@@ -172,6 +172,7 @@ class ImportSettingsManager extends SettingsManager
             $validate = Validator::make($tempIniArray, $rules);
             if ($validate->fails()) {
                 Log::error("Key error validation");
+                Log::error("Error file: ".$fileName?$fileName:'');
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {

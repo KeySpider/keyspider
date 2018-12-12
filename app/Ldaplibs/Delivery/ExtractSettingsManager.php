@@ -102,9 +102,8 @@ class ExtractSettingsManager extends SettingsManager
     private function getIniFileContent($filename)
     {
         try {
-            $iniPath = $filename;
-            $iniArray = parse_ini_file($iniPath, true);
-            $isValid = $this->isExtractIniValid($iniArray);
+            $iniArray = parse_ini_file($filename, true);
+            $isValid = $this->isExtractIniValid($iniArray, $filename);
 //            Log::info('validation result'.$isValid?'True':'False');
             return $isValid?$iniArray:null;
         } catch (\Exception $e) {
@@ -121,7 +120,7 @@ class ExtractSettingsManager extends SettingsManager
         Log::info('areAllExtractIniFilesValid: YES');
         return true;
     }
-    private function isExtractIniValid($iniArray):bool {
+    private function isExtractIniValid($iniArray, $filename=null):bool {
         $rules = [
             self::EXTRACTION_PROCESS_BACIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
@@ -132,14 +131,16 @@ class ExtractSettingsManager extends SettingsManager
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error("Key error validation");
-            Log::error($validate->getMessageBag());
+            Log::error("Error file: ".$filename?$filename:'');
+            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
         } else {
-            Log::error(json_encode($iniArray, JSON_PRETTY_PRINT));
+
+//            Log::error(json_encode($iniArray, JSON_PRETTY_PRINT));
 //                Validate children
+            $tempIniArray = array();
             $tempIniArray['EXTRACTION_PROCESS_BACIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION];
             $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
-            Log::error(json_encode($tempIniArray, JSON_PRETTY_PRINT));
             $rules = [
                 'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExtractionTable' => 'required',
                 'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExecutionTime' => 'required',
@@ -148,12 +149,19 @@ class ExtractSettingsManager extends SettingsManager
             ];
             $validate = Validator::make($tempIniArray, $rules);
             if ($validate->fails()) {
-                Log::error("Key error validation");
+                Log::error("Error file: ".$filename?$filename:'');
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {
-                Log::info('Validation PASSED');
-                return true;
+                if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])){
+                    Log::info('Validation PASSED');
+                    return true;
+                }else{
+                    Log::error("Error file: ".$filename?$filename:'');
+                    Log::error("The file is not existed: ".$tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion']);
+                    return false;
+                }
+
             }
         }
     }

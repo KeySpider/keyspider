@@ -49,7 +49,7 @@ class SettingsManager
     public function validateKeySpider(){
         try{
             $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
-            Log::info(json_encode($this->key_spider, JSON_PRETTY_PRINT));
+//            Log::info(json_encode($this->key_spider, JSON_PRETTY_PRINT));
             $validate = Validator::make($this->key_spider, [
                 'Master DB Configurtion'=>'required',
                 'CSV Import Process Configration'=>'required'
