@@ -69,18 +69,18 @@ class DBExtractor
             Log::info("Number of records to be extracted: $nRecords");
 
             if (!empty($results)) {
-                $infoOutputIni = parse_ini_file(storage_path($outputProcessConvention));
+                $infoOutputIni = parse_ini_file(($outputProcessConvention));
 
                 $fileName = $infoOutputIni['FileName'];
                 $tempPath = $infoOutputIni['TempPath'];
 
-                if (file_exists(storage_path("{$tempPath}"))) {
+                if (file_exists(("{$tempPath}"))) {
                     $fileName = $this->removeExt($fileName).'_'.rand(100, 900).'.csv';
                 }
 
                 Log::info("Export to file: $fileName");
 
-                $file = fopen(storage_path("{$tempPath}/{$fileName}"), 'wb');
+                $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
                 // create csv file
                 foreach ($results as $data) {
