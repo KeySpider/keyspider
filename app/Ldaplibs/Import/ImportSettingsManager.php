@@ -24,18 +24,8 @@ class ImportSettingsManager extends SettingsManager
 
     public function __construct($ini_settings_files = null)
     {
-//        Log::info("ImportSettingsManager");
         parent::__construct($ini_settings_files);
-//        $this->iniImportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/import/");
         $this->iniImportSettingsFolder = '';
-        $allFiles = $this->key_spider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
-//        var_dump($allFiles);
-
-//        $allFiles = scandir($this->iniImportSettingsFolder);
-
-        foreach ($allFiles as $fileName) {
-            $this->iniImportSettingsFiles[] = $fileName;
-        }
 
     }
 
@@ -44,6 +34,7 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getRuleOfImport()
     {
+
         if ($this->allTableSettingsContent) {
             return $this->allTableSettingsContent;
         }
@@ -86,6 +77,16 @@ class ImportSettingsManager extends SettingsManager
 
     public function getScheduleImportExecution()
     {
+        if($this->key_spider==null)
+        {
+            Log::error("Wrong key spider! Do nothing.");
+            return[];
+        }
+        $allFiles = $this->key_spider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
+        foreach ($allFiles as $fileName) {
+            $this->iniImportSettingsFiles[] = $fileName;
+        }
+
         $rule = ($this->getRuleOfImport());
 
         $timeArray = array();
