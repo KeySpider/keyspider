@@ -33,19 +33,10 @@ class DBExtractor
      */
     public function process()
     {
-        // $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
-        // \(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)
-
-        /**
-         * select "AAA.003","AAA.004","AAA.005", "AAA.009","AAA.008",
-            "BBB.001","BBB.004",
-            "CCC.001", "CCC.003"
-            from "AAA"
-            left join "BBB" on "AAA.004" = "BBB.001"
-            left join "CCC" on "AAA.005" = "CCC.001";
-         */
-
         try {
+            $results = [];
+            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+
             $setting                 = $this->setting;
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
             $extractTable            = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
@@ -60,36 +51,42 @@ class DBExtractor
             $results = $this->getDataByQuery($sql);
 
             // extract csv file into temp
-            if (!empty($results)) {
-                $infoOutputIni = parse_ini_file(($outputProcessConvention));
+            $infoOutputIni = parse_ini_file(($outputProcessConvention));
 
-                $fileName = $infoOutputIni['FileName'];
-                $tempPath = $infoOutputIni['TempPath'];
+            $fileName = $infoOutputIni['FileName'];
+            $tempPath = $infoOutputIni['TempPath'];
 
-                if (is_file("{$tempPath}/$fileName")) {
-                    $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
-                }
+            if (is_file("{$tempPath}/$fileName")) {
+                $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
+            }
 
-                Log::info("Export to file: $fileName");
+            Log::info("Export to file: $fileName");
 
-                $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
+            $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
-                // create csv file
-                foreach ($results as $data) {
-                    $tmp = [];
-                    foreach ($data as $column => $line) {
-                        foreach ($formatConvention as $format) {
-                            if ($format === "({$column})") {
-                                array_push($tmp, $line);
+            // create csv file
+            foreach ($results as $data) {
+                $dataTmp = [];
+                foreach ($data as $column => $line) {
+                    foreach ($formatConvention as $format) {
+                        $isPattern = preg_match($pattern, $format, $item);
+                        if ($isPattern) {
+                            $columnTmp = null;
+                            if (isset($item['exp3'])) {
+                                $columnTmp = $item['exp3'];
+                            } else {
+                                $columnTmp = $item['exp1'];
+                            }
+
+                            if ($columnTmp === $column) {
+                                array_push($dataTmp, $line);
                             }
                         }
                     }
-                    fputcsv($file, $tmp, ',');
                 }
-                fclose($file);
-            } else {
-                Log::channel('export')->info("Data is empty");
+                fputcsv($file, $dataTmp, ',');
             }
+            fclose($file);
         } catch (Exception $e) {
             Log::channel('export')->error($e);
         }
@@ -106,6 +103,7 @@ class DBExtractor
     {
         $queries = [];
         $selectColumn = [];
+        $leftJoin = [];
 
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
@@ -128,27 +126,62 @@ class DBExtractor
             }
         }
 
+        if ($table === "\"AAA\"") {
+            foreach ($formatConvention as $key => $item) {
+                $isCheckPattern = preg_match($pattern, $item, $data);
+                if ($isCheckPattern) {
+                    if (isset($data['exp3'])) {
+                        $joinTable = $this->getJoinTable($data['exp3']);
+                        $tmp = "left join \"{$joinTable['table']}\" on \"{$data['exp1']}\" = \"{$joinTable['keyJoin']}\" ";
+                        array_push($leftJoin, $tmp);
+                        $tmp = "\"{$data['exp3']}\"";
+                        array_push($selectColumn, $tmp);
+                    }
+                }
+            }
+        }
+
         $queries = empty($queries) ? '' : "WHERE ".implode(' AND ', $queries);
         $selectColumn = empty($selectColumn) ? "*" : implode(',', $selectColumn);
+        $leftJoin = empty($leftJoin) ? '' : implode('', $leftJoin);
 
-
-        $sql = "SELECT {$selectColumn} FROM {$table} {$queries}";
-
-//        if ($table === "\"AAA\"") {
-//            foreach ($formatConvention as $key => $item) {
-//                $isCheckPattern = preg_match($pattern, $item, $data);
-//                if ($isCheckPattern) {
-//                    if (isset($data['exp3'])) {
-//
-//                        $joinTable = $this->getJoinTable();
-//                        $str = "left join \"BBB\" on \"{$data['exp1']}\" = \"BBB.001\" ";
-//                    }
-//                }
-//            }
-//            die;
-//        }
+        if ($table === "\"AAA\"") {
+            $sql = "SELECT {$selectColumn} FROM {$table} {$leftJoin} {$queries}";
+        } else {
+            $sql = "SELECT {$selectColumn} FROM {$table} {$queries}";
+        }
 
         return $sql;
+    }
+
+    /**
+     * @param $data
+     * @return string
+     */
+    public function getJoinTable($data)
+    {
+        $results = [];
+
+        if (strpos($data, "AAA") !== false) {
+            $results = [
+                'table' => "AAA",
+                'keyJoin' => "AAA.001",
+            ];
+        }
+        if (strpos($data, "BBB") !== false) {
+            $results = [
+                'table' => "BBB",
+                'keyJoin' => "BBB.001",
+            ];
+        }
+        if (strpos($data, "CCC") !== false) {
+            $results = [
+                'table' => "CCC",
+                'keyJoin' => "CCC.001",
+            ];
+        }
+
+        return $results;
     }
 
     /**
@@ -216,8 +249,6 @@ class DBExtractor
         if (strpos($str, 'TODAY()') !== false) {
             return (int)substr($str, -1);
         }
-        return false;
-
         return false;
     }
 

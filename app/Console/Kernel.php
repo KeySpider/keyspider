@@ -37,8 +37,6 @@ class Kernel extends ConsoleKernel
     {
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        Log::info(json_encode($timeExecutionList, JSON_PRETTY_PRINT));
-
 
         foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
@@ -52,7 +50,7 @@ class Kernel extends ConsoleKernel
         foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
             $schedule->call(function() use ($settingOfTimeExecution){
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+            });
         }
     }
 
