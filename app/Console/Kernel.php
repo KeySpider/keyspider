@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     /**
      * The Artisan commands provided by your application.
@@ -125,6 +125,9 @@ class Kernel extends ConsoleKernel
         }
     }
 
+    /**
+     * @param array $settings
+     */
     public function exportDataForTimeExecution($settings)
     {
         $queue = new ExtractQueueManager();
