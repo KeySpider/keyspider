@@ -18,8 +18,8 @@ class SettingsManager
     const INI_CONFIGS = "ini_configs";
     public const EXTRACTION_CONDITION = "Extraction Condition";
     public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = "CSV Import Process Format Conversion";
-    public const EXTRACTION_PROCESS_BACIC_CONFIGURATION = "Extraction Process Bacic Configuration";
-    public const CSV_IMPORT_PROCESS_BACIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
+    public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = "Extraction Process Basic Configuration";
+    public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = "CSV Import Process Basic Configuration";
     public $iniMasterDBFile = null;
     public $masterDBConfigData = null;
     protected $key_spider;

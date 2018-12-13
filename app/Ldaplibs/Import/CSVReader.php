@@ -24,7 +24,7 @@ class CSVReader implements DataInputReader
      * define const
      */
     const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     public function __construct(SettingsManager $setting)
     {

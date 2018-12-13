@@ -36,7 +36,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-
+/*
 //        Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
@@ -61,16 +61,18 @@ class Kernel extends ConsoleKernel
             }
         } else {
             Log::error("Can not run export schedule, getting error from config ini files");
-        }
+        }*/
 
 //        Setup schedule for Delivery
         $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
-        if ($scheduleDeliveryExecution)
+        if ($scheduleDeliveryExecution) {
+            Log::info(json_encode($scheduleDeliveryExecution, JSON_PRETTY_PRINT));
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
                 });
             }
+        }
         else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }

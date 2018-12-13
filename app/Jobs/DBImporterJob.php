@@ -40,7 +40,7 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
 
     public function getJobDetails(){
         $details = array();
-        $basic_setting = $this->setting['CSV Import Process Bacic Configuration'];
+        $basic_setting = $this->setting['CSV Import Process Basic Configuration'];
         $details['File to import'] = $this->file_name;
         $details['File path'] = $basic_setting['FilePath'];
         $details['Processed File Path'] = $basic_setting['ProcessedFilePath'];
