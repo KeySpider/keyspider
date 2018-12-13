@@ -14,8 +14,8 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
-use Exception;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 class Kernel extends ConsoleKernel
 {
@@ -72,11 +72,11 @@ class Kernel extends ConsoleKernel
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
-                });
+                })->dailyAt($timeExecutionString);
             }
         }
         else {
-            Log::error("Can not run import schedule, getting error from config ini files");
+            Log::error("Can not run delivery schedule, getting error from config ini files");
         }
     }
 
@@ -147,12 +147,16 @@ class Kernel extends ConsoleKernel
      */
     public function deliveryDataForTimeExecution($settings)
     {
-        $queue = new DeliveryQueueManager();
-        foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
-            Log::info(json_encode($setting, JSON_PRETTY_PRINT));
-            $delivery = new DeliveryJob($setting);
-            $queue->push($delivery);
+        try {
+            $queue = new DeliveryQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+//            Log::info(json_encode($setting, JSON_PRETTY_PRINT));
+                $delivery = new DeliveryJob($setting);
+                $queue->push($delivery);
+            }
+        } catch (Exception $e) {
+            Log::channel('delivery')->error($e);
         }
     }
 

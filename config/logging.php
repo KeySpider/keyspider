@@ -57,6 +57,12 @@ return [
             'level' => 'debug',
         ],
 
+        'delivery' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/delivery.log'),
+            'level' => 'debug',
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
