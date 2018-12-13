@@ -39,7 +39,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
 
-//        Setup schedule for import
+        // Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
         if ($timeExecutionList)
@@ -52,7 +52,7 @@ class Kernel extends ConsoleKernel
             Log::error("Can not run import schedule, getting error from config ini files");
         }
 
-//        Setup schedule for Extract
+        // Setup schedule for Extract
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -65,7 +65,7 @@ class Kernel extends ConsoleKernel
             Log::error("Can not run export schedule, getting error from config ini files");
         }
 
-//        Setup schedule for Delivery
+        // Setup schedule for Delivery
         $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
         if ($scheduleDeliveryExecution) {
             Log::info(json_encode($scheduleDeliveryExecution, JSON_PRETTY_PRINT));
@@ -130,14 +130,21 @@ class Kernel extends ConsoleKernel
      */
     public function exportDataForTimeExecution($settings)
     {
-        $queue = new ExtractQueueManager();
-        foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
-            $extractor = new DBExtractorJob($setting);
-            $queue->push($extractor);
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::channel('export')->error($e);
         }
     }
 
+    /**
+     * @param array $settings
+     */
     public function deliveryDataForTimeExecution($settings)
     {
         $queue = new DeliveryQueueManager();
