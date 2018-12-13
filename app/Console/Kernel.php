@@ -40,10 +40,14 @@ class Kernel extends ConsoleKernel
         try {
             $importSettingsManager = new ImportSettingsManager();
             $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-            foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function() use ($settingOfTimeExecution){
-                    $this->importDataForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
+            if ($timeExecutionList)
+                foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
+                    $schedule->call(function () use ($settingOfTimeExecution) {
+                        $this->importDataForTimeExecution($settingOfTimeExecution);
+                    })->dailyAt($timeExecutionString);
+                }
+            else {
+                Log::error("Can not run import schedule, getting error from config ini files");
             }
         } catch (Exception $e) {
             Log::channel('import')->error($e);
@@ -51,10 +55,14 @@ class Kernel extends ConsoleKernel
 
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-            $schedule->call(function() use ($settingOfTimeExecution){
-                $this->exportDataForTimeExecution($settingOfTimeExecution);
-            })->dailyAt($timeExecutionString);
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::error("Can not run export schedule, getting error from config ini files");
         }
     }
 

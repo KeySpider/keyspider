@@ -10,6 +10,9 @@ namespace App\Ldaplibs;
 
 
 
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+
 class SettingsManager
 {
     const INI_CONFIGS = "ini_configs";
@@ -19,11 +22,16 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_BACIC_CONFIGURATION = "CSV Import Process Bacic Configuration";
     public $iniMasterDBFile = null;
     public $masterDBConfigData = null;
+    protected $key_spider;
 
     public function __construct($ini_settings_files = null)
     {
-        $this->iniMasterDBFile = storage_path("" . self::INI_CONFIGS . "/MasterDBConf.ini");
-        $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
+        if (!$this->validateKeySpider()){
+            $this->key_spider = null;
+        }else{
+            $this->iniMasterDBFile = $this->key_spider['Master DB Configurtion']['master_db_config'];
+            $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
+        }
     }
 
     protected function removeExt($file_name)
@@ -37,4 +45,25 @@ class SettingsManager
         return strpos($haystack, $needle) !== false;
     }
 
+    public function validateKeySpider(){
+        try{
+            $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
+//            Log::info(json_encode($this->key_spider, JSON_PRETTY_PRINT));
+            $validate = Validator::make($this->key_spider, [
+                'Master DB Configurtion'=>'required',
+                'CSV Import Process Configration'=>'required'
+            ]);
+            if($validate->fails()){
+                Log::error('Key spider INI is not correct!');
+                Log::error($validate->getMessageBag());
+                return false;
+            }else{
+                return true;
+            }
+        }
+        catch (\Exception $e){
+            Log::error('Key spider INI is not correct!');
+            return false;
+        }
+    }
 }
