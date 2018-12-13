@@ -53,16 +53,20 @@ class Kernel extends ConsoleKernel
             Log::channel('import')->error($e);
         }
 
-        $extractSettingManager = new ExtractSettingsManager();
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function () use ($settingOfTimeExecution) {
-                    $this->exportDataForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
+        try {
+            $extractSettingManager = new ExtractSettingsManager();
+            $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+            if ($extractSetting) {
+                foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                    $schedule->call(function () use ($settingOfTimeExecution) {
+                        $this->exportDataForTimeExecution($settingOfTimeExecution);
+                    })->dailyAt($timeExecutionString);
+                }
+            } else {
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
-        } else {
-            Log::error("Can not run export schedule, getting error from config ini files");
+        } catch (Exception $e) {
+            Log::channel('export')->error($e);
         }
     }
 
