@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Ldaplibs\Delivery\DBExtractor;
+use App\Ldaplibs\Extract\DBExtractor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
