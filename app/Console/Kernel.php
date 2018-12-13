@@ -14,7 +14,6 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use DB;
-use Exception;
 use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
