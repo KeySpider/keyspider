@@ -49,7 +49,7 @@ class Kernel extends ConsoleKernel
         else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }
-
+*/
 //        Setup schedule for Extract
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
@@ -61,7 +61,7 @@ class Kernel extends ConsoleKernel
             }
         } else {
             Log::error("Can not run export schedule, getting error from config ini files");
-        }*/
+        }
 
 //        Setup schedule for Delivery
         $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
