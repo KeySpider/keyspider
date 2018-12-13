@@ -6,7 +6,7 @@
  * Time: 15:37
  */
 
-namespace App\Ldaplibs\Delivery;
+namespace App\Ldaplibs\Extract;
 
 
 use App\Ldaplibs\QueueManager;

@@ -6,7 +6,7 @@
  * Time: 10:12 AM
  */
 
-namespace App\Ldaplibs\Delivery;
+namespace App\Ldaplibs\Extract;
 
 
 use App\Ldaplibs\SettingsManager;
@@ -39,11 +39,11 @@ class ExtractSettingsManager extends SettingsManager
         if($this->areAllExtractIniFilesValid()) {
             foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
                 $tableContent = parse_ini_file($iniExportSettingsFile, true);
-                $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
+                $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExtractionTable'];
                 $masterDB = $this->masterDBConfigData;
                 $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterDB);
                 $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
-                foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+                foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
                     $filesArray['setting'] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
                 }
@@ -122,7 +122,7 @@ class ExtractSettingsManager extends SettingsManager
     }
     private function isExtractIniValid($iniArray, $filename=null):bool {
         $rules = [
-            self::EXTRACTION_PROCESS_BACIC_CONFIGURATION => 'required',
+            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
             self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
             self::OUTPUT_PROCESS_CONVERSION => 'required'
@@ -139,12 +139,12 @@ class ExtractSettingsManager extends SettingsManager
 //            Log::error(json_encode($iniArray, JSON_PRETTY_PRINT));
 //                Validate children
             $tempIniArray = array();
-            $tempIniArray['EXTRACTION_PROCESS_BACIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION];
+            $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
             $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
             $rules = [
-                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExtractionTable' => 'required',
-                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.ExecutionTime' => 'required',
-                'EXTRACTION_PROCESS_BACIC_CONFIGURATION.OutputType' => 'required',
+                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => 'required',
+                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => 'required',
+                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => 'required',
                 'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
             ];
             $validate = Validator::make($tempIniArray, $rules);
@@ -171,13 +171,13 @@ class ExtractSettingsManager extends SettingsManager
         $timeArray = array();
         foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
             $tableContent = $this->getIniExportFileContent($iniExportSettingsFile);
-            $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExtractionTable'];
+            $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExtractionTable'];
             $fileName = $this->iniMasterDBFile;
             $masterDB = $this->getIniImportFileContent($fileName);
             $masterTable = $masterDB[$extract_table_name];
             $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterTable);
             $tableContent = $this->convertValueFromDBMaster($tableContent, $masterTable);
-            foreach ($tableContent[self::EXTRACTION_PROCESS_BACIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+            foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
                 $filesArray['setting'] = $tableContent;
                 $timeArray[$specifyTime][] = $filesArray;
             }

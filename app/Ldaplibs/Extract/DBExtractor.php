@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ldaplibs\Delivery;
+namespace App\Ldaplibs\Extract;
 
 use Carbon\Carbon;
 use DB;
@@ -14,7 +14,7 @@ class DBExtractor
      * define const
      */
     const EXTRACTION_CONDITION                 = 'Extraction Condition';
-    const EXTRACTION_CONFIGURATION             = "Extraction Process Bacic Configuration";
+    const EXTRACTION_CONFIGURATION             = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION            = "Output Process Conversion";
     const Extraction_Process_Format_Conversion = "Extraction Process Format Conversion";
 

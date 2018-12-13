@@ -22,7 +22,7 @@ class DBImporter
     protected $csv_reader;
 
     const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Bacic Configuration";
+    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     public function __construct($setting, $file_name)
     {

@@ -21,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
             // $event->connectionName
             // $event->job
             // $event->job->payload()
-            Log::info('before processing task');
+//            Log::info('-------------------------------');
+            Log::info('-------------------------------before processing task-------------------------------');
 //            Log::info(json_encode($event->connectionName, JSON_PRETTY_PRINT));
             Log::info(json_encode($event->job->payload(), JSON_PRETTY_PRINT));
         });
@@ -33,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
             Log::info('Job processed info: ');
 //            $payload = $event->job->payload();
 //            Log::info(json_encode($payload, JSON_PRETTY_PRINT));
+            Log::info('-------------------------------after processed task-------------------------------');
         });
     }
 
