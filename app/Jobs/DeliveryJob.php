@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Ldaplibs\Delivery\CSVDelivery;
 use App\Ldaplibs\Extract\DBExtractor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -9,7 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
-class DeliveryJob extends DBExtractor implements ShouldQueue, JobInterface
+class DeliveryJob implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -18,9 +19,11 @@ class DeliveryJob extends DBExtractor implements ShouldQueue, JobInterface
      *
      * @return void
      */
+    protected $setting;
+
     public function __construct($setting)
     {
-        parent::__construct($setting);
+        $this->setting = $setting;
     }
 
     /**
@@ -30,17 +33,16 @@ class DeliveryJob extends DBExtractor implements ShouldQueue, JobInterface
      */
     public function handle()
     {
-        parent::process();
+        $csv_delivery = new CSVDelivery($this->setting);
+        $csv_delivery->delivery();
     }
 
     public function getJobName(){
-        return "Delivery";
+        return "Delivery Job";
     }
 
     public function getJobDetails(){
-        $setting = $this->setting;
-        $details = array();
-        return $details;
 
+        return $this->setting;
     }
 }
