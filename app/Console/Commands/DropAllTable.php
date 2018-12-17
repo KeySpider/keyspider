@@ -39,6 +39,7 @@ class DropAllTable extends Command
     public function handle()
     {
         $environment = config('app.env');
+        echo $environment;
         if ($environment === "testing" || $environment === "develop" || $environment === "localhost") {
             DB::statement("DROP SCHEMA public CASCADE;");
             DB::statement("CREATE SCHEMA public;");
