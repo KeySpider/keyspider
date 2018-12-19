@@ -1,7 +1,7 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: tuanla
+ * User: Ngulb
  * Date: 11/22/18
  * Time: 11:39 PM
  */
@@ -37,13 +37,15 @@ class DBImporter
         return [];
     }
 
+    /**
+     * Process import data csv into database
+     */
     public function import()
     {
         try {
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
-
-            $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
-            $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
+            $name_table        = $this->csv_reader->getNameTableFromSetting($this->setting);
+            $columns           = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
             $this->csv_reader->createTable($name_table, $columns);
 

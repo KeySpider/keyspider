@@ -35,7 +35,6 @@ class DBExtractor
     public function process()
     {
         try {
-            $results = [];
             $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
             $setting                 = $this->setting;
@@ -103,6 +102,7 @@ class DBExtractor
      *
      * @param $table
      * @param $extractCondition
+     * @param $formatConvention
      * @return string
      */
     public function getSQLQueryByExtractCondition($table, $extractCondition, $formatConvention)
@@ -162,7 +162,7 @@ class DBExtractor
 
     /**
      * @param $data
-     * @return string
+     * @return array
      */
     public function getJoinTable($data)
     {
@@ -213,7 +213,7 @@ class DBExtractor
      *
      * @return array
      */
-    public function extractDataByCondition($condition = [], $table)
+    public function extractDataByCondition($condition, $table)
     {
         try {
             $table   = "\"{$table}\"";

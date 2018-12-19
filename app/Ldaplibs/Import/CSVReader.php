@@ -75,7 +75,8 @@ class CSVReader implements DataInputReader
         }
     }
 
-    /**
+    /** Get name table in setting file
+     *
      * @param $setting
      * @return string
      */
@@ -87,27 +88,27 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $setting
+     * Get all column from setting file
+     *
+     * @param array $setting
      * @return array
      */
     public function getAllColumnFromSetting($setting)
     {
-        $name_table = $this->getNameTableFromSetting($setting);
-        $params = $setting[self::CONVERSION];
-
+        $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $fields = [];
-        foreach ($params as $key => $item) {
-            if ($key !== "" && preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) !== 1) {
-                $search = "{$name_table}.";
-                $newKey = str_replace($search, '', $key);
-                array_push($fields, "\"{$newKey}\"");
+        foreach ($setting[self::CONVERSION] as $key => $item) {
+            if ($key !== "" && preg_match($pattern, $key) !== 1) {
+                array_push($fields, "\"{$key}\"");
             }
         }
         return $fields;
     }
 
     /**
-     * @param $name_table
+     * Create table from setting file
+     *
+     * @param string $name_table
      * @param array $columns
      */
     public function createTable($name_table, $columns = [])
@@ -120,6 +121,7 @@ class CSVReader implements DataInputReader
                 $sql .= "{$col} VARCHAR (250) NULL";
             }
         }
+
         DB::statement("
             CREATE TABLE IF NOT EXISTS {$name_table}(
                 {$sql}
@@ -128,8 +130,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $file_csv
+     * Get data from one csv file
+     *
+     * @param string $file_csv
      * @param array $options
+     *
      * @return array
      */
     public function getDataFromOneFile($file_csv, $options = [])
@@ -215,6 +220,11 @@ class CSVReader implements DataInputReader
         }
     }
 
+    /**
+     * @param $str
+     * @param $group
+     * @return string
+     */
     protected function processGroup($str, $group)
     {
         if ($group === "$1") {
