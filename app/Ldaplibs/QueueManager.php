@@ -18,7 +18,12 @@ use Illuminate\Support\Facades\Queue;
 class QueueManager
 {
 
-    public function push($job)
+    /**
+     * @param JobInterface $job
+     * <p> Job to be pushed </p>
+     * <p> Log job information when pushing
+     */
+    public function push(JobInterface $job)
     {
         dispatch($job);
         Log::alert("---------------Job logger---------------");
