@@ -44,6 +44,9 @@ class DBImporter
     {
         try {
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
+            if (!is_dir($processedFilePath)) {
+                mkdir($processedFilePath, 0775, true);
+            }
             $name_table        = $this->csv_reader->getNameTableFromSetting($this->setting);
             $columns           = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
