@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\Validator;
 
 class ImportSettingsManager extends SettingsManager
 {
-    protected $iniExportSettingsFolder;
-    protected $iniExportSettingsFiles = array();
     private $iniImportSettingsFiles = array();
     private $iniImportSettingsFolder;
     private $allTableSettingsContent = null;
@@ -31,8 +29,9 @@ class ImportSettingsManager extends SettingsManager
 
     /**
      * @return array
+     * Get rule of Import without ordering by time execution
      */
-    public function getRuleOfImport()
+    private function getRuleOfImport()
     {
 
         if ($this->allTableSettingsContent) {
@@ -75,6 +74,10 @@ class ImportSettingsManager extends SettingsManager
         return $this->allTableSettingsContent;
     }
 
+    /**
+     * @return array
+     * Get rule of Import order and group by Schedule
+     */
     public function getScheduleImportExecution()
     {
         if($this->key_spider==null)
@@ -103,6 +106,14 @@ class ImportSettingsManager extends SettingsManager
         return $timeArray;
     }
 
+    /**
+     * @param $path <p>
+     * Path of directory </p>
+     * @param $pattern <p>
+     * Pattern of file name </p>
+     * @return array
+     * <p>Array of file name matched pattern
+     */
     private function getFilesFromPattern($path, $pattern)
     {
         $data = [];
@@ -124,7 +135,7 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @return array of key/value from ini file.
+     * @return <p>array of key/value from ini file.</p>
      */
     private function getIniFileContent($filename)
     {
@@ -139,6 +150,10 @@ class ImportSettingsManager extends SettingsManager
         }
     }
 
+    /**
+     * @return bool
+     * <p>Check if all configure files are valid
+     */
     private function areAllImportIniFilesValid(){
         foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
             if(!$this->getIniFileContent($ini_import_settings_file))
@@ -147,6 +162,12 @@ class ImportSettingsManager extends SettingsManager
         Log::info('areAllImportIniFilesValid: YES');
         return true;
     }
+
+    /**
+     * @return bool
+     * <p>Check if a configure file are valid
+     */
+
     private function isImportIniValid($iniArray, $fileName=null):bool {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
@@ -182,15 +203,4 @@ class ImportSettingsManager extends SettingsManager
         }
     }
 
-    private function getIniExportFileContent($filename): array
-    {
-        $iniPath = $this->iniExportSettingsFolder . $filename;
-        $iniArray = parse_ini_file($iniPath, true);
-        return $iniArray;
-    }
-
-    public function getIniOutputContent($file_name)
-    {
-        return $this->getIniExportFileContent($file_name);
-    }
 }

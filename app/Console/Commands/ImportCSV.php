@@ -5,10 +5,12 @@ namespace App\Console\Commands;
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\Import\ImportQueueManager;
+use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
-use Marquine\Etl\Job;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class ImportCSV extends Command
 {
@@ -25,6 +27,7 @@ class ImportCSV extends Command
      * @var string
      */
     protected $description = 'Reader setting import file and process it';
+    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     /**
      * Create a new command instance.
@@ -44,17 +47,44 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-        $csv_reader = new CSVReader(new SettingsManager());
-        $list_file_csv = $csv_reader->getListFileCsvSetting();
-
-        foreach ($list_file_csv as $item) {
-            $setting = $item['setting'];
-            $list_file = $item['file_csv'];
-            $queue = new ImportQueueManager();
-            foreach ($list_file as $file) {
-                $db_importer = new DBImporterJob($setting, $file);
-                $queue->push($db_importer);
+        $importSettingsManager = new ImportSettingsManager();
+        $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
+        if ($timeExecutionList)
+            foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
+                $this->importDataForTimeExecution($settingOfTimeExecution);
             }
+        else {
+            Log::error("Can not run import schedule, getting error from config ini files");
+        }
+    }
+
+    private function importDataForTimeExecution($dataSchedule): void
+    {
+        try {
+            foreach ($dataSchedule as $data) {
+                $setting = $data['setting'];
+                $files = $data['files'];
+
+                if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
+                    Log::channel('import')->error(
+                        "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
+                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
+                    );
+                    break;
+                }
+
+                if (empty($files)) {
+                    Log::channel('import')->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT)." WITH FILES EMPTY");
+                } else {
+                    $queue = new ImportQueueManager();
+                    foreach ($files as $file) {
+                        $dbImporter = new DBImporterJob($setting, $file);
+                        $queue->push($dbImporter);
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            Log::channel('import')->error($e);
         }
     }
 }
