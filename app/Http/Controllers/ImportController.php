@@ -30,10 +30,10 @@ class ImportController extends Controller
     public function read_extract_settings(): void
     {
         echo '<pre>';
-        $import_settings = new ImportSettingsManager();
-        $user_rule = $import_settings->getScheduleImportExecution();
-//        $export_settings = new ExtractSettingsManager();
-//        $user_rule = $export_settings->getRuleOfDataExtract();
+//        $import_settings = new ImportSettingsManager();
+//        $user_rule = $import_settings->getScheduleImportExecution();
+        $export_settings = new ExtractSettingsManager();
+        $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
