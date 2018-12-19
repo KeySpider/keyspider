@@ -24,6 +24,7 @@ class ExtractSettingsManager extends SettingsManager
     public function __construct($ini_settings_files = null)
     {
         parent::__construct($ini_settings_files);
+//        Get all files can be Extract settings
         $this->iniExportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
         $allFiles = scandir($this->iniExportSettingsFolder);
         foreach ($allFiles as $fileName) {
@@ -33,6 +34,10 @@ class ExtractSettingsManager extends SettingsManager
         }
     }
 
+    /**
+     * @return array <p>
+     * Array of Extract settings order and group by Time Execution.
+     */
     public function getRuleOfDataExtract()
     {
         $timeArray = array();
@@ -64,9 +69,9 @@ class ExtractSettingsManager extends SettingsManager
     }
 
     /**
-     * @param $tableContents
-     * @param $tagToConversion
-     * @param $masterTable
+     * @param $tableContents <p> All content of an extract ini file </p>
+     * @param $tagToConversion <p> Tag to convert </p>
+     * @param $masterTable <p> master db config in array </p>
      * @return mixed
      */
     private function convert_following_db_master($tableContents, $tagToConversion, $masterTable)
@@ -81,6 +86,12 @@ class ExtractSettingsManager extends SettingsManager
         return $tableContents;
     }
 
+    /**
+     * In ini extract file, there're columns name must be maped from DB master
+     * @param $table_contents <p> array to convert
+     * @param $masterDB <p> master db config in array </p>
+     * @return mixed
+     */
     private function convertValueFromDBMaster($table_contents, $masterDB)
     {
         $jsonData = json_encode($table_contents);
@@ -92,11 +103,6 @@ class ExtractSettingsManager extends SettingsManager
             }
         }
         return (json_decode($jsonData, true));
-    }
-
-    public function getIniOutputContent($file_name)
-    {
-        return $this->getIniExportFileContent($file_name);
     }
 
     private function getIniFileContent($filename)
@@ -112,6 +118,10 @@ class ExtractSettingsManager extends SettingsManager
         }
     }
 
+    /**
+     * @return bool
+     * <p>Check if all extract ini files are valid
+     */
     private function areAllExtractIniFilesValid(){
         foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
             if(!$this->getIniFileContent($iniExportSettingsFile))
@@ -120,6 +130,12 @@ class ExtractSettingsManager extends SettingsManager
         Log::info('areAllExtractIniFilesValid: YES');
         return true;
     }
+
+    /**
+     * @return bool
+     * <p>Check if a extract ini file is valid
+     */
+
     private function isExtractIniValid($iniArray, $filename=null):bool {
         $rules = [
             self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
@@ -165,24 +181,5 @@ class ExtractSettingsManager extends SettingsManager
             }
         }
     }
-/*
-    public function getRuleOfDataExtract()
-    {
-        $timeArray = array();
-        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
-            $tableContent = $this->getIniExportFileContent($iniExportSettingsFile);
-            $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExtractionTable'];
-            $fileName = $this->iniMasterDBFile;
-            $masterDB = $this->getIniImportFileContent($fileName);
-            $masterTable = $masterDB[$extract_table_name];
-            $tableContent = $this->convert_following_db_master($tableContent, self::EXTRACTION_CONDITION, $masterTable);
-            $tableContent = $this->convertValueFromDBMaster($tableContent, $masterTable);
-            foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                $filesArray['setting'] = $tableContent;
-                $timeArray[$specifyTime][] = $filesArray;
-            }
-        }
-        ksort($timeArray);
-        return $timeArray;
-    }*/
+
 }
