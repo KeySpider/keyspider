@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ImportSettingsManager extends SettingsManager
 {
-    protected $iniExportSettingsFolder;
-    protected $iniExportSettingsFiles = array();
+//    protected $iniExportSettingsFolder;
+//    protected $iniExportSettingsFiles = array();
     private $iniImportSettingsFiles = array();
     private $iniImportSettingsFolder;
     private $allTableSettingsContent = null;
@@ -32,7 +32,7 @@ class ImportSettingsManager extends SettingsManager
     /**
      * @return array
      */
-    public function getRuleOfImport()
+    private function getRuleOfImport()
     {
 
         if ($this->allTableSettingsContent) {

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\DBImporterJob;
-use App\Ldaplibs\Delivery\ExtractSettingsManager;
+use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Import\CSVReader;
@@ -30,10 +30,10 @@ class ImportController extends Controller
     public function read_extract_settings(): void
     {
         echo '<pre>';
-//        $import_settings = new ImportSettingsManager();
-//        $user_rule = $import_settings->getScheduleImportExecution();
-        $export_settings = new ExtractSettingsManager();
-        $user_rule = $export_settings->getRuleOfDataExtract();
+        $import_settings = new ImportSettingsManager();
+        $user_rule = $import_settings->getScheduleImportExecution();
+//        $export_settings = new ExtractSettingsManager();
+//        $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
@@ -52,7 +52,7 @@ class ImportController extends Controller
 //        $this->do_import_by_queue();
     }
 
-    private function do_import_by_queue(): void
+/*    private function do_import_by_queue(): void
     {
         $csv_reader = new CSVReader(new SettingsManager());
         $list_file_csv = $csv_reader->getListFileCsvSetting();
@@ -67,5 +67,5 @@ class ImportController extends Controller
                 dispatch($db_importer);
             }
         }
-    }
+    }*/
 }
