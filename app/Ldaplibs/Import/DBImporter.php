@@ -17,13 +17,27 @@ use Exception;
 
 class DBImporter
 {
+    /**
+     * @var array $setting
+     * @var string $file_nmae
+     * @var object $csv_reader
+     */
     protected $setting;
     protected $file_name;
     protected $csv_reader;
 
+    /**
+     * define const
+     */
     const CONVERSION = "CSV Import Process Format Conversion";
     const CONFIGURATION = "CSV Import Process Basic Configuration";
 
+    /**
+     * DBImporter constructor.
+     *
+     * @param array $setting
+     * @param string $file_name
+     */
     public function __construct($setting, $file_name)
     {
         $this->setting = $setting;
@@ -31,14 +45,10 @@ class DBImporter
         $this->csv_reader = new CSVReader(new SettingsManager());
     }
 
-
-    private function get_file_list_from_json($file_name)
-    {
-        return [];
-    }
-
     /**
      * Process import data csv into database
+     *
+     * @return void
      */
     public function import()
     {

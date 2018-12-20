@@ -14,13 +14,14 @@ use App\Ldaplibs\QueueManager;
 class ImportQueueManager extends QueueManager
 {
     private $file_list = array();
+
     public function __construct()
     {
     }
 
     public function process()
     {
-        dd('ok');
+
     }
 
     public function getJobInfo(){

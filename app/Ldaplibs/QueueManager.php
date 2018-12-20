@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs;
 
-
 use App\Jobs\DBImporterJob;
 use App\Jobs\JobInterface;
 use Illuminate\Queue\Events\JobProcessed;

@@ -8,18 +8,29 @@
 
 namespace App\Ldaplibs\Import;
 
-
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ImportSettingsManager extends SettingsManager
 {
+    /**
+     * @var array
+     */
     private $iniImportSettingsFiles = array();
     private $iniImportSettingsFolder;
     private $allTableSettingsContent = null;
+
+    /**
+     * define const
+     */
     const CSV_IMPORT_PROCESS_CONFIGRATION = 'CSV Import Process Configration';
 
+    /**
+     * ImportSettingsManager constructor.
+     *
+     * @param null $ini_settings_files
+     */
     public function __construct($ini_settings_files = null)
     {
         parent::__construct($ini_settings_files);
@@ -28,8 +39,9 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @return array
      * Get rule of Import without ordering by time execution
+     *
+     * @return array
      */
     private function getRuleOfImport()
     {
@@ -75,8 +87,9 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @return array
      * Get rule of Import order and group by Schedule
+     *
+     * @return array
      */
     public function getScheduleImportExecution()
     {
@@ -142,7 +155,6 @@ class ImportSettingsManager extends SettingsManager
         try {
             $iniArray = parse_ini_file($filename, true);
             $isValid = $this->isImportIniValid($iniArray, $filename);
-//            Log::info('validation result'.$isValid?'True':'False');
             return $isValid?$iniArray:null;
         } catch (\Exception $e) {
             Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
@@ -167,8 +179,8 @@ class ImportSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if a configure file are valid
      */
-
-    private function isImportIniValid($iniArray, $fileName=null):bool {
+    private function isImportIniValid($iniArray, $fileName=null):bool
+    {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
             self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
@@ -202,5 +214,4 @@ class ImportSettingsManager extends SettingsManager
             }
         }
     }
-
 }

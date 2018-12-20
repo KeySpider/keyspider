@@ -30,7 +30,9 @@ class CSVDelivery implements DataDelivery
     }
 
     /**
-     * delivery
+     * Process delivery
+     *
+     * @return void
      */
     public function delivery()
     {

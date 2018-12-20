@@ -9,7 +9,7 @@
 namespace App\Ldaplibs\Import;
 use App\Ldaplibs\Import\DataInputReader;
 
-class SCIMReader implements DataInputReader
+class SCIMReader
 {
 
     public function read_data($file_path)

@@ -26,12 +26,18 @@ class CSVReader implements DataInputReader
     const CONVERSION = "CSV Import Process Format Conversion";
     const CONFIGURATION = "CSV Import Process Basic Configuration";
 
+    /**
+     * CSVReader constructor.
+     * @param SettingsManager $setting
+     */
     public function __construct(SettingsManager $setting)
     {
         $this->setting = $setting;
     }
 
     /**
+     * Get all csv file from setting
+     *
      * @return array
      */
     public function getListFileCsvSetting()
@@ -75,9 +81,10 @@ class CSVReader implements DataInputReader
         }
     }
 
-    /** Get name table in setting file
+    /** Get name table from setting file
      *
-     * @param $setting
+     * @param array $setting
+     *
      * @return string
      */
     public function getNameTableFromSetting($setting)
@@ -91,6 +98,7 @@ class CSVReader implements DataInputReader
      * Get all column from setting file
      *
      * @param array $setting
+     *
      * @return array
      */
     public function getAllColumnFromSetting($setting)
@@ -110,6 +118,8 @@ class CSVReader implements DataInputReader
      *
      * @param string $name_table
      * @param array $columns
+     *
+     * @return void
      */
     public function createTable($name_table, $columns = [])
     {
@@ -150,8 +160,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $data_line
+     * Get data after process
+     *
+     * @param array $data_line
      * @param array $options
+     *
      * @return array
      */
     protected function getDataAfterProcess($data_line, $options = [])
@@ -181,8 +194,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $pattern
-     * @param $data
+     * Covert data follow from setting
+     *
+     * @param string $pattern
+     * @param array $data
+     *
      * @return mixed|string
      */
     protected function convertDataFollowSetting($pattern, $data)
@@ -221,8 +237,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $str
-     * @param $group
+     * Process group from pattern
+     *
+     * @param string $str
+     * @param array $group
+     *
      * @return string
      */
     protected function processGroup($str, $group)
@@ -247,8 +266,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $file_name
-     * @return string|string[]|null
+     * Remove extension of file
+     *
+     * @param string $file_name
+     *
+     * @return string
      */
     protected function removeExt($file_name)
     {
