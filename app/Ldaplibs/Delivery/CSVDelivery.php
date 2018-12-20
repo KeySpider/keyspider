@@ -9,6 +9,7 @@
 namespace App\Ldaplibs\Delivery;
 
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
@@ -28,13 +29,15 @@ class CSVDelivery implements DataDelivery
         // TODO: Implement format() method.
     }
 
+    /**
+     * delivery
+     */
     public function delivery()
     {
-        // TODO: Implement delivery() method.
-//        Log::info(json_encode($this->setting, JSON_PRETTY_PRINT));
-        $delivery_source = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
+        $delivery_source      = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
         $delivery_destination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
-        $filePattern = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
+        $filePattern          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
+
         Log::info("From: ". $delivery_source);
         Log::info("To  : ". $delivery_destination);
 
@@ -45,15 +48,36 @@ class CSVDelivery implements DataDelivery
                 if (!file_exists($delivery_destination)) {
                     mkdir($delivery_destination, 0777, true);
                 }
-                File::copy($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
+                if (file_exists($delivery_destination.'/'.$source_file)) {
+                    $fileName = $this->removeExt($source_file).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
+                    File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$fileName);
+                } else {
+                    File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
+                }
             }
         }
     }
 
-    private function isMatchedWithPattern($fileName, $pattern){
-        if($fileName[0]=='.')
+    /**
+     * @param $fileName
+     * @param $pattern
+     * @return bool
+     */
+    private function isMatchedWithPattern($fileName, $pattern)
+    {
+        if($fileName[0]=='.') {
             return false;
-        else
-            return true;
+        }
+        return true;
+    }
+
+    /**
+     * @param $file_name
+     * @return string|string[]|null
+     */
+    public function removeExt($file_name)
+    {
+        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+        return $file;
     }
 }
