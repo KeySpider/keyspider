@@ -11,6 +11,7 @@
     <testsuites>
         <testsuite name="Unit">
             <directory suffix="UserInfoImportCSVTest.php">./tests/Unit</directory>
+            <directory suffix="ImportQueueTest.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>
     <filter>

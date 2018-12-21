@@ -16,6 +16,11 @@ use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
 
+/**
+ * Class CSVReader
+ *
+ * @package App\Ldaplibs\Import
+ */
 class CSVReader implements DataInputReader
 {
     protected $setting;
@@ -57,7 +62,7 @@ class CSVReader implements DataInputReader
                 ];
 
                 $pattern = $options['pattern'];
-                $list_file_csv = [
+                $listFileCSV = [
                     "setting" => $setting,
                     "file_csv" => [],
                 ];
@@ -69,12 +74,12 @@ class CSVReader implements DataInputReader
                         $ext = pathinfo($file, PATHINFO_EXTENSION);
                         if (in_array($ext, $validate_file)) {
                             if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
-                                array_push($list_file_csv['file_csv'], "{$path}/{$file}");
+                                array_push($listFileCSV['file_csv'], "{$path}/{$file}");
                             }
                         }
                     }
 
-                    array_push($data_csv, $list_file_csv);
+                    array_push($data_csv, $listFileCSV);
                 }
             }
             return $data_csv;
