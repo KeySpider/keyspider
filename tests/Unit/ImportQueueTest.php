@@ -69,7 +69,7 @@ class ImportQueueTest extends TestCase
         $arrayOfFirstColumn = array();
         $queue = new ImportQueueManager();
         foreach ($files as $file) {
-            print_r('processing: ' . $file);
+//            print_r('processing: ' . $file);
             $array = $this->getArrayOfFirstColumnFromCSVFile($file);
             $arrayOfFirstColumn = array_merge($arrayOfFirstColumn, $array);
 
@@ -78,8 +78,8 @@ class ImportQueueTest extends TestCase
         }
 
         $arrayOfFirstColumnInDB = $this->getArrayOfFirstColumnInDB();
-        var_dump($arrayOfFirstColumn);
-        var_dump($arrayOfFirstColumnInDB);
+//        var_dump($arrayOfFirstColumn);
+//        var_dump($arrayOfFirstColumnInDB);
         $this->assertTrue($arrayOfFirstColumn== $arrayOfFirstColumnInDB);
     }
 
@@ -138,7 +138,7 @@ class ImportQueueTest extends TestCase
         $array = array();
         $csv = array_map(function($v){return str_getcsv($v, ",");}, file($file));
         foreach ($csv as $row) {
-            var_dump($row);
+//            var_dump($row);
             $array[] = explode('@', $row[0])[0];
         }
         return $array;
