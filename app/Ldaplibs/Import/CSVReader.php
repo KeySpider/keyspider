@@ -131,17 +131,14 @@ class CSVReader implements DataInputReader
         $sql = "";
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
-                $sql .= "{$col} VARCHAR (250) NULL,";
+                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL,";
             } else {
-                $sql .= "{$col} VARCHAR (250) NULL";
+                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL";
             }
         }
 
-        DB::statement("
-            CREATE TABLE IF NOT EXISTS {$name_table}(
-                {$sql}
-            );
-        ");
+        $query = "ALTER TABLE {$name_table} {$sql};";
+        DB::statement($query);
     }
 
     /**

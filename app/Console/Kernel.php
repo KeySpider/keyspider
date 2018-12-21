@@ -38,7 +38,6 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-
         // Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
@@ -102,6 +101,17 @@ class Kernel extends ConsoleKernel
                 $setting = $data['setting'];
                 $files = $data['files'];
 
+                // get table name
+                $tableName = $setting[self::CONFIGURATION]['TableNameInDB'];
+                if (!isTableNameInDatabase($tableName)) {
+                    Log::channel('import')->error("
+                    Error: The table {$tableName} does not exist.\n
+                    File ini: {$setting['IniFileName']} \n
+                    File name: TableNameInDB"
+                    );
+                    break;
+                }
+
                 if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
                     Log::channel('import')->error(
                         "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
@@ -151,7 +161,6 @@ class Kernel extends ConsoleKernel
             $queue = new DeliveryQueueManager();
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
-//            Log::info(json_encode($setting, JSON_PRETTY_PRINT));
                 $delivery = new DeliveryJob($setting);
                 $queue->push($delivery);
             }

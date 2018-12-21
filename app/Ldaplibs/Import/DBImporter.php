@@ -57,8 +57,8 @@ class DBImporter
             if (!is_dir($processedFilePath)) {
                 mkdir($processedFilePath, 0775, true);
             }
-            $name_table        = $this->csv_reader->getNameTableFromSetting($this->setting);
-            $columns           = $this->csv_reader->getAllColumnFromSetting($this->setting);
+            $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
+            $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
 
             $this->csv_reader->createTable($name_table, $columns);
 
