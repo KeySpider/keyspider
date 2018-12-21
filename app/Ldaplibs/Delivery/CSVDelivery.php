@@ -46,6 +46,7 @@ class CSVDelivery implements DataDelivery
                     mkdir($delivery_destination, 0777, true);
                 }
                 File::copy($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
+                $this->saveToHistory($this->buildHistoryData(null));
             }
         }
     }
@@ -57,8 +58,14 @@ class CSVDelivery implements DataDelivery
             return true;
     }
 
-    public function saveToHistory()
+    public function saveToHistory(array $historyData)
     {
         // TODO: Implement saveToHistory() method.
+    }
+
+    public function buildHistoryData(array $deliveryInformation):array
+    {
+        // TODO: Implement buildHistoryData() method.
+        return [];
     }
 }
