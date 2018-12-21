@@ -36,26 +36,26 @@ class CSVDelivery implements DataDelivery
      */
     public function delivery()
     {
-        $delivery_source      = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
-        $delivery_destination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
+        $deliverySource      = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
+        $deliveryDestination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
         $filePattern          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
 
-        Log::info("From: ". $delivery_source);
-        Log::info("To  : ". $delivery_destination);
+        Log::info("From: ". $deliverySource);
+        Log::info("To  : ". $deliveryDestination);
 
-        $source_files = scandir($delivery_source);
+        $source_files = scandir($deliverySource);
         foreach($source_files as $source_file){
             if ($this->isMatchedWithPattern($source_file, $filePattern)){
                 Log::info("move or copy: ".$source_file);
-                if (!file_exists($delivery_destination)) {
-                    mkdir($delivery_destination, 0777, true);
+                if (!file_exists($deliveryDestination)) {
+                    mkdir($deliveryDestination, 0777, true);
                 }
 
-                if (file_exists($delivery_destination.'/'.$source_file)) {
+                if (file_exists($deliveryDestination.'/'.$source_file)) {
                     $fileName = $this->removeExt($source_file).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
-                    File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$fileName);
+                    File::move($deliverySource.'/'.$source_file, $deliveryDestination.'/'.$fileName);
                 } else {
-                    File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
+                    File::move($deliverySource.'/'.$source_file, $deliveryDestination.'/'.$source_file);
                 }
                 $this->saveToHistory($this->buildHistoryData(null));
             }
@@ -84,9 +84,6 @@ class CSVDelivery implements DataDelivery
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
     }
-<<<<<<< HEAD
-}
-=======
 
     public function saveToHistory(array $historyData)
     {
@@ -99,4 +96,3 @@ class CSVDelivery implements DataDelivery
         return [];
     }
 }
->>>>>>> origin/features/LDAP-78
