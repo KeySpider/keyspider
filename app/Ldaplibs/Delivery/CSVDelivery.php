@@ -32,20 +32,20 @@ class CSVDelivery implements DataDelivery
     {
         // TODO: Implement delivery() method.
 //        Log::info(json_encode($this->setting, JSON_PRETTY_PRINT));
-        $delivery_source = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
-        $delivery_destination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
+        $deliverySource = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
+        $deliveryDestination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
         $filePattern = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
-        Log::info("From: ". $delivery_source);
-        Log::info("To  : ". $delivery_destination);
+        Log::info("From: ". $deliverySource);
+        Log::info("To  : ". $deliveryDestination);
 
-        $source_files = scandir($delivery_source);
+        $source_files = scandir($deliverySource);
         foreach($source_files as $source_file){
             if ($this->isMatchedWithPattern($source_file, $filePattern)){
                 Log::info("move or copy: ".$source_file);
-                if (!file_exists($delivery_destination)) {
-                    mkdir($delivery_destination, 0777, true);
+                if (!file_exists($deliveryDestination)) {
+                    mkdir($deliveryDestination, 0777, true);
                 }
-                File::copy($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
+                File::copy($deliverySource.'/'.$source_file, $deliveryDestination.'/'.$source_file);
                 $this->saveToHistory($this->buildHistoryData(null));
             }
         }
