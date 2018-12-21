@@ -56,4 +56,9 @@ class CSVDelivery implements DataDelivery
         else
             return true;
     }
+
+    public function saveToHistory()
+    {
+        // TODO: Implement saveToHistory() method.
+    }
 }

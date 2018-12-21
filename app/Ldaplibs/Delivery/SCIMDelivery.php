@@ -21,4 +21,9 @@ class SCIMDelivery implements DataDelivery
     {
         // TODO: Implement delivery() method.
     }
+
+    public function saveToHistory()
+    {
+        // TODO: Implement saveToHistory() method.
+    }
 }

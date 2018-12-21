@@ -14,4 +14,5 @@ interface DataDelivery
 {
     public function format();
     public function delivery();
+    public function saveToHistory();
 }
