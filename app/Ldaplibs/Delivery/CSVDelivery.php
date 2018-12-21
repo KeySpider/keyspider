@@ -50,12 +50,14 @@ class CSVDelivery implements DataDelivery
                 if (!file_exists($delivery_destination)) {
                     mkdir($delivery_destination, 0777, true);
                 }
+
                 if (file_exists($delivery_destination.'/'.$source_file)) {
                     $fileName = $this->removeExt($source_file).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
                     File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$fileName);
                 } else {
                     File::move($delivery_source.'/'.$source_file, $delivery_destination.'/'.$source_file);
                 }
+                $this->saveToHistory($this->buildHistoryData(null));
             }
         }
     }
@@ -82,4 +84,19 @@ class CSVDelivery implements DataDelivery
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
     }
+<<<<<<< HEAD
 }
+=======
+
+    public function saveToHistory(array $historyData)
+    {
+        // TODO: Implement saveToHistory() method.
+    }
+
+    public function buildHistoryData(array $deliveryInformation):array
+    {
+        // TODO: Implement buildHistoryData() method.
+        return [];
+    }
+}
+>>>>>>> origin/features/LDAP-78

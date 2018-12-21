@@ -21,4 +21,16 @@ class LDAPDelivery implements DataDelivery
     {
         // TODO: Implement delivery() method.
     }
+
+
+
+    public function buildHistoryData(array $deliveryInformation): array
+    {
+        // TODO: Implement buildHistoryData() method.
+    }
+
+    public function saveToHistory(array $historyData)
+    {
+        // TODO: Implement saveToHistory() method.
+    }
 }
