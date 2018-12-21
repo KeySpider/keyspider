@@ -11,11 +11,13 @@ namespace App\Ldaplibs\Delivery;
 
 class DeliveryHistoryManager
 {
-    public function save_history($something){
+    public function save_history($something)
+    {
 
     }
 
-    public function get_history(){
+    public function get_history()
+    {
         return array();
     }
 }
