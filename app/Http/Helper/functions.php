@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
  * function test
  */
 if (!function_exists('test')) {
-    function test() {
+    function test()
+    {
         dd('ok');
     }
 }
@@ -25,7 +26,8 @@ if (!function_exists('isTableNameInDatabase')) {
      * @param $tableName
      * @return bool
      */
-    function isTableNameInDatabase($tableName) {
+    function isTableNameInDatabase($tableName)
+    {
         $query = "SELECT EXISTS (
            SELECT 1
            FROM   information_schema.tables 

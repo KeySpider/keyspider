@@ -49,11 +49,11 @@ class ImportCSV extends Command
     {
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if ($timeExecutionList)
+        if ($timeExecutionList) {
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             }
-        else {
+        } else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }
     }

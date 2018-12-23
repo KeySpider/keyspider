@@ -33,18 +33,26 @@ class DBExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
         parent::process();
     }
 
-    public function getJobName(){
+    /**
+     * Get job name.
+     * @return string
+     */
+    public function getJobName()
+    {
         return "Extract from database";
     }
 
-    public function getJobDetails(){
+    /**
+     * Detail job
+     * @return array
+     */
+    public function getJobDetails()
+    {
         $setting = $this->setting;
-        $details = array();
+        $details = [];
         $details['Conversion'] = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
         $details['Extract table'] = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
         $details['Extract condition'] = $setting[self::EXTRACTION_CONDITION];
-//        $details['Format conversion'] = $setting[self::Extraction_Process_Format_Conversion];
         return $details;
-
     }
 }

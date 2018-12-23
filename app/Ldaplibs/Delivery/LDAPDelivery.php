@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 class LDAPDelivery implements DataDelivery
 {
 

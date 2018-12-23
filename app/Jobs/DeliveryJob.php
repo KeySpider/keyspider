@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Delivery\CSVDelivery;
-use App\Ldaplibs\Extract\DBExtractor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -33,16 +32,25 @@ class DeliveryJob implements ShouldQueue, JobInterface
      */
     public function handle()
     {
-        $csv_delivery = new CSVDelivery($this->setting);
-        $csv_delivery->delivery();
+        $csvDelivery = new CSVDelivery($this->setting);
+        $csvDelivery->delivery();
     }
 
-    public function getJobName(){
+    /**
+     * Get job name
+     * @return string
+     */
+    public function getJobName()
+    {
         return "Delivery Job";
     }
 
-    public function getJobDetails(){
-
+    /**
+     * Detail job
+     * @return mixed
+     */
+    public function getJobDetails()
+    {
         return $this->setting;
     }
 }

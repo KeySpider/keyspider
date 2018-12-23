@@ -183,9 +183,9 @@ class CSVReader implements DataInputReader
         foreach ($conversions as $col => $pattern) {
             if ($pattern === 'admin') {
                 $data[$col] = 'admin';
-            } else if ($pattern === 'TODAY()') {
+            } elseif ($pattern === 'TODAY()') {
                 $data[$col] = Carbon::now()->format('Y/m/d');
-            } else if ($pattern === '0') {
+            } elseif ($pattern === '0') {
                 $data[$col] = '0';
             } else {
                 $data[$col] = $this->convertDataFollowSetting($pattern, $data_line);

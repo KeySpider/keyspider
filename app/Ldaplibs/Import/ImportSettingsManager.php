@@ -35,7 +35,6 @@ class ImportSettingsManager extends SettingsManager
     {
         parent::__construct($ini_settings_files);
         $this->iniImportSettingsFolder = '';
-
     }
 
     /**
@@ -54,8 +53,9 @@ class ImportSettingsManager extends SettingsManager
 
         $this->allTableSettingsContent = array();
 
-        if(!$this->areAllImportIniFilesValid())
+        if (!$this->areAllImportIniFilesValid()) {
             return [];
+        }
 
         foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
             $tableContents = parse_ini_file($ini_import_settings_file, true);
@@ -74,11 +74,12 @@ class ImportSettingsManager extends SettingsManager
 
 //            Column conversion
             $columnNameConversion = $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
-            foreach ($columnNameConversion as $key => $value)
+            foreach ($columnNameConversion as $key => $value) {
                 if (isset($masterDBConversion[$key])) {
                     $columnNameConversion[$masterDBConversion[$key]] = $value;
                     unset($columnNameConversion[$key]);
                 }
+            }
             $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
 
             $this->allTableSettingsContent[] = $tableContents;
@@ -93,8 +94,7 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getScheduleImportExecution()
     {
-        if($this->key_spider==null)
-        {
+        if ($this->key_spider==null) {
             Log::error("Wrong key spider! Do nothing.");
             return[];
         }
@@ -110,8 +110,10 @@ class ImportSettingsManager extends SettingsManager
             foreach ($table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
                 $filesArray = array();
                 $filesArray['setting'] = $table_contents;
-                $filesArray['files'] = $this->getFilesFromPattern($table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
-                    $table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']);
+                $filesArray['files'] = $this->getFilesFromPattern(
+                    $table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
+                    $table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
+                );
                 $timeArray[$specify_time][] = $filesArray;
             }
         }
@@ -166,10 +168,12 @@ class ImportSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if all configure files are valid
      */
-    private function areAllImportIniFilesValid(){
+    private function areAllImportIniFilesValid()
+    {
         foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
-            if(!$this->getIniFileContent($ini_import_settings_file))
+            if (!$this->getIniFileContent($ini_import_settings_file)) {
                 return false;
+            }
         }
         Log::info('areAllImportIniFilesValid: YES');
         return true;
@@ -179,7 +183,7 @@ class ImportSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if a configure file are valid
      */
-    private function isImportIniValid($iniArray, $fileName=null):bool
+    private function isImportIniValid($iniArray, $fileName = null):bool
     {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',

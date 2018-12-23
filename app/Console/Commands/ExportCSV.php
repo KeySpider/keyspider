@@ -2,14 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\DBImporterJob;
-use App\Ldaplibs\Delivery\DeliverySettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use App\Ldaplibs\Import\CSVReader;
-use App\Ldaplibs\Import\ImportQueueManager;
-use App\Ldaplibs\Import\ImportSettingsManager;
-use App\Ldaplibs\SettingsManager;
 use Illuminate\Console\Command;
 use DB;
 use Illuminate\Support\Facades\Log;
@@ -51,15 +45,13 @@ class ExportCSV extends Command
     public function handle()
     {
         // Setup schedule for Extract
-        print_r("execute export...");
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
 
         $arrayOfSetting = [];
-        foreach ($extractSetting as $ex){
+        foreach ($extractSetting as $ex) {
             $arrayOfSetting = array_merge($arrayOfSetting, $ex);
         }
-        var_dump(json_encode($arrayOfSetting, JSON_PRETTY_PRINT));
         if ($extractSetting) {
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
@@ -69,19 +61,21 @@ class ExportCSV extends Command
         }
     }
 
+    /**
+     * Export Data For Execution
+     *
+     * @param array $settings
+     */
     public function exportDataForTimeExecution($settings)
     {
         try {
-//            $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBExtractor($setting);
                 $extractor->process();
-//                $queue->push($extractor);
             }
         } catch (Exception $e) {
             Log::channel('export')->error($e);
         }
     }
-
 }

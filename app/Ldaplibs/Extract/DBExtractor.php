@@ -62,7 +62,7 @@ class DBExtractor
             }
 
             if (is_file("{$tempPath}/$fileName")) {
-                $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100,999).'.csv';
+                $fileName = $this->removeExt($fileName).'_'.Carbon::now()->format('Ymd').rand(100, 999).'.csv';
             }
 
             Log::info("Export to file: $fileName into $tempPath");

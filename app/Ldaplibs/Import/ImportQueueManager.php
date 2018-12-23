@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Import;
 
-
 use App\Ldaplibs\QueueManager;
 
 class ImportQueueManager extends QueueManager
@@ -21,10 +20,9 @@ class ImportQueueManager extends QueueManager
 
     public function process()
     {
-
     }
 
-    public function getJobInfo(){
-
+    public function getJobInfo()
+    {
     }
 }

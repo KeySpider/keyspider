@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Extract;
 
-
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -41,7 +40,7 @@ class ExtractSettingsManager extends SettingsManager
     public function getRuleOfDataExtract()
     {
         $timeArray = array();
-        if($this->areAllExtractIniFilesValid()) {
+        if ($this->areAllExtractIniFilesValid()) {
             foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
                 $tableContent = parse_ini_file($iniExportSettingsFile, true);
                 $extract_table_name = $tableContent[SettingsManager::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExtractionTable'];
@@ -55,7 +54,7 @@ class ExtractSettingsManager extends SettingsManager
             }
             ksort($timeArray);
             return $timeArray;
-        }else{
+        } else {
             Log::info("Error in Extract INI file");
             return [];
         }
@@ -77,11 +76,12 @@ class ExtractSettingsManager extends SettingsManager
     private function convert_following_db_master($tableContents, $tagToConversion, $masterTable)
     {
         $columnNameConversion = $tableContents[$tagToConversion];
-        foreach ($columnNameConversion as $key => $value)
+        foreach ($columnNameConversion as $key => $value) {
             if (isset($masterTable[$key])) {
                 $columnNameConversion[$masterTable[$key]] = $value;
                 unset($columnNameConversion[$key]);
             }
+        }
         $tableContents[$tagToConversion] = $columnNameConversion;
         return $tableContents;
     }
@@ -95,7 +95,7 @@ class ExtractSettingsManager extends SettingsManager
     private function convertValueFromDBMaster($table_contents, $masterDB)
     {
         $jsonData = json_encode($table_contents);
-        foreach ($masterDB as $table=>$masterTable) {
+        foreach ($masterDB as $table => $masterTable) {
             foreach ($masterTable as $key => $value) {
                 if (strpos($key, '.') !== false) {
                     $jsonData = str_replace($key, $value, $jsonData);
@@ -122,10 +122,12 @@ class ExtractSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if all extract ini files are valid
      */
-    private function areAllExtractIniFilesValid(){
+    private function areAllExtractIniFilesValid()
+    {
         foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
-            if(!$this->getIniFileContent($iniExportSettingsFile))
+            if (!$this->getIniFileContent($iniExportSettingsFile)) {
                 return false;
+            }
         }
         Log::info('areAllExtractIniFilesValid: YES');
         return true;
@@ -136,7 +138,8 @@ class ExtractSettingsManager extends SettingsManager
      * <p>Check if a extract ini file is valid
      */
 
-    private function isExtractIniValid($iniArray, $filename=null):bool {
+    private function isExtractIniValid($iniArray, $filename = null):bool
+    {
         $rules = [
             self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
@@ -151,7 +154,6 @@ class ExtractSettingsManager extends SettingsManager
             Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
         } else {
-
 //            Log::error(json_encode($iniArray, JSON_PRETTY_PRINT));
 //                Validate children
             $tempIniArray = array();
@@ -169,17 +171,15 @@ class ExtractSettingsManager extends SettingsManager
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {
-                if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])){
+                if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
                     Log::info('Validation PASSED');
                     return true;
-                }else{
+                } else {
                     Log::error("Error file: ".$filename?$filename:'');
                     Log::error("The file is not existed: ".$tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion']);
                     return false;
                 }
-
             }
         }
     }
-
 }

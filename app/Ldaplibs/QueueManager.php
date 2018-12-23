@@ -8,11 +8,8 @@
 
 namespace App\Ldaplibs;
 
-use App\Jobs\DBImporterJob;
 use App\Jobs\JobInterface;
-use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Queue;
 
 class QueueManager
 {
@@ -31,17 +28,27 @@ class QueueManager
         Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 
-    public function push_high_priority(){
-
+    /**
+     * Push high priority
+     */
+    public function pushHighPriority()
+    {
+        // do something
     }
 
+    /**
+     * @param $file
+     */
     public function pop($file)
     {
-
+        // do something
     }
 
-    public function getJobInfo(){
+    /**
+     * @return null
+     */
+    public function getJobInfo()
+    {
         return null;
     }
-
 }

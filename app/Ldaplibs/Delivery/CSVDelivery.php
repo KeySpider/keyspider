@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 use App\Http\Models\DeliveryHistory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
@@ -47,9 +46,8 @@ class CSVDelivery implements DataDelivery
 
         $source_files = scandir($deliverySource);
 
-        foreach($source_files as $source_file){
-            if ($this->isMatchedWithPattern($source_file, $filePattern)){
-
+        foreach ($source_files as $source_file) {
+            if ($this->isMatchedWithPattern($source_file, $filePattern)) {
                 $delivery_source = $deliverySource.'/'.$source_file;
                 $delivery_target = $deliveryDestination.'/'.$source_file;
 
@@ -68,8 +66,7 @@ class CSVDelivery implements DataDelivery
                 }
 
                 if (file_exists($delivery_target)) {
-                    $delivery_target = $this->removeExt($source_file).'_'.Carbon::now()
-                                            ->format('Ymd').rand(100,999).'.csv';
+                    $delivery_target = $this->removeExt($source_file).'_'.Carbon::now() ->format('Ymd').rand(100, 999).'.csv';
                     $delivery_target = $deliveryDestination.'/'.$delivery_target;
                 }
 
@@ -92,7 +89,7 @@ class CSVDelivery implements DataDelivery
      */
     private function isMatchedWithPattern($fileName, $pattern)
     {
-        if($fileName[0]=='.') {
+        if ($fileName[0] === '.') {
             return false;
         }
         return true;
@@ -108,11 +105,20 @@ class CSVDelivery implements DataDelivery
         return $file;
     }
 
+    /**
+     * Save history delivery
+     * @param array $historyData
+     */
     public function saveToHistory(array $historyData)
     {
         DeliveryHistory::create($historyData);
     }
 
+    /**
+     * Get data delivery history
+     * @param array $deliveryInformation
+     * @return array
+     */
     public function buildHistoryData(array $deliveryInformation): array
     {
         return $deliveryInformation;

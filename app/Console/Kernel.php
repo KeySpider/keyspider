@@ -41,13 +41,13 @@ class Kernel extends ConsoleKernel
         // Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if ($timeExecutionList)
+        if ($timeExecutionList) {
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->importDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        else {
+        } else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }
 
@@ -73,8 +73,7 @@ class Kernel extends ConsoleKernel
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        }
-        else {
+        } else {
             Log::error("Can not run delivery schedule, getting error from config ini files");
         }
     }
@@ -107,8 +106,7 @@ class Kernel extends ConsoleKernel
                     Log::channel('import')->error("
                     Error: The table {$tableName} does not exist.\n
                     File ini: {$setting['IniFileName']} \n
-                    File name: TableNameInDB"
-                    );
+                    File name: TableNameInDB");
                     break;
                 }
 
@@ -116,8 +114,7 @@ class Kernel extends ConsoleKernel
                     Log::channel('import')->error("
                         FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available \n
                         File ini: {$setting['IniFileName']} \n
-                        "
-                    );
+                        ");
                     break;
                 }
 
@@ -170,5 +167,4 @@ class Kernel extends ConsoleKernel
             Log::channel('delivery')->error($e);
         }
     }
-
 }

@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs;
 
-
 class QueueManagerException extends \Exception
 {
 

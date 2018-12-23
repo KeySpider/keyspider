@@ -7,6 +7,7 @@
  */
 
 namespace App\Ldaplibs\Import;
+
 use App\Ldaplibs\Import\DataInputReader;
 
 class SCIMReader

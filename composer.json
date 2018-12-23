@@ -10,7 +10,8 @@
         "fideloper/proxy": "^4.0",
         "laravel/framework": "5.7.*",
         "laravel/tinker": "^1.0",
-        "marquine/php-etl": "^2.2"
+        "marquine/php-etl": "^2.2",
+        "squizlabs/php_codesniffer": "*"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^1.0",

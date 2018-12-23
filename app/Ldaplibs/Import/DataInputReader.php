@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Import;
 
-
 interface DataInputReader
 {
     public function getListFileCsvSetting();

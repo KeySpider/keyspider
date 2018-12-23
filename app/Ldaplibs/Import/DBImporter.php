@@ -81,7 +81,7 @@ class DBImporter
                 ");
 
                 if ($isInsertDb) {
-                    $now = Carbon::now()->format('Ymdhis').rand(1000,9999);
+                    $now = Carbon::now()->format('Ymdhis').rand(1000, 9999);
                     $fileName = "hogehoge_{$now}.csv";
                     if (is_file($this->file_name)) {
                         File::move($this->file_name, $processedFilePath.'/'.$fileName);
