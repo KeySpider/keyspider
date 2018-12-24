@@ -7,6 +7,7 @@
  */
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 /**
  * function test
@@ -18,12 +19,9 @@ if (!function_exists('test')) {
     }
 }
 
-/**
- * Check exists table name
- */
 if (!function_exists('isTableNameInDatabase')) {
     /**
-     * @param $tableName
+     * @param string $tableName
      * @return bool
      */
     function isTableNameInDatabase($tableName)
@@ -43,5 +41,45 @@ if (!function_exists('isTableNameInDatabase')) {
         }
 
         return $flag;
+    }
+}
+
+if (!function_exists('removeExt')) {
+    /**
+     * @param string $fileName
+     * @return string|string[]|null
+     */
+    function removeExt($fileName)
+    {
+        $pattern = "/\\.[^.\\s]{3,4}$/";
+        $file = preg_replace($pattern, '', $fileName);
+        return $file;
+    }
+}
+
+if (!function_exists('mkDirectory')) {
+    /**
+     * @param string $path
+     * @return string|string[]|null
+     */
+    function mkDirectory($path)
+    {
+        if (!is_dir($path)) {
+            mkdir($path, 0775, true);
+        }
+    }
+}
+
+if (!function_exists('moveFile')) {
+    /**
+     * @param $from
+     * @param $to
+     * @return string|string[]|null
+     */
+    function moveFile($from, $to)
+    {
+        if (is_file($from)) {
+            File::move($from, $to);
+        }
     }
 }

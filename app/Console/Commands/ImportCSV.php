@@ -73,7 +73,7 @@ class ImportCSV extends Command
 
                 if (empty($files)) {
                     $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
-                    Log::channel('import')->info($infoSetting." WITH FILES EMPTY");
+                    Log::channel('import')->info($infoSetting . " WITH FILES EMPTY");
                 } else {
                     $queue = new ImportQueueManager();
                     foreach ($files as $file) {

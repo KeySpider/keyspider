@@ -39,46 +39,44 @@ class CSVDelivery implements DataDelivery
         $deliverySource       = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
         $deliveryDestination  = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
         $filePattern          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
-        $output_type          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
+        $outputType          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
 
-        Log::info("From: ". $deliverySource);
-        Log::info("To  : ". $deliveryDestination);
+        Log::info("From: " . $deliverySource);
+        Log::info("To  : " . $deliveryDestination);
 
-        $source_files = scandir($deliverySource);
+        $sourceFiles = scandir($deliverySource);
 
-        foreach ($source_files as $source_file) {
-            if ($this->isMatchedWithPattern($source_file, $filePattern)) {
-                $delivery_source = $deliverySource.'/'.$source_file;
-                $delivery_target = $deliveryDestination.'/'.$source_file;
+        foreach ($sourceFiles as $sourceFile) {
+            if ($this->isMatchedWithPattern($sourceFile, $filePattern)) {
+                $deliverySource = $deliverySource . '/' . $sourceFile;
+                $deliveryTarget = $deliveryDestination . '/' . $sourceFile;
 
                 // data delivery history
-                $delivery_histories = [
-                    "output_type" => $output_type,
-                    "delivery_source" => $delivery_source,
-                    "file_size" => File::size($delivery_source), // byte
+                $deliveryHistories = [
+                    "output_type" => $outputType,
+                    "delivery_source" => $deliverySource,
+                    "file_size" => File::size($deliverySource), // byte
                     'execution_at' => Carbon::now()->format('Y/m/d h:i'),
                     'status' => 1 // success
                 ];
 
-                Log::info("move or copy: ".$source_file);
-                if (!file_exists($deliveryDestination)) {
-                    mkdir($deliveryDestination, 0777, true);
-                }
+                Log::info("move or copy: " . $sourceFile);
+                mkDirectory($deliveryDestination);
 
-                if (file_exists($delivery_target)) {
-                    $newFileName = Carbon::now() ->format('Ymd').rand(100, 999);
-                    $delivery_target = $this->removeExt($source_file).'_'.$newFileName.'.csv';
-                    $delivery_target = $deliveryDestination.'/'.$delivery_target;
+                if (file_exists($deliveryTarget)) {
+                    $newFileName = Carbon::now() ->format('Ymd') . rand(100, 999);
+                    $deliveryTarget = $this->removeExt($sourceFile) . '_' . $newFileName . '.csv';
+                    $deliveryTarget = $deliveryDestination . '/' . $deliveryTarget;
                 }
 
                 // move file
-                File::move($delivery_source, $delivery_target);
+                File::move($deliverySource, $deliveryTarget);
 
                 // save history
-                $delivery_histories['delivery_target'] = $delivery_target;
-                $rowsColumn = $this->rowsColumnCSV($delivery_target);
-                $delivery_histories['rows_count'] = $rowsColumn;
-                $this->saveToHistory($this->buildHistoryData($delivery_histories));
+                $deliveryHistories['delivery_target'] = $deliveryTarget;
+                $rowsColumn = $this->rowsColumnCSV($deliveryTarget);
+                $deliveryHistories['rows_count'] = $rowsColumn;
+                $this->saveToHistory($this->buildHistoryData($deliveryHistories));
             }
         }
     }
@@ -138,8 +136,8 @@ class CSVDelivery implements DataDelivery
         if (file_exists($fileCSV)) {
             $data = [];
             foreach (file($fileCSV) as $line) {
-                $data_line = str_getcsv($line);
-                array_push($data, $data_line);
+                $dataLine = str_getcsv($line);
+                array_push($data, $dataLine);
             }
 
             $rowsColumn = count($data);

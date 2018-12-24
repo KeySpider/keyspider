@@ -16,7 +16,7 @@ class DBExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
     /**
      * Create a new job instance.
      *
-     * @return void
+     * @param $setting
      */
     public function __construct($setting)
     {

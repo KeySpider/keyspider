@@ -13,11 +13,12 @@ use Illuminate\Support\Facades\Validator;
 
 class SettingsManager
 {
-    const INI_CONFIGS = "ini_configs";
+    public const INI_CONFIGS = "ini_configs";
     public const EXTRACTION_CONDITION = "Extraction Condition";
     public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = "CSV Import Process Format Conversion";
     public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = "Extraction Process Basic Configuration";
     public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = "CSV Import Process Basic Configuration";
+
     public $iniMasterDBFile = null;
     public $masterDBConfigData = null;
     protected $key_spider;
@@ -48,8 +49,8 @@ class SettingsManager
         try {
             $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
             $validate = Validator::make($this->key_spider, [
-                'Master DB Configurtion'=>'required',
-                'CSV Import Process Configration'=>'required'
+                'Master DB Configurtion' => 'required',
+                'CSV Import Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');

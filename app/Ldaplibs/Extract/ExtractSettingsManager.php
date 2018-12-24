@@ -31,7 +31,7 @@ class ExtractSettingsManager extends SettingsManager
         $allFiles = scandir($this->iniExportSettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Extraction', $fileName)) {
-                $this->iniExportSettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/").$fileName;
+                $this->iniExportSettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/") . $fileName;
             }
         }
     }
@@ -110,7 +110,7 @@ class ExtractSettingsManager extends SettingsManager
         try {
             $iniArray = parse_ini_file($filename, true);
             $isValid = $this->isExtractIniValid($iniArray, $filename);
-            return $isValid?$iniArray:null;
+            return $isValid ? $iniArray : null;
         } catch (\Exception $e) {
             Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
             return null;
@@ -150,7 +150,7 @@ class ExtractSettingsManager extends SettingsManager
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error("Key error validation");
-            Log::error("Error file: ".$filename?$filename:'');
+            Log::error("Error file: " . $filename ? $filename : '');
             Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
         } else {
@@ -168,7 +168,7 @@ class ExtractSettingsManager extends SettingsManager
             ];
             $validate = Validator::make($tempIniArray, $rules);
             if ($validate->fails()) {
-                Log::error("Error file: ".$filename?$filename:'');
+                Log::error("Error file: " . $filename ? $filename : '');
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {
@@ -176,9 +176,9 @@ class ExtractSettingsManager extends SettingsManager
                     Log::info('Validation PASSED');
                     return true;
                 } else {
-                    Log::error("Error file: ".$filename?$filename:'');
+                    Log::error("Error file: " . $filename ? $filename : '');
                     $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
-                    Log::error("The file is not existed: ".$outputProcessConversion);
+                    Log::error("The file is not existed: " . $outputProcessConversion);
                     return false;
                 }
             }

@@ -93,7 +93,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param $dataSchedule
      */
-    private function importDataForTimeExecution($dataSchedule): void
+    private function importDataForTimeExecution($dataSchedule)
     {
         try {
             foreach ($dataSchedule as $data) {
@@ -120,7 +120,7 @@ class Kernel extends ConsoleKernel
 
                 if (empty($files)) {
                     Log::channel('import')
-                        ->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT)." WITH FILES EMPTY");
+                        ->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT) . " WITH FILES EMPTY");
                 } else {
                     $queue = new ImportQueueManager();
                     foreach ($files as $file) {

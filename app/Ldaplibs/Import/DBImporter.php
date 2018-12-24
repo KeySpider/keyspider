@@ -11,7 +11,6 @@ namespace App\Ldaplibs\Import;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
-use File;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -19,12 +18,12 @@ class DBImporter
 {
     /**
      * @var array $setting
-     * @var string $file_nmae
-     * @var object $csv_reader
+     * @var string $fileName
+     * @var object $csvReader
      */
     protected $setting;
-    protected $file_name;
-    protected $csv_reader;
+    protected $fileName;
+    protected $csvReader;
 
     /**
      * define const
@@ -36,13 +35,13 @@ class DBImporter
      * DBImporter constructor.
      *
      * @param array $setting
-     * @param string $file_name
+     * @param $fileName
      */
-    public function __construct($setting, $file_name)
+    public function __construct($setting, $fileName)
     {
         $this->setting = $setting;
-        $this->file_name = $file_name;
-        $this->csv_reader = new CSVReader(new SettingsManager());
+        $this->fileName = $fileName;
+        $this->csvReader = new CSVReader(new SettingsManager());
     }
 
     /**
@@ -54,18 +53,17 @@ class DBImporter
     {
         try {
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
-            if (!is_dir($processedFilePath)) {
-                mkdir($processedFilePath, 0775, true);
-            }
-            $name_table = $this->csv_reader->getNameTableFromSetting($this->setting);
-            $columns = $this->csv_reader->getAllColumnFromSetting($this->setting);
+            mkDirectory($processedFilePath);
 
-            $this->csv_reader->createTable($name_table, $columns);
+            $name_table = $this->csvReader->getNameTableFromSetting($this->setting);
+            $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
+
+            $this->csvReader->createTable($name_table, $columns);
 
             $params = [
                 'CONVERSATION' => $this->setting[self::CONVERSION],
             ];
-            $data = $this->csv_reader->getDataFromOneFile($this->file_name, $params);
+            $data = $this->csvReader->getDataFromOneFile($this->fileName, $params);
             $columns = implode(",", $columns);
 
             foreach ($data as $key2 => $item2) {
@@ -81,11 +79,9 @@ class DBImporter
                 ");
 
                 if ($isInsertDb) {
-                    $now = Carbon::now()->format('Ymdhis').rand(1000, 9999);
+                    $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
                     $fileName = "hogehoge_{$now}.csv";
-                    if (is_file($this->file_name)) {
-                        File::move($this->file_name, $processedFilePath.'/'.$fileName);
-                    }
+                    moveFile($this->fileName, $processedFilePath . '/' . $fileName);
                 }
             }
         } catch (Exception $e) {

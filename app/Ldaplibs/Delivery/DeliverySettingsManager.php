@@ -25,7 +25,7 @@ class DeliverySettingsManager extends SettingsManager
         $allFiles = scandir($this->iniDeliverySettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Output', $fileName)) {
-                $this->iniDeliverySettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/").$fileName;
+                $this->iniDeliverySettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/") . $fileName;
             }
         }
     }

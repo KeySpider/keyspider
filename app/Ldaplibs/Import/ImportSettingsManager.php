@@ -29,11 +29,11 @@ class ImportSettingsManager extends SettingsManager
     /**
      * ImportSettingsManager constructor.
      *
-     * @param null $ini_settings_files
+     * @param $iniSettingsFiles
      */
-    public function __construct($ini_settings_files = null)
+    public function __construct($iniSettingsFiles = null)
     {
-        parent::__construct($ini_settings_files);
+        parent::__construct($iniSettingsFiles);
         $this->iniImportSettingsFolder = '';
     }
 
@@ -57,14 +57,14 @@ class ImportSettingsManager extends SettingsManager
             return [];
         }
 
-        foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
-            $tableContents = parse_ini_file($ini_import_settings_file, true);
+        foreach ($this->iniImportSettingsFiles as $iniImportSettingsFile) {
+            $tableContents = parse_ini_file($iniImportSettingsFile, true);
             if ($tableContents == null) {
                 Log::error("Can not run import schedule");
                 return [];
             }
             // set filename in json file
-            $tableContents['IniFileName'] = $ini_import_settings_file;
+            $tableContents['IniFileName'] = $iniImportSettingsFile;
             // Set destination table in database
             $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
             $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
@@ -94,7 +94,7 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getScheduleImportExecution()
     {
-        if ($this->key_spider==null) {
+        if ($this->key_spider == null) {
             Log::error("Wrong key spider! Do nothing.");
             return[];
         }
@@ -106,15 +106,15 @@ class ImportSettingsManager extends SettingsManager
         $rule = ($this->getRuleOfImport());
 
         $timeArray = array();
-        foreach ($rule as $table_contents) {
-            foreach ($table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specify_time) {
-                $filesArray = array();
-                $filesArray['setting'] = $table_contents;
+        foreach ($rule as $tableContents) {
+            foreach ($tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+                $filesArray = [];
+                $filesArray['setting'] = $tableContents;
                 $filesArray['files'] = $this->getFilesFromPattern(
-                    $table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
-                    $table_contents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
+                    $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
+                    $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
                 );
-                $timeArray[$specify_time][] = $filesArray;
+                $timeArray[$specifyTime][] = $filesArray;
             }
         }
         ksort($timeArray);
@@ -150,15 +150,15 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @param $filename
+     * @param $fileName
      * @return array|bool|null <p>array of key/value from ini file.</p>
      */
-    private function getIniFileContent($filename)
+    private function getIniFileContent($fileName)
     {
         try {
-            $iniArray = parse_ini_file($filename, true);
-            $isValid = $this->isImportIniValid($iniArray, $filename);
-            return $isValid?$iniArray:null;
+            $iniArray = parse_ini_file($fileName, true);
+            $isValid = $this->isImportIniValid($iniArray, $fileName);
+            return $isValid ? $iniArray : null;
         } catch (\Exception $e) {
             Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
             return null;
@@ -171,8 +171,8 @@ class ImportSettingsManager extends SettingsManager
      */
     private function areAllImportIniFilesValid()
     {
-        foreach ($this->iniImportSettingsFiles as $ini_import_settings_file) {
-            if (!$this->getIniFileContent($ini_import_settings_file)) {
+        foreach ($this->iniImportSettingsFiles as $iniImportSettingsFile) {
+            if (!$this->getIniFileContent($iniImportSettingsFile)) {
                 return false;
             }
         }
@@ -196,7 +196,7 @@ class ImportSettingsManager extends SettingsManager
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error("Key error validation");
-            Log::error("Error file: ".$fileName?$fileName:'');
+            Log::error("Error file: " . $fileName ? $fileName : '');
             Log::error($validate->getMessageBag());
             return false;
         } else {
@@ -216,7 +216,7 @@ class ImportSettingsManager extends SettingsManager
             $validate = Validator::make($tempIniArray, $rules);
             if ($validate->fails()) {
                 Log::error("Key error validation");
-                Log::error("Error file: ".$fileName?$fileName:'');
+                Log::error("Error file: " . $fileName ? $fileName : '');
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {
