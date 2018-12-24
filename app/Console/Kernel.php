@@ -71,7 +71,7 @@ class Kernel extends ConsoleKernel
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
+                });
             }
         } else {
             Log::error("Can not run delivery schedule, getting error from config ini files");

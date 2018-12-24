@@ -6,6 +6,7 @@ use App\Http\Models\AAA;
 use App\Http\Models\BBB;
 use App\Http\Models\CCC;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 
 class ClearDatabase extends Command
 {
@@ -40,8 +41,16 @@ class ClearDatabase extends Command
      */
     public function handle()
     {
-        AAA::truncate();
-        BBB::truncate();
-        CCC::truncate();
+        if (Schema::hasTable('AAA')) {
+            AAA::truncate();
+        }
+
+        if (Schema::hasTable('BBB')) {
+            BBB::truncate();
+        }
+
+        if (Schema::hasTable('CCC')) {
+            CCC::truncate();
+        }
     }
 }
