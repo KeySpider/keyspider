@@ -1,0 +1,408 @@
+[2018-12-20 03:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 03:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 03:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 06:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 06:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 06:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 09:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 09:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 09:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 12:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 12:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 12:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 15:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 15:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 15:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 16:50:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 16:51:01] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 16:52:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 18:00:01] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 18:00:01] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 18:00:01] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
+[2018-12-20 21:00:02] local.INFO: {
+    "ImportTable": "User",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/user",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/user",
+    "ExecutionTime": [
+        "16:52",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "AAA"
+} WITH FILES EMPTY  
+[2018-12-20 21:00:02] local.INFO: {
+    "ImportTable": "Organization",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/organization",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/organization",
+    "ExecutionTime": [
+        "16:50",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "BBB"
+} WITH FILES EMPTY  
+[2018-12-20 21:00:02] local.INFO: {
+    "ImportTable": "Role",
+    "FilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv\/role",
+    "FileName": "hogehoge[0-9]{3}.csv",
+    "ProcessedFilePath": "\/var\/www\/LDAP_ID\/storage\/import_csv_processed\/role",
+    "ExecutionTime": [
+        "16:51",
+        "03:00",
+        "06:00",
+        "09:00",
+        "12:00",
+        "15:00",
+        "18:00",
+        "21:00"
+    ],
+    "TableNameInDB": "CCC"
+} WITH FILES EMPTY  
