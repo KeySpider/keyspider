@@ -6,6 +6,7 @@ storage/extract_csv_temp/
 storage/delivery_csv_processed/
 /storage/import_csv/
 /storage/import_csv_processed/
+/storage/logs/
 /vendor
 /.idea
 /.vscode
