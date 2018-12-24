@@ -54,7 +54,7 @@ class ExportCSV extends Command
         }
         if ($extractSetting) {
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                    $this->exportDataForTimeExecution($settingOfTimeExecution);
+                $this->exportDataForTimeExecution($settingOfTimeExecution);
             }
         } else {
             Log::error("Can not run export schedule, getting error from config ini files");
