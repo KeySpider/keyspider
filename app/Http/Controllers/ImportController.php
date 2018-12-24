@@ -2,12 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
-use App\Ldaplibs\SettingsManager;
-use App\Ldaplibs\Import\CSVReader;
-use Illuminate\Support\Facades\Log;
 
 class ImportController extends Controller
 {
@@ -24,48 +20,32 @@ class ImportController extends Controller
      */
     public function readSettings()
     {
-        $this->read_extract_settings();
+        $this->readExtractSettings();
     }
 
-    public function read_extract_settings(): void
+    /**
+     * Read extract setting
+     */
+    public function readExtractSettings()
     {
         echo '<pre>';
-//        $import_settings = new ImportSettingsManager();
-//        $user_rule = $import_settings->getScheduleImportExecution();
         $export_settings = new ExtractSettingsManager();
         $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
 
-    public function read_import_settings(): void
+    /**
+     * Read import setting
+     */
+    public function readImportSettings()
     {
         echo '<pre>';
-//        $import_settings = new SettingsManager();
         $import_settings = new ImportSettingsManager();
         $user_rule = $import_settings->getScheduleImportExecution();
 
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
-
-//        $this->do_import_by_queue();
     }
-
-/*    private function do_import_by_queue(): void
-    {
-        $csv_reader = new CSVReader(new SettingsManager());
-        $list_file_csv = $csv_reader->getListFileCsvSetting();
-
-        foreach ($list_file_csv as $item) {
-            $setting = $item['setting'];
-            $list_file = $item['file_csv'];
-
-            foreach ($list_file as $file) {
-                Log::info('pushing to queue!');
-                $db_importer = new DBImporterJob($setting, $file);
-                dispatch($db_importer);
-            }
-        }
-    }*/
 }

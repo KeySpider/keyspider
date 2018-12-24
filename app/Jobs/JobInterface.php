@@ -8,7 +8,6 @@
 
 namespace App\Jobs;
 
-
 interface JobInterface
 {
     public function getJobName();

@@ -9,9 +9,10 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 interface DataDelivery
 {
     public function format();
     public function delivery();
+    public function buildHistoryData(array $deliveryInformation):array;
+    public function saveToHistory(array $historyData);
 }

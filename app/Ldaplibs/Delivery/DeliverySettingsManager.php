@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 
@@ -26,16 +25,16 @@ class DeliverySettingsManager extends SettingsManager
         $allFiles = scandir($this->iniDeliverySettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Output', $fileName)) {
-                $this->iniDeliverySettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/").$fileName;
+                $this->iniDeliverySettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/") . $fileName;
             }
         }
-
     }
 
-    public function getScheduleDeliveryExecution(){
+    public function getScheduleDeliveryExecution()
+    {
         var_dump($this->iniDeliverySettingsFiles);
         $timeArray = array();
-        if(true) {
+        if (true) {
             foreach ($this->iniDeliverySettingsFiles as $iniDeliverySettingsFile) {
                 $tableContent = parse_ini_file($iniDeliverySettingsFile, true);
                 foreach ($tableContent[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
@@ -45,10 +44,9 @@ class DeliverySettingsManager extends SettingsManager
             }
             ksort($timeArray);
             return $timeArray;
-        }else{
+        } else {
             Log::info("Error in Extract INI file");
             return [];
         }
     }
-
 }

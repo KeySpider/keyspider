@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Extract;
 
-
 use App\Ldaplibs\QueueManager;
 
 class ExtractQueueManager extends QueueManager

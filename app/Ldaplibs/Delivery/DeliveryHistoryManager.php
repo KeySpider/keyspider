@@ -8,14 +8,22 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 class DeliveryHistoryManager
 {
-    public function save_history($something){
-
+    /**
+     * Save History
+     * @param $something
+     */
+    public function saveHistory($something)
+    {
     }
 
-    public function get_history(){
-        return array();
+    /**
+     * Get history
+     * @return array
+     */
+    public function getHistory()
+    {
+        return [];
     }
 }

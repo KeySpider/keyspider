@@ -2,17 +2,20 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Models\AAA;
+use App\Http\Models\BBB;
+use App\Http\Models\CCC;
 use Illuminate\Console\Command;
-use DB;
+use Illuminate\Support\Facades\Schema;
 
-class DropAllTable extends Command
+class ClearDatabase extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:DropAllTable';
+    protected $signature = 'command:ClearDatabase';
 
     /**
      * The console command description.
@@ -38,10 +41,16 @@ class DropAllTable extends Command
      */
     public function handle()
     {
-        $environment = config('app.env');
-        if ($environment === "testing" || $environment === "develop" || $environment === "localhost") {
-            DB::statement("DROP SCHEMA public CASCADE;");
-            DB::statement("CREATE SCHEMA public;");
+        if (Schema::hasTable('AAA')) {
+            AAA::truncate();
+        }
+
+        if (Schema::hasTable('BBB')) {
+            BBB::truncate();
+        }
+
+        if (Schema::hasTable('CCC')) {
+            CCC::truncate();
         }
     }
 }

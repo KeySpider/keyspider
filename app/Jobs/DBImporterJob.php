@@ -13,15 +13,17 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    protected $fileName;
+
     /**
      * Create a new job instance.
      *
      * @param $setting
-     * @param $file_name
+     * @param $fileName
      */
-    public function __construct($setting, $file_name)
+    public function __construct($setting, $fileName)
     {
-        parent::__construct($setting, $file_name);
+        parent::__construct($setting, $fileName);
     }
 
     /**
@@ -34,17 +36,27 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
         parent::import();
     }
 
-    public function getJobName(){
+    /**
+     * Get job name
+     * @return string
+     */
+    public function getJobName()
+    {
         return "Import to database";
     }
 
-    public function getJobDetails(){
-        $details = array();
-        $basic_setting = $this->setting['CSV Import Process Basic Configuration'];
-        $details['File to import'] = $this->file_name;
-        $details['File path'] = $basic_setting['FilePath'];
-        $details['Processed File Path'] = $basic_setting['ProcessedFilePath'];
-        $details['Table Name In DB'] = $basic_setting['TableNameInDB'];
+    /**
+     * Detail job
+     * @return array
+     */
+    public function getJobDetails()
+    {
+        $details = [];
+        $basicSetting = $this->setting['CSV Import Process Basic Configuration'];
+        $details['File to import'] = $this->fileName;
+        $details['File path'] = $basicSetting['FilePath'];
+        $details['Processed File Path'] = $basicSetting['ProcessedFilePath'];
+        $details['Table Name In DB'] = $basicSetting['TableNameInDB'];
         $details['Settings File Name'] = $this->setting['IniFileName'];
         return $details;
     }

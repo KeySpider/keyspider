@@ -10,11 +10,8 @@
          stopOnFailure="false">
     <testsuites>
         <testsuite name="Unit">
-            <directory suffix="Test.php">./tests/Unit</directory>
-        </testsuite>
-
-        <testsuite name="Feature">
-            <directory suffix="Test.php">./tests/Feature</directory>
+            <directory suffix="UserInfoImportCSVTest.php">./tests/Unit</directory>
+            <directory suffix="ImportQueueTest.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>
     <filter>

@@ -11,11 +11,15 @@
 
 namespace App\Ldaplibs\Import;
 
-use App\Ldaplibs\Import\DataInputReader;
 use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
 
+/**
+ * Class CSVReader
+ *
+ * @package App\Ldaplibs\Import
+ */
 class CSVReader implements DataInputReader
 {
     protected $setting;
@@ -26,18 +30,24 @@ class CSVReader implements DataInputReader
     const CONVERSION = "CSV Import Process Format Conversion";
     const CONFIGURATION = "CSV Import Process Basic Configuration";
 
+    /**
+     * CSVReader constructor.
+     * @param SettingsManager $setting
+     */
     public function __construct(SettingsManager $setting)
     {
         $this->setting = $setting;
     }
 
     /**
+     * Get all csv file from setting
+     *
      * @return array
      */
     public function getListFileCsvSetting()
     {
         // get name table from file setting
-        $data_csv = [];
+        $dataCSV = [];
         $settings = $this->setting->getRuleOfImport();
 
         if (!empty($settings)) {
@@ -51,46 +61,49 @@ class CSVReader implements DataInputReader
                 ];
 
                 $pattern = $options['pattern'];
-                $list_file_csv = [
+                $listFileCSV = [
                     "setting" => $setting,
                     "file_csv" => [],
                 ];
                 $pathDir = $path;
-                $validate_file = ['csv'];
 
                 if (is_dir($pathDir)) {
                     foreach (scandir($pathDir) as $key => $file) {
                         $ext = pathinfo($file, PATHINFO_EXTENSION);
-                        if (in_array($ext, $validate_file)) {
-                            if (preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
-                                array_push($list_file_csv['file_csv'], "{$path}/{$file}");
+                        if (in_array($ext, ['csv'])) {
+                            $newPattern = removeExt($pattern);
+                            $newFile = removeExt($file);
+                            if (preg_match("/{$newPattern}/", $newFile)) {
+                                array_push($listFileCSV['file_csv'], "{$path}/{$file}");
                             }
                         }
                     }
 
-                    array_push($data_csv, $list_file_csv);
+                    array_push($dataCSV, $listFileCSV);
                 }
             }
-            return $data_csv;
+            return $dataCSV;
         }
     }
 
-    /** Get name table in setting file
+    /** Get name table from setting file
      *
-     * @param $setting
+     * @param array $setting
+     *
      * @return string
      */
     public function getNameTableFromSetting($setting)
     {
-        $name_table = $setting[self::CONFIGURATION]['TableNameInDB'];
-        $name_table = "\"{$name_table}\"";
-        return $name_table;
+        $nameTable = $setting[self::CONFIGURATION]['TableNameInDB'];
+        $nameTable = "\"{$nameTable}\"";
+        return $nameTable;
     }
 
     /**
      * Get all column from setting file
      *
      * @param array $setting
+     *
      * @return array
      */
     public function getAllColumnFromSetting($setting)
@@ -108,53 +121,56 @@ class CSVReader implements DataInputReader
     /**
      * Create table from setting file
      *
-     * @param string $name_table
+     * @param $nameTable
      * @param array $columns
+     *
+     * @return void
      */
-    public function createTable($name_table, $columns = [])
+    public function createTable($nameTable, $columns = [])
     {
         $sql = "";
+
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
-                $sql .= "{$col} VARCHAR (250) NULL,";
+                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL,";
             } else {
-                $sql .= "{$col} VARCHAR (250) NULL";
+                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL";
             }
         }
 
-        DB::statement("
-            CREATE TABLE IF NOT EXISTS {$name_table}(
-                {$sql}
-            );
-        ");
+        $query = "ALTER TABLE {$nameTable} {$sql};";
+        DB::statement($query);
     }
 
     /**
      * Get data from one csv file
      *
-     * @param string $file_csv
+     * @param $fileCSV
      * @param array $options
      *
      * @return array
      */
-    public function getDataFromOneFile($file_csv, $options = [])
+    public function getDataFromOneFile($fileCSV, $options = [])
     {
         $data = [];
-        if (is_file($file_csv)) {
-            foreach (file($file_csv) as $line) {
-                $data_line = str_getcsv($line);
-                $data[] = $this->getDataAfterProcess($data_line, $options);
+        if (is_file($fileCSV)) {
+            foreach (file($fileCSV) as $line) {
+                $dataLine = str_getcsv($line);
+                $data[] = $this->getDataAfterProcess($dataLine, $options);
             }
         }
         return $data;
     }
 
     /**
-     * @param $data_line
+     * Get data after process
+     *
+     * @param $dataLine
      * @param array $options
+     *
      * @return array
      */
-    protected function getDataAfterProcess($data_line, $options = [])
+    protected function getDataAfterProcess($dataLine, $options = [])
     {
         $data = [];
         $conversions = $options['CONVERSATION'];
@@ -168,12 +184,12 @@ class CSVReader implements DataInputReader
         foreach ($conversions as $col => $pattern) {
             if ($pattern === 'admin') {
                 $data[$col] = 'admin';
-            } else if ($pattern === 'TODAY()') {
+            } elseif ($pattern === 'TODAY()') {
                 $data[$col] = Carbon::now()->format('Y/m/d');
-            } else if ($pattern === '0') {
+            } elseif ($pattern === '0') {
                 $data[$col] = '0';
             } else {
-                $data[$col] = $this->convertDataFollowSetting($pattern, $data_line);
+                $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
             }
         }
 
@@ -181,8 +197,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $pattern
-     * @param $data
+     * Covert data follow from setting
+     *
+     * @param string $pattern
+     * @param array $data
+     *
      * @return mixed|string
      */
     protected function convertDataFollowSetting($pattern, $data)
@@ -221,8 +240,11 @@ class CSVReader implements DataInputReader
     }
 
     /**
-     * @param $str
-     * @param $group
+     * Process group from pattern
+     *
+     * @param string $str
+     * @param array $group
+     *
      * @return string
      */
     protected function processGroup($str, $group)
@@ -244,15 +266,5 @@ class CSVReader implements DataInputReader
         }
 
         return '';
-    }
-
-    /**
-     * @param $file_name
-     * @return string|string[]|null
-     */
-    protected function removeExt($file_name)
-    {
-        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-        return $file;
     }
 }

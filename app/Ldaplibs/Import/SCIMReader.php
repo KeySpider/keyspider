@@ -7,23 +7,22 @@
  */
 
 namespace App\Ldaplibs\Import;
-use App\Ldaplibs\Import\DataInputReader;
 
-class SCIMReader implements DataInputReader
+class SCIMReader
 {
 
-    public function read_data($file_path)
+    public function readData($filePath)
     {
-        // TODO: Implement read_data() method.
+        // TODO: Implement readData() method.
     }
 
-    public function verify_data($data)
+    public function verifyData($data)
     {
-        // TODO: Implement verify_data() method.
+        // TODO: Implement verifyData() method.
     }
 
-    public function get_format_data($data)
+    public function getFormatData($data)
     {
-        // TODO: Implement get_format_data() method.
+        // TODO: Implement getFormatData() method.
     }
 }

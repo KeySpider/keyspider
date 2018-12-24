@@ -38,17 +38,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-
         // Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if ($timeExecutionList)
+        if ($timeExecutionList) {
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->importDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        else {
+        } else {
             Log::error("Can not run import schedule, getting error from config ini files");
         }
 
@@ -72,10 +71,9 @@ class Kernel extends ConsoleKernel
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
+                });
             }
-        }
-        else {
+        } else {
             Log::error("Can not run delivery schedule, getting error from config ini files");
         }
     }
@@ -95,23 +93,34 @@ class Kernel extends ConsoleKernel
     /**
      * @param $dataSchedule
      */
-    private function importDataForTimeExecution($dataSchedule): void
+    private function importDataForTimeExecution($dataSchedule)
     {
         try {
             foreach ($dataSchedule as $data) {
                 $setting = $data['setting'];
                 $files = $data['files'];
 
+                // get table name
+                $tableName = $setting[self::CONFIGURATION]['TableNameInDB'];
+                if (!isTableNameInDatabase($tableName)) {
+                    Log::channel('import')->error("
+                    Error: The table {$tableName} does not exist.\n
+                    File ini: {$setting['IniFileName']} \n
+                    File name: TableNameInDB");
+                    break;
+                }
+
                 if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
-                    Log::channel('import')->error(
-                        "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
-                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
-                    );
+                    Log::channel('import')->error("
+                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available \n
+                        File ini: {$setting['IniFileName']} \n
+                        ");
                     break;
                 }
 
                 if (empty($files)) {
-                    Log::channel('import')->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT)." WITH FILES EMPTY");
+                    Log::channel('import')
+                        ->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT) . " WITH FILES EMPTY");
                 } else {
                     $queue = new ImportQueueManager();
                     foreach ($files as $file) {
@@ -151,7 +160,6 @@ class Kernel extends ConsoleKernel
             $queue = new DeliveryQueueManager();
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
-//            Log::info(json_encode($setting, JSON_PRETTY_PRINT));
                 $delivery = new DeliveryJob($setting);
                 $queue->push($delivery);
             }
@@ -159,5 +167,4 @@ class Kernel extends ConsoleKernel
             Log::channel('delivery')->error($e);
         }
     }
-
 }

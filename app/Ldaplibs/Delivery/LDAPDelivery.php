@@ -8,7 +8,6 @@
 
 namespace App\Ldaplibs\Delivery;
 
-
 class LDAPDelivery implements DataDelivery
 {
 
@@ -20,5 +19,17 @@ class LDAPDelivery implements DataDelivery
     public function delivery()
     {
         // TODO: Implement delivery() method.
+    }
+
+
+
+    public function buildHistoryData(array $deliveryInformation): array
+    {
+        // TODO: Implement buildHistoryData() method.
+    }
+
+    public function saveToHistory(array $historyData)
+    {
+        // TODO: Implement saveToHistory() method.
     }
 }
