@@ -17,7 +17,7 @@ class ImportSettingsManager extends SettingsManager
     /**
      * @var array
      */
-    private $iniImportSettingsFiles = array();
+    private $iniImportSettingsFiles = [];
     private $iniImportSettingsFolder;
     private $allTableSettingsContent = null;
 
@@ -63,16 +63,16 @@ class ImportSettingsManager extends SettingsManager
                 Log::error("Can not run import schedule");
                 return [];
             }
-//            set filename in json file
+            // set filename in json file
             $tableContents['IniFileName'] = $ini_import_settings_file;
-//            Set destination table in database
+            // Set destination table in database
             $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
             $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
             $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
             $masterDBConversion = $master[$tableNameInput];
 
-//            Column conversion
+            // Column conversion
             $columnNameConversion = $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
             foreach ($columnNameConversion as $key => $value) {
                 if (isset($masterDBConversion[$key])) {
@@ -150,7 +150,8 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @return <p>array of key/value from ini file.</p>
+     * @param $filename
+     * @return array|bool|null <p>array of key/value from ini file.</p>
      */
     private function getIniFileContent($filename)
     {
@@ -180,10 +181,12 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
+     * @param $iniArray
+     * @param null $fileName
      * @return bool
      * <p>Check if a configure file are valid
      */
-    private function isImportIniValid($iniArray, $fileName = null):bool
+    private function isImportIniValid($iniArray, $fileName = null)
     {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
@@ -197,9 +200,13 @@ class ImportSettingsManager extends SettingsManager
             Log::error($validate->getMessageBag());
             return false;
         } else {
-//                Validate children
-            $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
-            $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+            // Validate children
+            $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
+                self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION
+            ];
+            $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[
+                self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION
+            ];
             $rules = [
                 'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
                 'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',

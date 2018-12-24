@@ -66,7 +66,8 @@ class CSVDelivery implements DataDelivery
                 }
 
                 if (file_exists($delivery_target)) {
-                    $delivery_target = $this->removeExt($source_file).'_'.Carbon::now() ->format('Ymd').rand(100, 999).'.csv';
+                    $newFileName = Carbon::now() ->format('Ymd').rand(100, 999);
+                    $delivery_target = $this->removeExt($source_file).'_'.$newFileName.'.csv';
                     $delivery_target = $deliveryDestination.'/'.$delivery_target;
                 }
 

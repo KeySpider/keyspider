@@ -16,7 +16,7 @@ class DBExtractor
     const EXTRACTION_CONDITION                 = 'Extraction Condition';
     const EXTRACTION_CONFIGURATION             = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION            = "Output Process Conversion";
-    const Extraction_Process_Format_Conversion = "Extraction Process Format Conversion";
+    const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
 
     protected $setting;
 
@@ -41,7 +41,7 @@ class DBExtractor
             $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
             $extractTable            = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractCondition        = $setting[self::EXTRACTION_CONDITION];
-            $formatConvention        = $setting[self::Extraction_Process_Format_Conversion];
+            $formatConvention        = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
 
             // get sql query by condition in setting file
             $table = $this->switchTable($extractTable);
@@ -138,10 +138,10 @@ class DBExtractor
                 if ($isCheckPattern) {
                     if (isset($data['exp3'])) {
                         $joinTable = $this->getJoinTable($data['exp3']);
-                        $tmp = "left join \"{$joinTable['table']}\" on \"{$data['exp1']}\" = \"{$joinTable['keyJoin']}\" ";
+                        $tmp = "left join \"{$joinTable['table']}\" 
+                        on \"{$data['exp1']}\" = \"{$joinTable['keyJoin']}\" ";
                         array_push($leftJoin, $tmp);
-                        $tmp = "\"{$data['exp3']}\"";
-                        array_push($selectColumn, $tmp);
+                        array_push($selectColumn, "\"{$data['exp3']}\"");
                     }
                 }
             }
