@@ -4,27 +4,25 @@ namespace App\Console\Commands;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use Illuminate\Console\Command;
-use DB;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class ExportCSV extends Command
 {
+    const CONFIGURATION = "CSV Import Process Basic Configuration";
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
     protected $signature = 'command:export';
-
     /**
      * The console command description.
      *
      * @var string
      */
     protected $description = 'Reader setting import file and process it';
-    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     /**
      * Create a new command instance.
@@ -59,6 +57,7 @@ class ExportCSV extends Command
         } else {
             Log::error("Can not run export schedule, getting error from config ini files");
         }
+        return null;
     }
 
     /**
