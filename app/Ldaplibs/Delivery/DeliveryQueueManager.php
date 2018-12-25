@@ -6,9 +6,8 @@
  * Time: 11:40 PM
  */
 
-namespace App\Ldaplibs\Import;
+namespace App\Ldaplibs\Delivery;
 
-use App\Ldaplibs\Delivery\DeliveryHistoryManager;
 use App\Ldaplibs\QueueManager;
 
 class DeliveryQueueManager extends QueueManager
