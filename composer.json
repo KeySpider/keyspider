@@ -10,6 +10,7 @@
         "fideloper/proxy": "^4.0",
         "laravel/framework": "5.7.*",
         "laravel/tinker": "^1.0",
+        "league/csv": "^9.1",
         "marquine/php-etl": "^2.2",
         "squizlabs/php_codesniffer": "*"
     },

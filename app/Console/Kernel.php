@@ -8,7 +8,7 @@ use App\Jobs\DeliveryJob;
 use App\Ldaplibs\Delivery\DeliverySettingsManager;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use App\Ldaplibs\Import\DeliveryQueueManager;
+use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
@@ -71,7 +71,7 @@ class Kernel extends ConsoleKernel
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
-                });
+                })->dailyAt($timeExecutionString);
             }
         } else {
             Log::error("Can not run delivery schedule, getting error from config ini files");

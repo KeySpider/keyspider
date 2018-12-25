@@ -114,6 +114,9 @@ class DBExtractor
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
         foreach ($extractCondition as $column => $where) {
+            $column = explode('.', $column);
+            $column = $column[1];
+
             if ($this->checkExitsString($where)) {
                 $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
                 $query = "\"{$column}\" <= '{$where}'";
@@ -127,7 +130,8 @@ class DBExtractor
         foreach ($formatConvention as $key => $value) {
             $isFormat = preg_match($pattern, $value, $data);
             if ($isFormat) {
-                $cl = "\"{$data['exp1']}\"";
+                $col = explode('.', $data['exp1']);
+                $cl = "\"{$col[1]}\"";
                 array_push($selectColumn, $cl);
             }
         }
@@ -141,7 +145,9 @@ class DBExtractor
                         $tmp = "left join \"{$joinTable['table']}\" 
                         on \"{$data['exp1']}\" = \"{$joinTable['keyJoin']}\" ";
                         array_push($leftJoin, $tmp);
-                        array_push($selectColumn, "\"{$data['exp3']}\"");
+
+                        $colTmp = explode('.', $data['exp3']);
+                        array_push($selectColumn, "\"{$colTmp[1]}\"");
                     }
                 }
             }

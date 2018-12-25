@@ -14,5 +14,5 @@ interface DataInputReader
     public function getNameTableFromSetting($setting);
     public function getAllColumnFromSetting($setting);
     public function createTable($nameTable, $columns);
-    public function getDataFromOneFile($file, $options = []);
+    public function getDataFromOneFile($file, $options, $columns, $nameTable, $pathProcessed);
 }

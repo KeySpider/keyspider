@@ -9,7 +9,6 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
-use Carbon\Carbon;
 use DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -63,27 +62,7 @@ class DBImporter
             $params = [
                 'CONVERSATION' => $this->setting[self::CONVERSION],
             ];
-            $data = $this->csvReader->getDataFromOneFile($this->fileName, $params);
-            $columns = implode(",", $columns);
-
-            foreach ($data as $key2 => $item2) {
-                $tmp = [];
-                foreach ($item2 as $key3 => $item3) {
-                    array_push($tmp, "\$\${$item3}\$\$");
-                }
-
-                $tmp = implode(",", $tmp);
-
-                $isInsertDb = DB::statement("
-                    INSERT INTO {$name_table}({$columns}) values ({$tmp});
-                ");
-
-                if ($isInsertDb) {
-                    $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
-                    $fileName = "hogehoge_{$now}.csv";
-                    moveFile($this->fileName, $processedFilePath . '/' . $fileName);
-                }
-            }
+            $this->csvReader->getDataFromOneFile($this->fileName, $params, $columns, $name_table, $processedFilePath);
         } catch (Exception $e) {
             Log::channel('import')->error($e);
         }

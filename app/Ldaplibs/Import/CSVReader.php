@@ -15,6 +15,9 @@ use App\Ldaplibs\SettingsManager;
 use DB;
 use Carbon\Carbon;
 
+use League\Csv\Reader;
+use League\Csv\Statement;
+
 /**
  * Class CSVReader
  *
@@ -112,7 +115,8 @@ class CSVReader implements DataInputReader
         $fields = [];
         foreach ($setting[self::CONVERSION] as $key => $item) {
             if ($key !== "" && preg_match($pattern, $key) !== 1) {
-                array_push($fields, "\"{$key}\"");
+                $key = explode('.', $key);
+                array_push($fields, "\"{$key[1]}\"");
             }
         }
         return $fields;
@@ -148,18 +152,37 @@ class CSVReader implements DataInputReader
      * @param $fileCSV
      * @param array $options
      *
-     * @return array
+     * @param $columns
+     * @param $nameTable
+     * @param $processedFilePath
+     * @return void
      */
-    public function getDataFromOneFile($fileCSV, $options = [])
+    public function getDataFromOneFile($fileCSV, $options, $columns, $nameTable, $processedFilePath)
     {
-        $data = [];
-        if (is_file($fileCSV)) {
-            foreach (file($fileCSV) as $line) {
-                $dataLine = str_getcsv($line);
-                $data[] = $this->getDataAfterProcess($dataLine, $options);
+        $csv = Reader::createFromPath($fileCSV, 'r');
+        $columns = implode(",", $columns);
+
+        $stmt = (new Statement());
+        $records = $stmt->process($csv);
+
+        foreach ($records as $key => $record) {
+            $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+
+            $dataTmp = [];
+            foreach ($getDataAfterConvert as $item) {
+                array_push($dataTmp, "\$\${$item}\$\$");
             }
+
+            $stringValue = implode(",", $dataTmp);
+            DB::statement("
+                INSERT INTO {$nameTable}({$columns}) values ({$stringValue});
+            ");
         }
-        return $data;
+
+        // move file
+        $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+        $fileName = "hogehoge_{$now}.csv";
+        moveFile($fileCSV, $processedFilePath . '/' . $fileName);
     }
 
     /**
