@@ -15,12 +15,19 @@ class DeliverySettingsManager extends SettingsManager
 {
     private $iniDeliverySettingsFolder;
     private $iniDeliverySettingsFiles;
+
+    /**
+     * define const
+     */
     const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
 
-    public function __construct($ini_settings_files = null)
+    /**
+     * DeliverySettingsManager constructor.
+     * @param null $iniSettingsFiles
+     */
+    public function __construct($iniSettingsFiles = null)
     {
-
-        parent::__construct($ini_settings_files);
+        parent::__construct($iniSettingsFiles);
         $this->iniDeliverySettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
         $allFiles = scandir($this->iniDeliverySettingsFolder);
         foreach ($allFiles as $fileName) {
@@ -30,10 +37,13 @@ class DeliverySettingsManager extends SettingsManager
         }
     }
 
+    /**
+     * Get schedule delivery execution
+     * @return array
+     */
     public function getScheduleDeliveryExecution()
     {
-        var_dump($this->iniDeliverySettingsFiles);
-        $timeArray = array();
+        $timeArray = [];
         if (true) {
             foreach ($this->iniDeliverySettingsFiles as $iniDeliverySettingsFile) {
                 $tableContent = parse_ini_file($iniDeliverySettingsFile, true);
