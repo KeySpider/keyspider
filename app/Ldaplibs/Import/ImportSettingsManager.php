@@ -191,13 +191,13 @@ class ImportSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if a configure file are valid
      */
-    private function isImportIniValid($iniArray, $fileName = null)
+    private function isImportIniValid($iniArray, $fileName = null): bool
     {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
             self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
         ];
-
+// Validate main keys
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails())
         {
@@ -235,7 +235,6 @@ class ImportSettingsManager extends SettingsManager
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
         ];
-        $validate = Validator::make($tempIniArray, $rules);
-        return $validate;
+        return Validator::make($tempIniArray, $rules);
     }
 }
