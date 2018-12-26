@@ -13,10 +13,6 @@ use App\Ldaplibs\QueueManager;
 class ImportQueueManager extends QueueManager
 {
 
-    public function __construct()
-    {
-    }
-
     public function process()
     {
     }

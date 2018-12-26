@@ -4,21 +4,19 @@ namespace App\Jobs;
 
 use App\Ldaplibs\Delivery\CSVDelivery;
 use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
 class DeliveryJob implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * Create a new job instance.
-     *
-     * @return void
-     */
+    private $queueSettings;
     protected $setting;
+    public $tries = 5;
+    public $timeout = 120;
 
     public function __construct($setting)
     {
@@ -32,6 +30,7 @@ class DeliveryJob implements ShouldQueue, JobInterface
      */
     public function handle()
     {
+        sleep((int)$this->queueSettings['sleep']);
         $csvDelivery = new CSVDelivery($this->setting);
         $csvDelivery->delivery();
     }
@@ -52,5 +51,16 @@ class DeliveryJob implements ShouldQueue, JobInterface
     public function getJobDetails()
     {
         return $this->setting;
+    }
+
+
+    /**
+     * Determine the time at which the job should timeout.
+     *
+     * @return \DateTime
+     */
+    public function retryUntil()
+    {
+        return now()->addSeconds((int)$this->queueSettings['retry_after']);
     }
 }

@@ -21,8 +21,12 @@ class ImportController extends Controller
      */
     public function readSettings()
     {
-        $this->readImportSettings();
+//        $this->readImportSettings();
 //        $this->readExtractSettings();
+//        $queue = new ImportQueueManager();
+//        var_dump(QueueManager::getQueueSettings());
+//        $import = new DBImporterJob(null, null);
+        Artisan::call('schedule:run', array());
     }
 
     /**

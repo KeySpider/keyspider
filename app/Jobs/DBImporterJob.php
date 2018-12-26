@@ -3,17 +3,19 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Import\DBImporter;
+use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
 class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $fileName;
+    private $queueSettings;
 
     /**
      * Create a new job instance.
@@ -21,9 +23,15 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
      * @param $setting
      * @param $fileName
      */
+    public $tries = 5;
+    public $timeout = 120;
+
     public function __construct($setting, $fileName)
     {
         parent::__construct($setting, $fileName);
+        $this->queueSettings = QueueManager::getQueueSettings();
+        $this->tries = $this->queueSettings['tries'];
+        $this->timeout = $this->queueSettings['timeout'];
     }
 
     /**
@@ -33,6 +41,7 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
      */
     public function handle()
     {
+        sleep((int)$this->queueSettings['sleep']);
         parent::import();
     }
 
@@ -59,5 +68,16 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
         $details['Table Name In DB'] = $basicSetting['TableNameInDB'];
         $details['Settings File Name'] = $this->setting['IniFileName'];
         return $details;
+    }
+
+
+    /**
+     * Determine the time at which the job should timeout.
+     *
+     * @return \DateTime
+     */
+    public function retryUntil()
+    {
+        return now()->addSeconds((int)$this->queueSettings['retry_after']);
     }
 }
