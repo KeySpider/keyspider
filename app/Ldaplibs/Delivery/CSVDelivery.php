@@ -32,6 +32,7 @@ class CSVDelivery implements DataDelivery
      * Process delivery
      *
      * @return void
+     * @throws \Exception
      */
     public function delivery()
     {

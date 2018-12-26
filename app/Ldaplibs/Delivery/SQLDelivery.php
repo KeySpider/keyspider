@@ -21,7 +21,6 @@ class SQLDelivery implements DataDelivery
         // TODO: Implement delivery() method.
     }
 
-
     public function buildHistoryData(array $deliveryInformation): array
     {
         // TODO: Implement buildHistoryData() method.

@@ -74,7 +74,7 @@ class ExportCSV extends Command
                 $extractor->process();
             }
         } catch (Exception $e) {
-            Log::channel('export')->error($e);
+            Log::error($e);
         }
     }
 }

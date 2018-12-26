@@ -13,7 +13,6 @@ use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -100,32 +99,11 @@ class Kernel extends ConsoleKernel
                 $setting = $data['setting'];
                 $files = $data['files'];
 
-                // get table name
-                $tableName = $setting[self::CONFIGURATION]['TableNameInDB'];
-                if (!isTableNameInDatabase($tableName)) {
-                    Log::channel('import')->error("
-                    Error: The table {$tableName} does not exist.\n
-                    File ini: {$setting['IniFileName']} \n
-                    File name: TableNameInDB");
-                    break;
-                }
-
-                if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
-                    Log::channel('import')->error("
-                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available \n
-                        File ini: {$setting['IniFileName']} \n
-                        ");
-                    break;
-                }
-
-                if (empty($files)) {
-                    Log::info("There are no csv files in {$setting[self::CONFIGURATION]['FilePath']}");
-                } else {
-                    $queue = new ImportQueueManager();
-                    foreach ($files as $file) {
-                        $dbImporter = new DBImporterJob($setting, $file);
-                        $queue->push($dbImporter);
-                    }
+                // queue
+                $queue = new ImportQueueManager();
+                foreach ($files as $file) {
+                    $dbImporter = new DBImporterJob($setting, $file);
+                    $queue->push($dbImporter);
                 }
             }
         } catch (Exception $e) {
@@ -146,7 +124,7 @@ class Kernel extends ConsoleKernel
                 $queue->push($extractor);
             }
         } catch (Exception $e) {
-            Log::channel('export')->error($e);
+            Log::error($e);
         }
     }
 
@@ -163,7 +141,7 @@ class Kernel extends ConsoleKernel
                 $queue->push($delivery);
             }
         } catch (Exception $e) {
-            Log::channel('delivery')->error($e);
+            Log::error($e);
         }
     }
 }

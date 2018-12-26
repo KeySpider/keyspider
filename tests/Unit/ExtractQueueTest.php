@@ -89,7 +89,7 @@ class ExtractQueueTest extends TestCase
                 $queue->push($extractor);
             }
         } catch (Exception $e) {
-            Log::channel('export')->error($e);
+            Log::error($e);
         }
     }
 

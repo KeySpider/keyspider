@@ -89,8 +89,7 @@ class DBExtractor
             }
             fclose($file);
         } catch (Exception $e) {
-            Log::channel('export')->error($e);
-            Log::error(dd($e));
+            Log::error($e);
         }
     }
 
@@ -234,7 +233,7 @@ class DBExtractor
             $resultArray = json_decode(json_encode($result), true);
             return $resultArray[0];
         } catch (Exception $e) {
-            Log::channel('export')->error($e);
+            Log::error($e);
         }
     }
 

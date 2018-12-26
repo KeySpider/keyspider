@@ -53,7 +53,7 @@ class ImportCSV extends Command
                 $files = $data['files'];
 
                 if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
-                    Log::channel('import')->error(
+                    Log::error(
                         "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
                         FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
                     );
@@ -62,7 +62,7 @@ class ImportCSV extends Command
 
                 if (empty($files)) {
                     $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
-                    Log::channel('import')->info($infoSetting . " WITH FILES EMPTY");
+                    Log::info($infoSetting . " WITH FILES EMPTY");
                 } else {
                     $queue = new ImportQueueManager();
                     foreach ($files as $file) {
@@ -72,7 +72,7 @@ class ImportCSV extends Command
                 }
             }
         } catch (Exception $e) {
-            Log::channel('import')->error($e);
+            Log::error($e);
         }
     }
 }
