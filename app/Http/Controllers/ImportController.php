@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use Illuminate\Support\Facades\Artisan;
 
 class ImportController extends Controller
 {
@@ -20,7 +21,12 @@ class ImportController extends Controller
      */
     public function readSettings()
     {
-        $this->readExtractSettings();
+//        $this->readImportSettings();
+//        $this->readExtractSettings();
+//        $queue = new ImportQueueManager();
+//        var_dump(QueueManager::getQueueSettings());
+//        $import = new DBImporterJob(null, null);
+        Artisan::call('schedule:run', array());
     }
 
     /**
@@ -28,11 +34,13 @@ class ImportController extends Controller
      */
     public function readExtractSettings()
     {
+
         echo '<pre>';
         $export_settings = new ExtractSettingsManager();
         $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
+
     }
 
     /**
@@ -47,5 +55,6 @@ class ImportController extends Controller
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
+        Artisan::call('command:import', array());
     }
 }

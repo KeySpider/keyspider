@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\Log;
 
 class QueueManager
 {
+    public const INI_CONFIGS = "ini_configs";
+
+    public static function getQueueSettings(){
+        $queueSettings = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/QueueSettings.ini"), true);
+        return $queueSettings['Queue Settings'];
+    }
 
     /**
      * @param JobInterface $job
