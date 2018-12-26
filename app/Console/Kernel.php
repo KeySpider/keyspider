@@ -41,14 +41,14 @@ class Kernel extends ConsoleKernel
         // Setup schedule for import
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if ($timeExecutionList) {
+        if (count($timeExecutionList)>0) {
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->importDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::error("Can not run import schedule, getting error from config ini files");
+            Log::error("Can not run import schedule: - Getting error from config ini files or - Nothing to import");
         }
 
         // Setup schedule for Extract

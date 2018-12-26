@@ -3,10 +3,10 @@
 namespace App\Ldaplibs\Extract;
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Exception;
-use Illuminate\Support\Facades\Log;
 use File;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DBExtractor
 {
@@ -91,6 +91,7 @@ class DBExtractor
             fclose($file);
         } catch (Exception $e) {
             Log::channel('export')->error($e);
+            Log::error(dd($e));
         }
     }
 

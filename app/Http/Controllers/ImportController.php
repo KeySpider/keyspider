@@ -6,6 +6,9 @@ use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Support\Facades\Artisan;
 
+/*
+ * This class is for testing perpose only.
+ * */
 class ImportController extends Controller
 {
     /**
@@ -40,7 +43,6 @@ class ImportController extends Controller
         $user_rule = $export_settings->getRuleOfDataExtract();
         print (json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
-
     }
 
     /**

@@ -67,7 +67,7 @@ class ImportSettingsManager extends SettingsManager
             $tableContents['IniFileName'] = $iniImportSettingsFile;
             // Set destination table in database
             $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
-            $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
+            $tableNameOutput = $master[(string)$tableNameInput][(string)$tableNameInput];
             $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
             $masterDBConversion = $master[$tableNameInput];
@@ -108,12 +108,16 @@ class ImportSettingsManager extends SettingsManager
         $timeArray = array();
         foreach ($rule as $tableContents) {
             foreach ($tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                $filesArray = [];
-                $filesArray['setting'] = $tableContents;
-                $filesArray['files'] = $this->getFilesFromPattern(
+                $filesFromPattern = $this->getFilesFromPattern(
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
                 );
+                if (count($filesFromPattern)==0) {
+                    continue;
+                }
+                $filesArray = [];
+                $filesArray['setting'] = $tableContents;
+                $filesArray['files'] = $filesFromPattern;
                 $timeArray[$specifyTime][] = $filesArray;
             }
         }
@@ -186,43 +190,56 @@ class ImportSettingsManager extends SettingsManager
      * @return bool
      * <p>Check if a configure file are valid
      */
-    private function isImportIniValid($iniArray, $fileName = null)
+    private function isImportIniValid($iniArray, $fileName = null): bool
     {
         $rules = [
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
             self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
         ];
-
+// Validate main keys
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error("Key error validation");
             Log::error("Error file: " . $fileName ? $fileName : '');
             Log::error($validate->getMessageBag());
             return false;
-        } else {
-            // Validate children
-            $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
-                self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION
-            ];
-            $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[
-                self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION
-            ];
-            $rules = [
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
-            ];
-            $validate = Validator::make($tempIniArray, $rules);
-            if ($validate->fails()) {
-                Log::error("Key error validation");
-                Log::error("Error file: " . $fileName ? $fileName : '');
-                Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-                return false;
-            } else {
-                Log::info('Validation PASSED');
-                return true;
-            }
         }
+
+// Validate children
+        $validate = $this->validateBasicConfiguration($iniArray);
+        if ($validate->fails()) {
+            Log::error("Key error validation");
+            Log::error("Error file: " . $fileName ? $fileName : '');
+            Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param $iniArray
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    private function validateBasicConfiguration($iniArray)
+    {
+        $tempIniArray = [];
+        $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
+            self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+        $rules = [
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
+        ];
+        if (($this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath'])) &&
+            ($this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']))) {
+            return Validator::make($tempIniArray, $rules);
+        }
+
+        Log::error('Double check folders are existed or not');
+        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']);
+        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']);
+        return Validator::make([], $rules);
     }
 }

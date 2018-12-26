@@ -10,8 +10,8 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
 use DB;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
@@ -65,6 +65,7 @@ class DBImporter
             $this->csvReader->getDataFromOneFile($this->fileName, $params, $columns, $name_table, $processedFilePath);
         } catch (Exception $e) {
             Log::channel('import')->error($e);
+            Log::error(dd($e));
         }
     }
 }

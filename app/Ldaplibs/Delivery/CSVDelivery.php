@@ -15,9 +15,8 @@ use Illuminate\Support\Facades\Log;
 
 class CSVDelivery implements DataDelivery
 {
-    protected $setting;
-
     const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
+    protected $setting;
 
     public function __construct($setting)
     {
@@ -36,10 +35,10 @@ class CSVDelivery implements DataDelivery
      */
     public function delivery()
     {
-        $deliverySource       = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
-        $deliveryDestination  = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
-        $filePattern          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
-        $outputType          = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
+        $deliverySource = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
+        $deliveryDestination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
+        $filePattern = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
+        $outputType = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
 
         Log::info("From: " . $deliverySource);
         Log::info("To  : " . $deliveryDestination);
@@ -64,7 +63,7 @@ class CSVDelivery implements DataDelivery
                 mkDirectory($deliveryDestination);
 
                 if (file_exists($deliveryTarget)) {
-                    $newFileName = Carbon::now() ->format('Ymd') . rand(100, 999);
+                    $newFileName = Carbon::now()->format('Ymd') . random_int(100, 999);
                     $deliveryTarget = $this->removeExt($sourceFile) . '_' . $newFileName . '.csv';
                     $deliveryTarget = $deliveryDestination . '/' . $deliveryTarget;
                 }
@@ -88,10 +87,7 @@ class CSVDelivery implements DataDelivery
      */
     private function isMatchedWithPattern($fileName, $pattern)
     {
-        if ($fileName[0] === '.') {
-            return false;
-        }
-        return true;
+        return !($fileName[0] === '.');
     }
 
     /**
@@ -100,27 +96,7 @@ class CSVDelivery implements DataDelivery
      */
     public function removeExt($file_name)
     {
-        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-        return $file;
-    }
-
-    /**
-     * Save history delivery
-     * @param array $historyData
-     */
-    public function saveToHistory(array $historyData)
-    {
-        DeliveryHistory::create($historyData);
-    }
-
-    /**
-     * Get data delivery history
-     * @param array $deliveryInformation
-     * @return array
-     */
-    public function buildHistoryData(array $deliveryInformation): array
-    {
-        return $deliveryInformation;
+        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
     }
 
     /**
@@ -144,5 +120,24 @@ class CSVDelivery implements DataDelivery
         }
 
         return $rowsColumn;
+    }
+
+    /**
+     * Save history delivery
+     * @param array $historyData
+     */
+    public function saveToHistory(array $historyData)
+    {
+        DeliveryHistory::create($historyData);
+    }
+
+    /**
+     * Get data delivery history
+     * @param array $deliveryInformation
+     * @return array
+     */
+    public function buildHistoryData(array $deliveryInformation): array
+    {
+        return $deliveryInformation;
     }
 }
