@@ -4,7 +4,6 @@ namespace App\Ldaplibs\Extract;
 
 use Carbon\Carbon;
 use Exception;
-use File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
