@@ -212,7 +212,7 @@ class ImportSettingsManager extends SettingsManager
         if ($validate->fails()) {
             Log::error("Key error validation");
             Log::error("Error file: " . $fileName ? $fileName : '');
-            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
         }
         return true;
@@ -222,7 +222,7 @@ class ImportSettingsManager extends SettingsManager
      * @param $iniArray
      * @return \Illuminate\Contracts\Validation\Validator
      */
-    private function validateBasicConfiguration($iniArray): \Illuminate\Contracts\Validation\Validator
+    private function validateBasicConfiguration($iniArray)
     {
         $tempIniArray = [];
         $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
@@ -233,6 +233,15 @@ class ImportSettingsManager extends SettingsManager
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
         ];
-        return Validator::make($tempIniArray, $rules);
+        if(($this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath'])) &&
+            ($this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath'])))
+        {
+            return Validator::make($tempIniArray, $rules);
+        }
+
+        Log::error('Double check folders are existed or not');
+        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']);
+        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']);
+        return Validator::make([], $rules);
     }
 }
