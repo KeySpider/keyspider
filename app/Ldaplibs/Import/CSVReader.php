@@ -115,8 +115,7 @@ class CSVReader implements DataInputReader
         $fields = [];
         foreach ($setting[self::CONVERSION] as $key => $item) {
             if ($key !== "" && preg_match($pattern, $key) !== 1) {
-                $key = explode('.', $key);
-                array_push($fields, "\"{$key[1]}\"");
+                array_push($fields, "\"{$key}\"");
             }
         }
         return $fields;
