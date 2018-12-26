@@ -67,7 +67,7 @@ class ImportSettingsManager extends SettingsManager
             $tableContents['IniFileName'] = $iniImportSettingsFile;
             // Set destination table in database
             $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
-            $tableNameOutput = $master["$tableNameInput"]["$tableNameInput"];
+            $tableNameOutput = $master[(string)$tableNameInput][(string)$tableNameInput];
             $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
             $masterDBConversion = $master[$tableNameInput];
@@ -108,12 +108,17 @@ class ImportSettingsManager extends SettingsManager
         $timeArray = array();
         foreach ($rule as $tableContents) {
             foreach ($tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                $filesArray = [];
-                $filesArray['setting'] = $tableContents;
-                $filesArray['files'] = $this->getFilesFromPattern(
+                $filesFromPattern = $this->getFilesFromPattern(
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
                 );
+                if(count($filesFromPattern)==0)
+                {
+                    continue;
+                }
+                $filesArray = [];
+                $filesArray['setting'] = $tableContents;
+                $filesArray['files'] = $filesFromPattern;
                 $timeArray[$specifyTime][] = $filesArray;
             }
         }
@@ -220,7 +225,7 @@ class ImportSettingsManager extends SettingsManager
                 Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
                 return false;
             } else {
-                Log::info('Validation PASSED');
+//                Log::info('Validation PASSED');
                 return true;
             }
         }
