@@ -128,7 +128,7 @@ class ExtractSettingsManager extends SettingsManager
                 return false;
             }
         }
-        Log::info('areAllExtractIniFilesValid: YES');
+//        Log::info('areAllExtractIniFilesValid: YES');
         return true;
     }
 
@@ -153,35 +153,35 @@ class ExtractSettingsManager extends SettingsManager
             Log::error("Error file: " . $filename ? $filename : '');
             Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
-        } else {
-            // Validate children
-            $tempIniArray = [];
-            $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
-                self::EXTRACTION_PROCESS_BASIC_CONFIGURATION
-            ];
-            $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
-            $rules = [
-                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => 'required',
-                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => 'required',
-                'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => 'required',
-                'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
-            ];
-            $validate = Validator::make($tempIniArray, $rules);
-            if ($validate->fails()) {
-                Log::error("Error file: " . $filename ? $filename : '');
-                Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-                return false;
-            } else {
-                if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
-                    Log::info('Validation PASSED');
-                    return true;
-                } else {
-                    Log::error("Error file: " . $filename ? $filename : '');
-                    $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
-                    Log::error("The file is not existed: " . $outputProcessConversion);
-                    return false;
-                }
-            }
         }
+
+// Validate children
+        $tempIniArray = [];
+        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
+            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION
+        ];
+        $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
+        $rules = [
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required','in:CSV,SCIM'],
+            'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
+        ];
+        $validate = Validator::make($tempIniArray, $rules);
+        if ($validate->fails()) {
+            Log::error("Error file: " . $filename ? $filename : '');
+            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            return false;
+        }
+
+
+        if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
+            return true;
+        }
+
+        Log::error("Error file: " . $filename ? $filename : '');
+        $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
+        Log::error("The file is not existed: " . $outputProcessConversion);
+        return false;
     }
 }

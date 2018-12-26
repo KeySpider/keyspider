@@ -6,6 +6,9 @@ use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Support\Facades\Artisan;
 
+/*
+ * This class is for testing perpose only.
+ * */
 class ImportController extends Controller
 {
     /**

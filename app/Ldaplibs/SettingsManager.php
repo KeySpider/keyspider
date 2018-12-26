@@ -35,16 +35,19 @@ class SettingsManager
 
     protected function removeExt($file_name)
     {
-        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-        return $file;
+        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
     }
 
     protected function contains($needle, $haystack)
     {
         return strpos($haystack, $needle) !== false;
     }
+    /** @noinspection MultipleReturnStatementsInspection */
 
-    public function validateKeySpider()
+    /**
+     * @return bool|null
+     */
+    public function validateKeySpider(): ?bool
     {
         try {
             $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
@@ -56,12 +59,17 @@ class SettingsManager
                 Log::error('Key spider INI is not correct!');
                 Log::error($validate->getMessageBag());
                 return false;
-            } else {
-                return true;
             }
+
+            return true;
         } catch (\Exception $e) {
             Log::error('Key spider INI is not correct!');
             return false;
         }
+    }
+
+    public function isFolderExisted($folderPath)
+    {
+        return is_dir($folderPath);
     }
 }
