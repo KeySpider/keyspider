@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
+use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,9 +24,12 @@ class DBExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
     public $tries = 5;
     public $timeout = 120;
 
-    public function __construct($setting, $fileName)
+    public function __construct($setting)
     {
         parent::__construct($setting);
+        $this->queueSettings = QueueManager::getQueueSettings();
+        $this->tries = $this->queueSettings['tries'];
+        $this->timeout = $this->queueSettings['timeout'];
     }
 
     /**

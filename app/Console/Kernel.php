@@ -119,8 +119,7 @@ class Kernel extends ConsoleKernel
                 }
 
                 if (empty($files)) {
-                    Log::channel('import')
-                        ->info(json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT) . " WITH FILES EMPTY");
+                    Log::info("There are no csv files in {$setting[self::CONFIGURATION]['FilePath']}");
                 } else {
                     $queue = new ImportQueueManager();
                     foreach ($files as $file) {
@@ -130,7 +129,7 @@ class Kernel extends ConsoleKernel
                 }
             }
         } catch (Exception $e) {
-            Log::channel('import')->error($e);
+            Log::error($e);
         }
     }
 

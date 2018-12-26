@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Delivery\CSVDelivery;
+use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,6 +22,9 @@ class DeliveryJob implements ShouldQueue, JobInterface
     public function __construct($setting)
     {
         $this->setting = $setting;
+        $this->queueSettings = QueueManager::getQueueSettings();
+        $this->tries = $this->queueSettings['tries'];
+        $this->timeout = $this->queueSettings['timeout'];
     }
 
     /**

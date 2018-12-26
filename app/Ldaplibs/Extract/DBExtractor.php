@@ -3,7 +3,7 @@
 namespace App\Ldaplibs\Extract;
 
 use Carbon\Carbon;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use File;
@@ -56,10 +56,7 @@ class DBExtractor
             $fileName = $infoOutputIni['FileName'];
             $tempPath = $infoOutputIni['TempPath'];
 
-            if (!is_dir($tempPath)) {
-                Log::info("$tempPath is not exits");
-                File::makeDirectory($tempPath, 0755, true);
-            }
+            mkDirectory($tempPath);
 
             if (is_file("{$tempPath}/$fileName")) {
                 $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
@@ -195,6 +192,7 @@ class DBExtractor
      */
     public function getDataByQuery($sql)
     {
+        ini_set('memory_limit', '512M');
         $result = DB::select($sql);
         $results = json_decode(json_encode($result), true);
         $nRecords = sizeof($results);
