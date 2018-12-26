@@ -12,9 +12,9 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
 
@@ -158,30 +158,40 @@ class CSVReader implements DataInputReader
      */
     public function getDataFromOneFile($fileCSV, $options, $columns, $nameTable, $processedFilePath)
     {
-        $csv = Reader::createFromPath($fileCSV, 'r');
-        $columns = implode(",", $columns);
+        try {
+            DB::beginTransaction();
 
-        $stmt = (new Statement());
-        $records = $stmt->process($csv);
+            $csv = Reader::createFromPath($fileCSV, 'r');
+            $columns = implode(",", $columns);
 
-        foreach ($records as $key => $record) {
-            $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+            $stmt = (new Statement());
+            $records = $stmt->process($csv);
 
-            $dataTmp = [];
-            foreach ($getDataAfterConvert as $item) {
-                array_push($dataTmp, "\$\${$item}\$\$");
+            foreach ($records as $key => $record) {
+                $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+
+                $dataTmp = [];
+                foreach ($getDataAfterConvert as $item) {
+                    array_push($dataTmp, "\$\${$item}\$\$");
+                }
+
+                $stringValue = implode(",", $dataTmp);
+
+                DB::statement("
+                    INSERT INTO {$nameTable}({$columns}) values ({$stringValue});
+                ");
             }
 
-            $stringValue = implode(",", $dataTmp);
-            DB::statement("
-                INSERT INTO {$nameTable}({$columns}) values ({$stringValue});
-            ");
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
         }
 
+
         // move file
-        $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
-        $fileName = "hogehoge_{$now}.csv";
-        moveFile($fileCSV, $processedFilePath . '/' . $fileName);
+//        $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+//        $fileName = "hogehoge_{$now}.csv";
+//        moveFile($fileCSV, $processedFilePath . '/' . $fileName);
     }
 
     /**

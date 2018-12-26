@@ -65,7 +65,6 @@ class DBImporter
             $this->csvReader->getDataFromOneFile($this->fileName, $params, $columns, $name_table, $processedFilePath);
         } catch (Exception $e) {
             Log::error($e);
-            Log::error(dd($e));
         }
     }
 }
