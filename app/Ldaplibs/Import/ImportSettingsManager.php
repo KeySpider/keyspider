@@ -215,8 +215,6 @@ class ImportSettingsManager extends SettingsManager
             Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
             return false;
         }
-
-//                Log::info('Validation PASSED');
         return true;
     }
 
