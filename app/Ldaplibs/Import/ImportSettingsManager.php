@@ -199,35 +199,43 @@ class ImportSettingsManager extends SettingsManager
         ];
 
         $validate = Validator::make($iniArray, $rules);
-        if ($validate->fails()) {
+        if ($validate->fails())
+        {
             Log::error("Key error validation");
             Log::error("Error file: " . $fileName ? $fileName : '');
             Log::error($validate->getMessageBag());
             return false;
-        } else {
-            // Validate children
-            $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
-                self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION
-            ];
-            $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[
-                self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION
-            ];
-            $rules = [
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
-                'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
-            ];
-            $validate = Validator::make($tempIniArray, $rules);
-            if ($validate->fails()) {
-                Log::error("Key error validation");
-                Log::error("Error file: " . $fileName ? $fileName : '');
-                Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-                return false;
-            } else {
-//                Log::info('Validation PASSED');
-                return true;
-            }
         }
+
+// Validate children
+        $validate = $this->validateBasicConfiguration($iniArray);
+        if ($validate->fails()) {
+            Log::error("Key error validation");
+            Log::error("Error file: " . $fileName ? $fileName : '');
+            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            return false;
+        }
+
+//                Log::info('Validation PASSED');
+        return true;
+    }
+
+    /**
+     * @param $iniArray
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    private function validateBasicConfiguration($iniArray): \Illuminate\Contracts\Validation\Validator
+    {
+        $tempIniArray = [];
+        $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+        $rules = [
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
+            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required',
+        ];
+        $validate = Validator::make($tempIniArray, $rules);
+        return $validate;
     }
 }
