@@ -11,8 +11,8 @@ namespace App\Ldaplibs\Import;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use DB;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
@@ -86,6 +86,7 @@ class DBImporter
             }
         } catch (Exception $e) {
             Log::channel('import')->error($e);
+            Log::error(dd($e));
         }
     }
 }
