@@ -5,17 +5,17 @@ namespace App\Console;
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
 use App\Jobs\DeliveryJob;
+use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Ldaplibs\Delivery\DeliverySettingsManager;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use App\Ldaplibs\Import\DeliveryQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use DB;
+use Exception;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class Kernel extends ConsoleKernel
 {
