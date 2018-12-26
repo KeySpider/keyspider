@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\QueueManager;
 use Illuminate\Queue\SerializesModels;
 
 class DeliveryJob implements ShouldQueue, JobInterface
@@ -21,6 +22,10 @@ class DeliveryJob implements ShouldQueue, JobInterface
     public function __construct($setting)
     {
         $this->setting = $setting;
+        $this->queueSettings = QueueManager::getQueueSettings();
+        $this->tries = $this->queueSettings['tries'];
+        $this->timeout = $this->queueSettings['timeout'];
+
     }
 
     /**
