@@ -178,6 +178,10 @@ class ImportSettingsManager extends SettingsManager
 
 // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
+        if($validate==null){
+            Log::info('Please create the folder in your server');
+            return false;
+        }
         if ($validate->fails()) {
             Log::error('Key error validation');
             Log::error('Error file: ' . $fileName ? $fileName : '');
@@ -210,7 +214,7 @@ class ImportSettingsManager extends SettingsManager
         Log::error('Double check folders are existed or not');
         Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']);
         Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']);
-        return Validator::make([], $rules);
+        return null;
     }
 
     /**
