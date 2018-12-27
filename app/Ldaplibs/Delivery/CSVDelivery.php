@@ -65,12 +65,13 @@ class CSVDelivery implements DataDelivery
                 $deliverySourcePath = $deliverySource . '/' . $sourceFile;
                 $deliveryTarget = $deliveryDestination . '/' . $sourceFile;
 
+                $sizeOfSourceFile = File::size($deliverySourcePath);
                 // data delivery history
-                Log::info("move or copy: " . $sourceFile);
+                Log::info("Delivery file: " . $sourceFile);
                 $deliveryHistories = [
                     "output_type" => $outputType,
                     "delivery_source" => $deliverySourcePath,
-                    "file_size" => File::size($deliverySourcePath), // byte
+                    "file_size" => (string)$sizeOfSourceFile, // byte
                     'execution_at' => Carbon::now()->format('Y/m/d h:i'),
                     'status' => 1 // success
                 ];
