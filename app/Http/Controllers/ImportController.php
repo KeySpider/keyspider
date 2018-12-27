@@ -1,4 +1,21 @@
 <?php
+/*******************************************************************************
+ * Key Spider
+ * Copyright (C) 2019 Key Spider Japan LLC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ ******************************************************************************/
 
 namespace App\Http\Controllers;
 
@@ -6,9 +23,6 @@ use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Support\Facades\Artisan;
 
-/*
- * This class is for testing perpose only.
- * */
 class ImportController extends Controller
 {
     /**
@@ -24,11 +38,6 @@ class ImportController extends Controller
      */
     public function readSettings()
     {
-//        $this->readImportSettings();
-//        $this->readExtractSettings();
-//        $queue = new ImportQueueManager();
-//        var_dump(QueueManager::getQueueSettings());
-//        $import = new DBImporterJob(null, null);
         Artisan::call('schedule:run', array());
     }
 
@@ -37,7 +46,6 @@ class ImportController extends Controller
      */
     public function readExtractSettings()
     {
-
         echo '<pre>';
         $export_settings = new ExtractSettingsManager();
         $user_rule = $export_settings->getRuleOfDataExtract();
