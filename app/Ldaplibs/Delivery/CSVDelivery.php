@@ -55,23 +55,26 @@ class CSVDelivery implements DataDelivery
         Log::info("From: " . $deliverySource);
         Log::info("To  : " . $deliveryDestination);
 
+        if (!is_dir($deliverySource)) {
+            return;
+        }
         $sourceFiles = scandir($deliverySource);
 
         foreach ($sourceFiles as $sourceFile) {
             if ($this->isMatchedWithPattern($sourceFile, $filePattern)) {
-                $deliverySource = $deliverySource . '/' . $sourceFile;
+                $deliverySourcePath = $deliverySource . '/' . $sourceFile;
                 $deliveryTarget = $deliveryDestination . '/' . $sourceFile;
 
                 // data delivery history
+                Log::info("move or copy: " . $sourceFile);
                 $deliveryHistories = [
                     "output_type" => $outputType,
-                    "delivery_source" => $deliverySource,
-                    "file_size" => File::size($deliverySource), // byte
+                    "delivery_source" => $deliverySourcePath,
+                    "file_size" => File::size($deliverySourcePath), // byte
                     'execution_at' => Carbon::now()->format('Y/m/d h:i'),
                     'status' => 1 // success
                 ];
 
-                Log::info("move or copy: " . $sourceFile);
                 mkDirectory($deliveryDestination);
 
                 if (file_exists($deliveryTarget)) {
@@ -81,7 +84,7 @@ class CSVDelivery implements DataDelivery
                 }
 
                 // move file
-                File::move($deliverySource, $deliveryTarget);
+                File::move($deliverySourcePath, $deliveryTarget);
 
                 // save history
                 $deliveryHistories['delivery_target'] = $deliveryTarget;
