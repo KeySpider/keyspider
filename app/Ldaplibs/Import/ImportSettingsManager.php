@@ -178,7 +178,7 @@ class ImportSettingsManager extends SettingsManager
             self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
             self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
         ];
-// Validate main keys
+        // Validate main keys
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
             Log::error('Key error validation');
@@ -187,9 +187,9 @@ class ImportSettingsManager extends SettingsManager
             return false;
         }
 
-// Validate children
+        // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
-        if($validate==null){
+        if ($validate == null) {
             Log::info('Please create the folder in your server');
             return false;
         }
