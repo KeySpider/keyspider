@@ -47,7 +47,6 @@ class ImportCSV extends Command
 
     private function importDataForTimeExecution($dataSchedule)
     {
-        try {
             foreach ($dataSchedule as $data) {
                 $setting = $data['setting'];
                 $files = $data['files'];
@@ -71,8 +70,5 @@ class ImportCSV extends Command
                     }
                 }
             }
-        } catch (Exception $e) {
-            Log::error($e);
-        }
     }
 }

@@ -88,7 +88,7 @@ class ImportQueueTest extends TestCase
      */
     private function setDataToDoTest(): array
     {
-        DB::statement('DROP TABLE IF EXISTS "AAA_Unit_Test";');
+        DB::statement('DELETE FROM "AAA";');
         xcopy(storage_path("unittest/user/store/"), storage_path("unittest/user/"));
         $originalString = [
             "setting" => [
@@ -98,7 +98,7 @@ class ImportQueueTest extends TestCase
                     "FileName" => "hogehoge[0-9]{3}.csv",
                     "ProcessedFilePath" => storage_path("import_csv_processed/user"),
                     "ExecutionTime" => ["00:00"],
-                    "TableNameInDB" => "AAA_Unit_Test"
+                    "TableNameInDB" => "AAA"
                 ],
                 "CSV Import Process Format Conversion" => [
                     "#User.hogehogi" => "",
@@ -150,7 +150,7 @@ class ImportQueueTest extends TestCase
     private function getArrayOfFirstColumnInDB(): array
     {
         $arrayOfFirstColumnInDB = array();
-        $sql = 'SELECT "AAA.001" FROM "AAA_Unit_Test"';
+        $sql = 'SELECT "AAA.001" FROM "AAA"';
         $result = DB::select($sql);
         $results = json_decode(json_encode($result), true);
         foreach ($results as $r) {

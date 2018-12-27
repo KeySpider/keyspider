@@ -81,16 +81,16 @@ class ExtractQueueTest extends TestCase
 
     public function exportDataForTimeExecution($settings)
     {
-        try {
+//        try {
             $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBExtractorJob($setting);
                 $queue->push($extractor);
             }
-        } catch (Exception $e) {
-            Log::error($e);
-        }
+//        } catch (Exception $e) {
+//            Log::error($e);
+//        }
     }
 
 }
