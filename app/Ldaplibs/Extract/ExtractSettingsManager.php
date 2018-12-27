@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 
 class ExtractSettingsManager extends SettingsManager
 {
-    public const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
+    public const EXTRACTION_PROCESS_FORMAT_CONVERSION = 'Extraction Process Format Conversion';
     public const OUTPUT_PROCESS_CONVERSION = 'Output Process Conversion';
 
     protected $iniExportSettingsFolder;
@@ -27,11 +27,11 @@ class ExtractSettingsManager extends SettingsManager
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        $this->iniExportSettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
+        $this->iniExportSettingsFolder = storage_path('' . self::INI_CONFIGS . '/extract/');
         $allFiles = scandir($this->iniExportSettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Extraction', $fileName)) {
-                $this->iniExportSettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/") . $fileName;
+                $this->iniExportSettingsFiles[] = storage_path('' . self::INI_CONFIGS . '/extract/') . $fileName;
             }
         }
     }
@@ -40,7 +40,7 @@ class ExtractSettingsManager extends SettingsManager
      * @return array <p>
      * Array of Extract settings order and group by Time Execution.
      */
-    public function getRuleOfDataExtract()
+    public function getRuleOfDataExtract(): ?array
     {
         $timeArray = [];
 
@@ -57,10 +57,84 @@ class ExtractSettingsManager extends SettingsManager
             }
             ksort($timeArray);
             return $timeArray;
-        } else {
-            Log::info("Error in Extract INI file");
-            return [];
         }
+
+        Log::info('Error in Extract INI file');
+        return [];
+    }
+
+    /**
+     * @return bool
+     * <p>Check if all extract ini files are valid
+     */
+    private function areAllExtractIniFilesValid(): bool
+    {
+        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
+            if (!$this->getIniFileContent($iniExportSettingsFile)) {
+                return false;
+            }
+        }
+//        Log::info('areAllExtractIniFilesValid: YES');
+        return true;
+    }
+
+    /**
+     * @param $filename
+     * @return array|bool|null
+     */
+    private function getIniFileContent($filename)
+    {
+        try {
+            $iniArray = parse_ini_file($filename, true);
+            $isValid = $this->isExtractIniValid($iniArray, $filename);
+            return $isValid ? $iniArray : null;
+        } catch (\Exception $e) {
+            Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
+            return null;
+        }
+    }
+    /** @noinspection MultipleReturnStatementsInspection */
+
+    /**
+     * @param $iniArray
+     * @param null $filename
+     * @return bool
+     * <p>Check if a extract ini file is valid
+     */
+    private function isExtractIniValid($iniArray, $filename = null): bool
+    {
+        $rules = [
+            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
+            self::EXTRACTION_CONDITION => 'required',
+            self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
+            self::OUTPUT_PROCESS_CONVERSION => 'required'
+        ];
+
+        $validate = Validator::make($iniArray, $rules);
+        if ($validate->fails()) {
+            Log::error('Key error validation');
+            Log::error('Error file: ' . $filename ? $filename : '');
+            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            return false;
+        }
+
+// Validate children
+        list($tempIniArray, $validate) = $this->getValidatorOfBasicConfiguration($iniArray);
+        if ($validate->fails()) {
+            Log::error('Error file: ' . $filename ? $filename : '');
+            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            return false;
+        }
+
+
+        if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
+            return true;
+        }
+
+        Log::error('Error file: ' . $filename ? $filename : '');
+        $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
+        Log::error('The file is not existed: ' . $outputProcessConversion);
+        return false;
     }
 
     /**
@@ -98,90 +172,25 @@ class ExtractSettingsManager extends SettingsManager
                 }
             }
         }
-        return (json_decode($jsonData, true));
-    }
-
-    /**
-     * @param $filename
-     * @return array|bool|null
-     */
-    private function getIniFileContent($filename)
-    {
-        try {
-            $iniArray = parse_ini_file($filename, true);
-            $isValid = $this->isExtractIniValid($iniArray, $filename);
-            return $isValid ? $iniArray : null;
-        } catch (\Exception $e) {
-            Log::error(json_encode($e->getMessage(), JSON_PRETTY_PRINT));
-            return null;
-        }
-    }
-
-    /**
-     * @return bool
-     * <p>Check if all extract ini files are valid
-     */
-    private function areAllExtractIniFilesValid()
-    {
-        foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
-            if (!$this->getIniFileContent($iniExportSettingsFile)) {
-                return false;
-            }
-        }
-//        Log::info('areAllExtractIniFilesValid: YES');
-        return true;
+        return json_decode($jsonData, true);
     }
 
     /**
      * @param $iniArray
-     * @param null $filename
-     * @return bool
-     * <p>Check if a extract ini file is valid
+     * @return array
      */
-    private function isExtractIniValid($iniArray, $filename = null):bool
+    private function getValidatorOfBasicConfiguration($iniArray): array
     {
-        $rules = [
-            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
-            self::EXTRACTION_CONDITION => 'required',
-            self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
-            self::OUTPUT_PROCESS_CONVERSION => 'required'
-        ];
-
-        $validate = Validator::make($iniArray, $rules);
-        if ($validate->fails()) {
-            Log::error("Key error validation");
-            Log::error("Error file: " . $filename ? $filename : '');
-            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-            return false;
-        }
-
-// Validate children
         $tempIniArray = [];
-        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
-            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION
-        ];
+        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required','in:CSV,SCIM'],
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM'],
             'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
         ];
         $validate = Validator::make($tempIniArray, $rules);
-        if ($validate->fails()) {
-            Log::error("Error file: " . $filename ? $filename : '');
-            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-            return false;
-        }
-
-
-        if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
-            return true;
-        }
-
-        Log::error("Error file: " . $filename ? $filename : '');
-        $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
-        Log::error("The file is not existed: " . $outputProcessConversion);
-        return false;
+        return array($tempIniArray, $validate);
     }
 }
