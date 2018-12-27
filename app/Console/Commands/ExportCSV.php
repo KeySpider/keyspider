@@ -21,7 +21,6 @@ namespace App\Console\Commands;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -84,14 +83,10 @@ class ExportCSV extends Command
      */
     public function exportDataForTimeExecution($settings)
     {
-        try {
-            foreach ($settings as $dataSchedule) {
-                $setting = $dataSchedule['setting'];
-                $extractor = new DBExtractor($setting);
-                $extractor->process();
-            }
-        } catch (Exception $e) {
-            Log::error($e);
+        foreach ($settings as $dataSchedule) {
+            $setting = $dataSchedule['setting'];
+            $extractor = new DBExtractor($setting);
+            $extractor->process();
         }
     }
 }
