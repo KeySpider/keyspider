@@ -1,15 +1,30 @@
 <?php
+/*******************************************************************************
+ * Key Spider
+ * Copyright (C) 2019 Key Spider Japan LLC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ ******************************************************************************/
 
 namespace Tests\Unit;
 
 use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\Import\DBImporter;
 use App\Ldaplibs\SettingsManager;
-use phpDocumentor\Reflection\Types\Self_;
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Storage;
 use File;
 
@@ -88,7 +103,7 @@ class UserInfoImportCSVTest extends TestCase
 
         // we know that the indexes, but maybe not values, match.
         // compare the values between the two arrays
-        foreach($dataCSVFile as $k => $v) {
+        foreach ($dataCSVFile as $k => $v) {
             if ($v !== $dataInDB[$k]) {
                 $flag = false;
             }

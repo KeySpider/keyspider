@@ -1,13 +1,28 @@
 <?php
+/*******************************************************************************
+ * Key Spider
+ * Copyright (C) 2019 Key Spider Japan LLC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ ******************************************************************************/
 
 namespace Tests\Unit;
 
 use App\Jobs\DBImporterJob;
-use App\Ldaplibs\Import\CSVReader;
 use App\Ldaplibs\Import\ImportQueueManager;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * Copy a file, or recursively copy a folder and its contents
@@ -69,7 +84,6 @@ class ImportQueueTest extends TestCase
         $arrayOfFirstColumn = array();
         $queue = new ImportQueueManager();
         foreach ($files as $file) {
-//            print_r('processing: ' . $file);
             $array = $this->getArrayOfFirstColumnFromCSVFile($file);
             $arrayOfFirstColumn = array_merge($arrayOfFirstColumn, $array);
 
@@ -78,8 +92,6 @@ class ImportQueueTest extends TestCase
         }
 
         $arrayOfFirstColumnInDB = $this->getArrayOfFirstColumnInDB();
-//        var_dump($arrayOfFirstColumn);
-//        var_dump($arrayOfFirstColumnInDB);
         $this->assertTrue($arrayOfFirstColumn== $arrayOfFirstColumnInDB);
     }
 
@@ -123,7 +135,6 @@ class ImportQueueTest extends TestCase
             "files" => [
                 storage_path("unittest/user/hogehoge101.csv"),
                 storage_path("unittest/user/hogehoge102.csv"),
-//                storage_path("import_csv/user/hogehoge102.csv")
             ]
         ];
         return $originalString;
@@ -138,7 +149,6 @@ class ImportQueueTest extends TestCase
         $array = array();
         $csv = array_map(function($v){return str_getcsv($v, ",");}, file($file));
         foreach ($csv as $row) {
-//            var_dump($row);
             $array[] = explode('@', $row[0])[0];
         }
         return $array;
