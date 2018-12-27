@@ -22,7 +22,6 @@ namespace App\Console\Commands;
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
-use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -64,28 +63,28 @@ class ImportCSV extends Command
 
     private function importDataForTimeExecution($dataSchedule)
     {
-            foreach ($dataSchedule as $data) {
-                $setting = $data['setting'];
-                $files = $data['files'];
+        foreach ($dataSchedule as $data) {
+            $setting = $data['setting'];
+            $files = $data['files'];
 
-                if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
-                    Log::error(
-                        "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
+            if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
+                Log::error(
+                    "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
                         FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
-                    );
-                    break;
-                }
+                );
+                break;
+            }
 
-                if (empty($files)) {
-                    $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
-                    Log::info($infoSetting . " WITH FILES EMPTY");
-                } else {
-                    $queue = new ImportQueueManager();
-                    foreach ($files as $file) {
-                        $dbImporter = new DBImporterJob($setting, $file);
-                        $queue->push($dbImporter);
-                    }
+            if (empty($files)) {
+                $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
+                Log::info($infoSetting . " WITH FILES EMPTY");
+            } else {
+                $queue = new ImportQueueManager();
+                foreach ($files as $file) {
+                    $dbImporter = new DBImporterJob($setting, $file);
+                    $queue->push($dbImporter);
                 }
             }
+        }
     }
 }
