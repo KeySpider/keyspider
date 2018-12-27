@@ -182,16 +182,14 @@ class CSVReader implements DataInputReader
                 ");
             }
 
+            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+            $fileName = "hogehoge_{$now}.csv";
+            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
         }
-
-
-        // move file
-//        $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
-//        $fileName = "hogehoge_{$now}.csv";
-//        moveFile($fileCSV, $processedFilePath . '/' . $fileName);
     }
 
     /**
