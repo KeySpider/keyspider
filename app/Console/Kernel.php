@@ -66,7 +66,6 @@ class Kernel extends ConsoleKernel
         // Setup schedule for Delivery
         $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
         if ($scheduleDeliveryExecution) {
-            Log::info(json_encode($scheduleDeliveryExecution, JSON_PRETTY_PRINT));
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
