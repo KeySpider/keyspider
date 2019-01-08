@@ -22,7 +22,6 @@ namespace App\Ldaplibs\Import;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
 
