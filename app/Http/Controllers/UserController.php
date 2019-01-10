@@ -77,13 +77,19 @@ class UserController extends LaravelController
     {
         Log::info('---------------------------------------------------');
         Log::info('-----------------creating user...-----------------');
-        Log::info(json_encode($request->all(), JSON_PRETTY_PRINT));
+        $dataPost = $request->all();
+        $dataToSaveToDB = [];
+        $dataToSaveToDB['externalId'] = $dataPost['externalId'];
+        $dataToSaveToDB['email'] = $dataPost['userName'];
+        $dataToSaveToDB['displayName'] = $dataPost['displayName'];
+        $dataToSaveToDB['name'] = $dataPost['name'];
+        Log::info(json_encode($dataToSaveToDB, JSON_PRETTY_PRINT));
         Log::info('---------------------------------------------------');
         sleep(1);
 
         // import into database
         UserResource::create([
-            "data" => json_encode($request->all(), JSON_PRETTY_PRINT),
+            "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
         ]);
 
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
