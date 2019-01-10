@@ -41,6 +41,10 @@ class ImportSettingsManager extends SettingsManager
      *
      * @param $iniSettingsFiles
      */
+    const SCIM_INPUT_BACIC_CONFIGURATION = 'SCIM Input Bacic Configuration';
+
+    const SCIM_INPUT_FORMAT_CONVERSION = 'SCIM Input Format Conversion';
+
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
@@ -253,5 +257,41 @@ class ImportSettingsManager extends SettingsManager
         }
 
         return $data;
+    }
+
+    /**
+     * Get settings for import SCIM
+     * @param null $filePath
+     * @return array
+     * @throws \Exception
+     */
+    public function getSCIMImportSettings($filePath=null):array
+    {
+        $iniSCIMSettingsArray = [];
+        if($filePath==null)
+        {
+            $filePath = "/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/import/UserInfoSCIMInput.ini";
+        }
+        try
+        {
+            $iniSCIMSettingsArray = parse_ini_file($filePath, true);
+            $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+            $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
+            $columnNameConversion = $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION];
+            foreach ($columnNameConversion as $key => $value) {
+                if (isset($masterDBConversion[$key])) {
+                    $columnNameConversion[$masterDBConversion[$key]] = $value;
+                    unset($columnNameConversion[$key]);
+                }
+            }
+            $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+        }
+        catch (\Exception $exception)
+        {
+            Log::error($exception);
+//            throw $exception;
+        }
+
+        return $iniSCIMSettingsArray;
     }
 }
