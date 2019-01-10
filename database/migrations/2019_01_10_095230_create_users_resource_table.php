@@ -13,7 +13,7 @@ class CreateUsersResourceTable extends Migration
      */
     public function up()
     {
-        Schema::create('users_resource', function (Blueprint $table) {
+        Schema::create('user_resources', function (Blueprint $table) {
             $table->increments('id');
             $table->jsonb('data')->nullable();
             $table->timestamps();
@@ -27,6 +27,6 @@ class CreateUsersResourceTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users_resource');
+        Schema::dropIfExists('user_resources');
     }
 }

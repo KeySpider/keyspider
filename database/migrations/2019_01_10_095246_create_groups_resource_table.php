@@ -13,7 +13,7 @@ class CreateGroupsResourceTable extends Migration
      */
     public function up()
     {
-        Schema::create('groups_resource', function (Blueprint $table) {
+        Schema::create('group_resources', function (Blueprint $table) {
             $table->increments('id');
             $table->jsonb('data')->nullable();
             $table->timestamps();
@@ -27,6 +27,6 @@ class CreateGroupsResourceTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('groups_resource');
+        Schema::dropIfExists('group_resources');
     }
 }
