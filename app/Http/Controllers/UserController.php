@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
+use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -77,6 +78,7 @@ class UserController extends LaravelController
     {
         Log::info('---------------------------------------------------');
         Log::info('-----------------creating user...-----------------');
+        Log::info($request->get('externalId'));
         Log::info(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('---------------------------------------------------');
         sleep(1);
@@ -87,5 +89,13 @@ class UserController extends LaravelController
         ]);
 
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
+    }
+
+    public function welcome()
+    {
+        $importSetting = new ImportSettingsManager();
+        $scimIni = $importSetting->getSCIMImportSettings();
+
+        return view('welcome');
     }
 }

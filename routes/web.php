@@ -28,8 +28,6 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', 'UserController@welcome');
 
 Route::get('import/upload','ImportController@readSettings')->name('get.upload.file');

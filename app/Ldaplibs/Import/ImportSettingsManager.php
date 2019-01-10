@@ -265,15 +265,15 @@ class ImportSettingsManager extends SettingsManager
      * @return array
      * @throws \Exception
      */
-    public function getSCIMImportSettings($filePath=null):array
+    public function getSCIMImportSettings($filePath = null)
     {
         $iniSCIMSettingsArray = [];
-        if($filePath==null)
-        {
-            $filePath = "/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/import/UserInfoSCIMInput.ini";
+
+        if ($filePath == null) {
+            $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         }
-        try
-        {
+
+        try {
             $iniSCIMSettingsArray = parse_ini_file($filePath, true);
             $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
             $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
@@ -285,11 +285,8 @@ class ImportSettingsManager extends SettingsManager
                 }
             }
             $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
-        }
-        catch (\Exception $exception)
-        {
+        } catch (\Exception $exception) {
             Log::error($exception);
-//            throw $exception;
         }
 
         return $iniSCIMSettingsArray;
