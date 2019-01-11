@@ -8,6 +8,7 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Import\DBImporter;
+use App\Ldaplibs\Import\DBImporterFromScimData;
 use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,7 +16,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
+class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,9 +31,9 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
     protected $fileName;
     private $queueSettings;
 
-    public function __construct($setting, $fileName)
+    public function __construct($dataPost)
     {
-        parent::__construct($setting, $fileName);
+        parent::__construct($dataPost);
         $this->queueSettings = QueueManager::getQueueSettings();
         $this->tries = $this->queueSettings['tries'];
         $this->timeout = $this->queueSettings['timeout'];
@@ -46,7 +47,7 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::import();
+        parent::importToDBFromDataPost();
     }
 
     /**
@@ -65,12 +66,7 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
     public function getJobDetails()
     {
         $details = [];
-        $basicSetting = $this->setting['CSV Import Process Basic Configuration'];
-        $details['File to import'] = $this->fileName;
-        $details['File path'] = $basicSetting['FilePath'];
-        $details['Processed File Path'] = $basicSetting['ProcessedFilePath'];
-        $details['Table Name In DB'] = $basicSetting['TableNameInDB'];
-        $details['Settings File Name'] = $this->setting['IniFileName'];
+        $details['post data'] = $this->dataPost;
         return $details;
     }
 
