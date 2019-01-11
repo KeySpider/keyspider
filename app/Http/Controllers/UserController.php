@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
+use App\Ldaplibs\Import\DBImporterFromScimData;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -80,39 +81,26 @@ class UserController extends LaravelController
     {
         $dataPost = $request->all();
 
-        Log::info('---------------------------------------------------');
         Log::info('-----------------creating user...-----------------');
         Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        Log::info('---------------------------------------------------');
-        sleep(1);
 
         // save user resources model
-        UserResource::create([
-            "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
-        ]);
-
-        $dataToSaveToDB = [
-            'firstName' => $dataPost['name']['givenName'],
-            'familyName' => $dataPost['name']['familyName'],
-            'fullName' => $dataPost['name']['formatted'],
-            'externalId' => $dataPost['externalId'],
-            'email' => $dataPost['userName'],
-            'displayName' => $dataPost['displayName'],
-            'role_id' => $dataPost['title'],
-            'organization_id' => $dataPost[self::SCHEMAS_EXTENSION_USER]['department'],
-        ];
-
-        // save users model
-        User::create($dataToSaveToDB);
+        $importer = new DBImporterFromScimData($dataPost);
+        $importer->importToDBFromDataPost();
 
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
     }
 
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
+     */
     public function welcome()
     {
         $importSetting = new ImportSettingsManager();
         $scimIni = $importSetting->getSCIMImportSettings();
-
         return view('welcome');
     }
+
 }
+
