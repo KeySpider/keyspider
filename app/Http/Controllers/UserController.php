@@ -14,6 +14,8 @@ class UserController extends LaravelController
 {
     use EloquentBuilderTrait;
 
+    const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+
     public function index(Request $request)
     {
         $this->setFilterForRequest($request);
@@ -76,17 +78,32 @@ class UserController extends LaravelController
 
     public function store(Request $request)
     {
+        $dataPost = $request->all();
+
         Log::info('---------------------------------------------------');
         Log::info('-----------------creating user...-----------------');
-        Log::info($request->get('externalId'));
-        Log::info(json_encode($request->all(), JSON_PRETTY_PRINT));
+        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
         Log::info('---------------------------------------------------');
         sleep(1);
 
-        // import into database
+        // save user resources model
         UserResource::create([
-            "data" => json_encode($request->all(), JSON_PRETTY_PRINT),
+            "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
         ]);
+
+        $dataToSaveToDB = [];
+        $dataToSaveToDB['firstName'] = $dataPost['name']['givenName'];
+        $dataToSaveToDB['familyName'] = $dataPost['name']['familyName'];
+        $dataToSaveToDB['fullName'] = $dataPost['name']['formatted'];
+        $dataToSaveToDB['externalId'] = $dataPost['externalId'];
+        $dataToSaveToDB['email'] = $dataPost['userName'];
+        $dataToSaveToDB['displayName'] = $dataPost['displayName'];
+        $dataToSaveToDB['role_id'] = $dataPost['title'];
+        $dataToSaveToDB['organization_id'] = $dataPost[self::SCHEMAS_EXTENSION_USER]['department'];
+
+
+        // save users model
+        User::create($dataToSaveToDB);
 
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
     }
