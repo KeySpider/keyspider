@@ -42,20 +42,20 @@ class UserController extends LaravelController
     {
         $filter = explode(' ', $request->input('filter'));
         try {
-            $request["filter_groups"] = array(
+            $request["filter_groups"] = [
                 0 =>
-                    array(
+                    [
                         'filters' =>
-                            array(
+                            [
                                 0 =>
-                                    array(
+                                    [
                                         'key' => $filter[0],
                                         'value' => $filter[2],
                                         'operator' => $filter[1],
-                                    ),
-                            ),
-                    ),
-            );
+                                    ],
+                            ],
+                    ],
+            ];
             return true;
         } catch (\Exception $exception) {
             return false;
@@ -91,16 +91,16 @@ class UserController extends LaravelController
             "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
         ]);
 
-        $dataToSaveToDB = [];
-        $dataToSaveToDB['firstName'] = $dataPost['name']['givenName'];
-        $dataToSaveToDB['familyName'] = $dataPost['name']['familyName'];
-        $dataToSaveToDB['fullName'] = $dataPost['name']['formatted'];
-        $dataToSaveToDB['externalId'] = $dataPost['externalId'];
-        $dataToSaveToDB['email'] = $dataPost['userName'];
-        $dataToSaveToDB['displayName'] = $dataPost['displayName'];
-        $dataToSaveToDB['role_id'] = $dataPost['title'];
-        $dataToSaveToDB['organization_id'] = $dataPost[self::SCHEMAS_EXTENSION_USER]['department'];
-
+        $dataToSaveToDB = [
+            'firstName' => $dataPost['name']['givenName'],
+            'familyName' => $dataPost['name']['familyName'],
+            'fullName' => $dataPost['name']['formatted'],
+            'externalId' => $dataPost['externalId'],
+            'email' => $dataPost['userName'],
+            'displayName' => $dataPost['displayName'],
+            'role_id' => $dataPost['title'],
+            'organization_id' => $dataPost[self::SCHEMAS_EXTENSION_USER]['department'],
+        ];
 
         // save users model
         User::create($dataToSaveToDB);
