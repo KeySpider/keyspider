@@ -25,9 +25,9 @@ class DBImporterFromScimData
         ]);
 
         $dataToSaveToDB = [
-            'firstName' => $dataPost['name']['givenName'],
-            'familyName' => $dataPost['name']['familyName'],
-            'fullName' => $dataPost['name']['formatted'],
+            'firstName' => isset($dataPost['name']['givenName'])? $dataPost['name']['givenName']:"",
+            'familyName' => isset($dataPost['name']['familyName'])?$dataPost['name']['familyName']:"",
+            'fullName' => isset($dataPost['name']['formatted'])?$dataPost['name']['formatted']:"",
             'externalId' => $dataPost['externalId'],
             'email' => $dataPost['userName'],
             'displayName' => $dataPost['displayName'],
