@@ -20,7 +20,6 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -196,22 +195,31 @@ class CSVReader implements DataInputReader
 
                 if (!empty($dataTmp)) {
                     $condition = clean($dataTmp[0]);
+                    $condition = "\$\${$condition}\$\$";
                     $cl = "{$nameTable}.001";
-                    $query = "select * from \"{$nameTable}\" where \"{$cl}\" = '{$condition}'";
-                    $data = DB::select($query);
 
+                    $query = "select exists(select 1 from \"{$nameTable}\" where \"{$cl}\" = {$condition})";
+                    $isExit = DB::select($query);
 
-//                    $stringValue = implode(",", $dataTmp);
-//                    $builder->toSql("INSERT INTO {$nameTable}({$columns}) values ({$stringValue});");
+                    $stringValue = implode(",", $dataTmp);
+
+                    if ($isExit[0]->exists === FALSE) {
+                        $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
+                        DB::insert($query);
+                    } else {
+                        $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$cl}\" = {$condition};";
+                        DB::update($query);
+                    }
                 }
             }
 
-//            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
-//            $fileName = "hogehoge_{$now}.csv";
-//            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
+            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+            $fileName = "hogehoge_{$now}.csv";
+            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
             DB::commit();
         } catch (\Exception $e) {
+            Log::debug($e);
             DB::rollBack();
         }
     }
