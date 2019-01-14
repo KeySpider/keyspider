@@ -20,8 +20,10 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
 
@@ -110,6 +112,16 @@ class CSVReader implements DataInputReader
     }
 
     /**
+     * @param $setting
+     * @return mixed
+     */
+    public function getNameTableBase($setting)
+    {
+        $nameTable = $setting[self::CONFIGURATION]['TableNameInDB'];
+        return $nameTable;
+    }
+
+    /**
      * Get all column from setting file
      *
      * @param array $setting
@@ -182,16 +194,21 @@ class CSVReader implements DataInputReader
                     array_push($dataTmp, "\$\${$item}\$\$");
                 }
 
-                $stringValue = implode(",", $dataTmp);
+                if (!empty($dataTmp)) {
+                    $condition = clean($dataTmp[0]);
+                    $cl = "{$nameTable}.001";
+                    $query = "select * from \"{$nameTable}\" where \"{$cl}\" = '{$condition}'";
+                    $data = DB::select($query);
 
-                DB::statement("
-                    INSERT INTO {$nameTable}({$columns}) values ({$stringValue});
-                ");
+
+//                    $stringValue = implode(",", $dataTmp);
+//                    $builder->toSql("INSERT INTO {$nameTable}({$columns}) values ({$stringValue});");
+                }
             }
 
-            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
-            $fileName = "hogehoge_{$now}.csv";
-            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
+//            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+//            $fileName = "hogehoge_{$now}.csv";
+//            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
             DB::commit();
         } catch (\Exception $e) {

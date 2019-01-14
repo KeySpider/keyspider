@@ -84,3 +84,14 @@ if (!function_exists('moveFile')) {
         }
     }
 }
+
+if (!function_exists('clean')) {
+    /**
+     * @param $string
+     * @return string|string[]|null
+     */
+    function clean($string)
+    {
+        return str_replace('$', '', $string); // Replaces all spaces with hyphens.
+    }
+}
