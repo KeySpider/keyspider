@@ -22,7 +22,6 @@ namespace App\Ldaplibs\Import;
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
 use Illuminate\Support\Facades\Log;
-use Mockery\Exception;
 
 class DBImporterFromScimData
 {
@@ -53,11 +52,10 @@ class DBImporterFromScimData
 
         // save users model
         Log::info(json_encode($dataToSaveToDB, JSON_PRETTY_PRINT));
-        try{
+        try {
             User::create($dataToSaveToDB);
             return true;
-        }
-        catch (\Exception $exception){
+        } catch (\Exception $exception) {
             Log::error("Error of insert user to database");
             return false;
         }

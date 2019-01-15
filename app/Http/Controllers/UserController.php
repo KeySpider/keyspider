@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Models\User;
-use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
-use App\Ldaplibs\Import\DBImporterFromScimData;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Http\Request;
@@ -100,6 +98,6 @@ class UserController extends LaravelController
         $scimIni = $importSetting->getSCIMImportSettings();
         return view('welcome');
     }
-
 }
+
 
