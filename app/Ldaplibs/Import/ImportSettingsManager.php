@@ -265,13 +265,9 @@ class ImportSettingsManager extends SettingsManager
      * @return array
      * @throws \Exception
      */
-    public function getSCIMImportSettings($filePath = null)
+    public function getSCIMImportSettings($filePath)
     {
         $iniSCIMSettingsArray = [];
-
-        if ($filePath == null) {
-            $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
-        }
 
         try {
             $iniSCIMSettingsArray = parse_ini_file($filePath, true);

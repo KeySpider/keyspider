@@ -25,8 +25,10 @@ use Illuminate\Support\Facades\Log;
 
 class DBImporterFromScimData
 {
-    public const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+    const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+
     protected $dataPost;
+
     public function __construct($dataPost)
     {
         $this->dataPost = $dataPost;

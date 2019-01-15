@@ -23,6 +23,7 @@ use App\Http\Models\User;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -111,8 +112,6 @@ class UserController extends LaravelController
      */
     public function welcome()
     {
-        $importSetting = new ImportSettingsManager();
-        $scimIni = $importSetting->getSCIMImportSettings();
         return view('welcome');
     }
 }

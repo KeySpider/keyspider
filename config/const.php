@@ -17,14 +17,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 
-namespace App\Ldaplibs\Import;
 
-interface DataInputReader
-{
-    public function getListFileCsvSetting();
-    public function getNameTableFromSetting($setting);
-    public function getNameTableBase($setting);
-    public function getAllColumnFromSetting($setting);
-    public function createTable($nameTable, $columns);
-    public function getDataFromOneFile($file, $options, $columns, $nameTable, $pathProcessed);
-}
+return [
+    'scim_input' => "SCIM Input Bacic Configuration",
+    'scim_format' => "SCIM Input Format Conversion",
+];
