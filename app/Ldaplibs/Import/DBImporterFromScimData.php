@@ -21,6 +21,8 @@ namespace App\Ldaplibs\Import;
 
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
+use Illuminate\Support\Facades\Log;
+use Mockery\Exception;
 
 class DBImporterFromScimData
 {
@@ -31,7 +33,7 @@ class DBImporterFromScimData
         $this->dataPost = $dataPost;
     }
 
-    public function importToDBFromDataPost(): void
+    public function importToDBFromDataPost(): bool
     {
         $dataPost = $this->dataPost;
         UserResource::create([
@@ -39,9 +41,9 @@ class DBImporterFromScimData
         ]);
 
         $dataToSaveToDB = [
-            'firstName' => $dataPost['name']['givenName'],
-            'familyName' => $dataPost['name']['familyName'],
-            'fullName' => $dataPost['name']['formatted'],
+            'firstName' => isset($dataPost['name']['givenName'])? $dataPost['name']['givenName']:"",
+            'familyName' => isset($dataPost['name']['familyName'])?$dataPost['name']['familyName']:"",
+            'fullName' => isset($dataPost['name']['formatted'])?$dataPost['name']['formatted']:"",
             'externalId' => $dataPost['externalId'],
             'email' => $dataPost['userName'],
             'displayName' => $dataPost['displayName'],
@@ -50,6 +52,14 @@ class DBImporterFromScimData
         ];
 
         // save users model
-        User::create($dataToSaveToDB);
+        Log::info(json_encode($dataToSaveToDB, JSON_PRETTY_PRINT));
+        try{
+            User::create($dataToSaveToDB);
+            return true;
+        }
+        catch (\Exception $exception){
+            Log::error("Error of insert user to database");
+            return false;
+        }
     }
 }

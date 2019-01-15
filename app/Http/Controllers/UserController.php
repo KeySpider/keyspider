@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
+use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\DBImporterFromScimData;
+use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -82,12 +84,9 @@ class UserController extends LaravelController
         $dataPost = $request->all();
 
         Log::info('-----------------creating user...-----------------');
-        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-
         // save user resources model
-        $importer = new DBImporterFromScimData($dataPost);
-        $importer->importToDBFromDataPost();
-
+        $queue = new ImportQueueManager();
+        $queue->push(new DBImporterFromScimJob($dataPost));
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
     }
 
