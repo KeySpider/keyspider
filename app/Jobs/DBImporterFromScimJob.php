@@ -42,9 +42,9 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
     protected $fileName;
     private $queueSettings;
 
-    public function __construct($dataPost)
+    public function __construct($dataPost, $setting)
     {
-        parent::__construct($dataPost);
+        parent::__construct($dataPost, $setting);
         $this->queueSettings = QueueManager::getQueueSettings();
         $this->tries = $this->queueSettings['tries'];
         $this->timeout = $this->queueSettings['timeout'];

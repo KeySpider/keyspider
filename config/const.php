@@ -21,4 +21,5 @@
 return [
     'scim_input' => "SCIM Input Bacic Configuration",
     'scim_format' => "SCIM Input Format Conversion",
+    'scim_schema' => "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
 ];

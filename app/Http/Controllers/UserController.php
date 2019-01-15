@@ -98,11 +98,18 @@ class UserController extends LaravelController
     public function store(Request $request)
     {
         $dataPost = $request->all();
+        $importSetting = new ImportSettingsManager();
 
         Log::info('-----------------creating user...-----------------');
+        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
+
+        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $setting = $importSetting->getSCIMImportSettings($filePath);
+
         // save user resources model
         $queue = new ImportQueueManager();
-        $queue->push(new DBImporterFromScimJob($dataPost));
+        $queue->push(new DBImporterFromScimJob($dataPost, $setting));
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
     }
 

@@ -19,7 +19,9 @@
 
 namespace App\Ldaplibs\Import;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SCIMReader
 {
@@ -122,8 +124,124 @@ class SCIMReader
         // TODO: Implement verifyData() method.
     }
 
-    public function getFormatData($data)
+    public function getFormatData($dataPost, $setting)
     {
-        // TODO: Implement getFormatData() method.
+        $nameTable = $this->getTableName($setting);
+        $scimInputFormat = $setting[config('const.scim_format')];
+        $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
+        $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
+        $columns = implode(",", $columns);
+
+        foreach ($scimInputFormat as $key => $item) {
+            if ($key === "" || preg_match($pattern, $key) === 1) {
+                unset($scimInputFormat[$key]);
+            }
+        }
+
+        foreach ($scimInputFormat as $key => $value) {
+            $item = $this->processGroup($value, $dataPost);
+            $scimInputFormat[$key] = "\$\${$item}\$\$";
+        }
+
+        if (!empty($scimInputFormat)) {
+            $condition = clean($scimInputFormat["{$nameTable}.001"]);
+            $firstColumn = "{$nameTable}.001";
+
+            $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
+            Log::debug($query);
+            $isExit = DB::select($query);
+            dd($isExit);
+
+            $stringValue = implode(",", $scimInputFormat);
+
+            if ($isExit[0]->exists === FALSE) {
+                $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
+                DB::insert($query);
+            } else {
+                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
+                DB::update($query);
+            }
+        }
+    }
+
+    public function processGroup($group, $dataPost)
+    {
+        switch ($group) {
+            case 'admin':
+                return 'admin';
+            case 'TODAY()':
+                return Carbon::now()->format('Y/m/d');
+            case '0':
+                return '0';
+            case 'hogehoge':
+                return 'hogehoge';
+            case 'hogehoga':
+                return 'hogehoga';
+            case '(roles[0])':
+                if (!empty($dataPost["roles"])) {
+                    return $dataPost["roles"][0];
+                }
+                return null;
+            default:
+                return $this->convertDataFollowSetting($group, $dataPost);
+        }
+    }
+
+    /**
+     * Covert data follow from setting
+     *
+     * @param $value
+     * @param $dataPost
+     * @return mixed|string
+     */
+    public function convertDataFollowSetting($value, $dataPost)
+    {
+        $str = null;
+        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+
+        $isCheck = preg_match($pattern, $value, $match);
+
+        if ($isCheck) {
+            $attribute = $match['exp1'];
+            $regx = $match['exp2'];
+            $stt = $match['exp3'];
+
+            if ($attribute === 'department') {
+                $valueAttribute = $dataPost[config('const.scim_schema')]['department'];
+            } else {
+                $valueAttribute = isset($dataPost[$attribute]) ? $dataPost[$attribute] : null;
+            }
+
+            if ($regx === "") {
+                return $valueAttribute;
+            }
+
+            $isRegx = preg_match("/{$regx}/", $valueAttribute, $data);
+
+            if ($isRegx) {
+                if ($regx === '\s') {
+                    return str_replace(' ', '', $valueAttribute);
+                }
+                if ($regx === '\w') {
+                    return strtolower($valueAttribute);
+                }
+
+                switch ($stt) {
+                    case '$1':
+                        $str = isset($data[1]) ? $data[1] : null;
+                        break;
+                    case '$2':
+                        $str = isset($data[2]) ? $data[2] : null;
+                        break;
+                    case '$3':
+                        $str = isset($data[3]) ? $data[3] : null;
+                        break;
+                    default:
+                        $str = null;
+                }
+            }
+
+            return $str;
+        }
     }
 }

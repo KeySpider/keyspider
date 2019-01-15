@@ -28,14 +28,21 @@ class DBImporterFromScimData
     const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
 
     protected $dataPost;
+    protected $setting;
 
-    public function __construct($dataPost)
+    public function __construct($dataPost, $setting)
     {
         $this->dataPost = $dataPost;
+        $this->setting = $setting;
     }
 
     public function importToDBFromDataPost(): bool
     {
+        $scimReader = new SCIMReader();
+
+        $scimReader->addColumns($this->setting);
+        $scimReader->getFormatData($this->dataPost, $this->setting);
+
         $dataPost = $this->dataPost;
         UserResource::create([
             "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
@@ -53,7 +60,6 @@ class DBImporterFromScimData
         ];
 
         // save users model
-        Log::info(json_encode($dataToSaveToDB, JSON_PRETTY_PRINT));
         try {
             User::create($dataToSaveToDB);
             return true;
