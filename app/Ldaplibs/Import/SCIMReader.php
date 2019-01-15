@@ -59,7 +59,7 @@ class SCIMReader
                 case 'User':
                     $name = "AAA";
                     break;
-                case 'Group':
+                case 'Role':
                     $name = "CCC";
                     break;
             }
@@ -145,21 +145,21 @@ class SCIMReader
 
         if (!empty($scimInputFormat)) {
             $condition = clean($scimInputFormat["{$nameTable}.001"]);
+            $condition = "\$\${$condition}\$\$";
             $firstColumn = "{$nameTable}.001";
 
             $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
             Log::debug($query);
             $isExit = DB::select($query);
-            dd($isExit);
 
             $stringValue = implode(",", $scimInputFormat);
 
             if ($isExit[0]->exists === FALSE) {
                 $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
-                DB::insert($query);
+                return DB::insert($query);
             } else {
                 $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
-                DB::update($query);
+                return DB::update($query);
             }
         }
     }

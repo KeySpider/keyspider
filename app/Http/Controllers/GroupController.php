@@ -19,8 +19,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Models\GroupResource;
 use App\Http\Models\User;
+use App\Jobs\DBImporterFromScimJob;
+use App\Ldaplibs\Import\ImportQueueManager;
+use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -92,17 +94,19 @@ class GroupController extends LaravelController
 
     public function store(Request $request)
     {
-        Log::info('---------------------------------------------------');
-        Log::info('-----------------creating group...-----------------');
-        Log::info(json_encode($request->all(), JSON_PRETTY_PRINT));
-        Log::info('---------------------------------------------------');
-        sleep(1);
+        $dataPost = $request->all();
+        $importSetting = new ImportSettingsManager();
 
-        // import into database
-        GroupResource::create([
-            "data" => json_encode($request->all(), JSON_PRETTY_PRINT),
-        ]);
+        Log::info('-----------------creating role...-----------------');
+        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
 
-        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
+        $filePath = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
+        $setting = $importSetting->getSCIMImportSettings($filePath);
+
+        // save user resources model
+        $queue = new ImportQueueManager();
+        $queue->push(new DBImporterFromScimJob($dataPost, $setting));
+        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"]}');
     }
 }

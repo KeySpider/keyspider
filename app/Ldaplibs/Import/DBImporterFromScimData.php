@@ -41,31 +41,13 @@ class DBImporterFromScimData
         $scimReader = new SCIMReader();
 
         $scimReader->addColumns($this->setting);
-        $scimReader->getFormatData($this->dataPost, $this->setting);
+        $isSave = $scimReader->getFormatData($this->dataPost, $this->setting);
 
-        $dataPost = $this->dataPost;
-        UserResource::create([
-            "data" => json_encode($dataPost, JSON_PRETTY_PRINT),
-        ]);
-
-        $dataToSaveToDB = [
-            'firstName' => isset($dataPost['name']['givenName'])? $dataPost['name']['givenName']:"",
-            'familyName' => isset($dataPost['name']['familyName'])?$dataPost['name']['familyName']:"",
-            'fullName' => isset($dataPost['name']['formatted'])?$dataPost['name']['formatted']:"",
-            'externalId' => $dataPost['externalId'],
-            'email' => $dataPost['userName'],
-            'displayName' => $dataPost['displayName'],
-            'role_id' => $dataPost['title'],
-            'organization_id' => $dataPost[self::SCHEMAS_EXTENSION_USER]['department'],
-        ];
-
-        // save users model
-        try {
-            User::create($dataToSaveToDB);
+        if ($isSave) {
             return true;
-        } catch (\Exception $exception) {
-            Log::error("Error of insert user to database");
-            return false;
         }
+
+        Log::error("Error of insert user to database");
+        return false;
     }
 }
