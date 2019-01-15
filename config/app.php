@@ -121,6 +121,8 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
+    'azure_token' => env('AZURE_TOKEN'),
+
     /*
     |--------------------------------------------------------------------------
     | Autoloaded Service Providers

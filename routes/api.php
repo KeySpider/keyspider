@@ -17,8 +17,8 @@ use Illuminate\Http\Request;
 //    return $request->user();
 //});
 
-Route::get('Users', 'UserController@index');
-Route::post('Users', 'UserController@store');
+Route::get('Users', 'UserController@index')->middleware('azure');
+Route::post('Users', 'UserController@store')->middleware('azure');
 
-Route::get('Groups', 'GroupController@index');
-Route::post('Groups', 'GroupController@store');
+Route::get('Groups', 'GroupController@index')->middleware('azure');
+Route::post('Groups', 'GroupController@store')->middleware('azure');
