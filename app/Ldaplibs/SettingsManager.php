@@ -58,25 +58,50 @@ class SettingsManager
     /**
      * @return bool|null
      */
-    public function validateKeySpider(): ?bool
+    public function validateKeySpider()
     {
         try {
             $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
             $validate = Validator::make($this->key_spider, [
                 'Master DB Configurtion' => 'required',
-                'CSV Import Process Configration' => 'required'
+                'CSV Import Process Configration' => 'required',
+                'SCIM Input Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
-                Log::error($validate->getMessageBag());
-                return false;
+                throw new \Exception($validate->getMessageBag());
             }
 
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Key spider INI is not correct!');
-            return false;
+        } catch (\Exception $exception) {
+            Log::error('Error on file KeySpider.ini');
+            Log::error($exception->getMessage());
+            dd($exception->getMessage());
         }
+
+        try
+        {
+            $master_db_config = $this->key_spider['Master DB Configurtion']['master_db_config'];
+            if (!file_exists($master_db_config)){
+                throw new \Exception($master_db_config.' is not existed');
+            }
+            $import_config_files_array = $this->key_spider['Master DB Configurtion']['import_config'];
+            foreach ($import_config_files_array as $file)
+            {
+                if(file_exists($file))
+                {
+                    continue;
+                }
+
+                throw new \Exception($file.' is not existed');
+            }
+        }
+        catch (\Exception $exception)
+        {
+            Log::error('Error on file KeySpider.ini');
+            Log::error($exception->getMessage());
+            dd($exception->getMessage());
+        }
+        return true;
     }
 
     public function isFolderExisted($folderPath)
