@@ -21,7 +21,6 @@ namespace App\Http\Middleware;
 
 use App\Exceptions\SCIMException;
 use Closure;
-use Illuminate\Support\Facades\Log;
 
 class VerifyAzureADToken
 {
@@ -31,13 +30,14 @@ class VerifyAzureADToken
      * @param  \Illuminate\Http\Request $request
      * @param  \Closure $next
      * @return mixed
+     * @throws SCIMException
      */
     public function handle($request, Closure $next)
     {
         $authorization = $request->header('authorization');
 
         if($authorization !== "Bearer ".config('app.azure_token')) {
-            dd('ok');
+            throw new SCIMException('The Authorization token header not found', $code = 401);
         }
 
         return $next($request);

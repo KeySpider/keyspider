@@ -19,6 +19,7 @@
 
 namespace App\Exceptions;
 
+use App\Ldaplibs\SCIM\Error;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
@@ -29,9 +30,10 @@ class SCIMException extends Exception
 
 	protected $errors = [];
 	
-	public function __construct($message)
+	public function __construct($message, $httpCode)
     {
 		parent::__construct($message);
+		$this->httpCode = $httpCode;
 	}
 	
 	public function setScimType($scimType) : SCIMException
@@ -67,10 +69,10 @@ class SCIMException extends Exception
 	
 	public function render($request)
     {
-		return response((new \ArieTimmerman\Laravel\SCIMServer\SCIM\Error(
+		return response((new Error(
 		    $this->getMessage(),
             $this->httpCode,
             $this->scimType
-        ))->setErrors($this->errors)  ,$this->httpCode) ;
+        ))->setErrors($this->errors),$this->httpCode) ;
 	}
 }
