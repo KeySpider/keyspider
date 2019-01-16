@@ -58,16 +58,19 @@ class SCIMException extends Exception
 	public function report()
     {
         Log::debug(sprintf("Validation failed. Errors: %s\n\nMessage: %s\n\nBody: %s",
-            json_encode($this->errors, JSON_PRETTY_PRINT), $this->getMessage(), request()->getContent()) );
+            json_encode($this->errors, JSON_PRETTY_PRINT),
+            $this->getMessage(),
+            request()->getContent()
+        ));
     }
 
 	
-//	public function render($request)
-//    {
-//		return response((new \ArieTimmerman\Laravel\SCIMServer\SCIM\Error(
-//		    $this->getMessage(),
-//            $this->httpCode,
-//            $this->scimType
-//        ))->setErrors($this->errors)  ,$this->httpCode) ;
-//	}
+	public function render($request)
+    {
+		return response((new \ArieTimmerman\Laravel\SCIMServer\SCIM\Error(
+		    $this->getMessage(),
+            $this->httpCode,
+            $this->scimType
+        ))->setErrors($this->errors)  ,$this->httpCode) ;
+	}
 }

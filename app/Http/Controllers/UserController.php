@@ -24,7 +24,6 @@ use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
-use function GuzzleHttp\Promise\all;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -35,6 +34,15 @@ class UserController extends LaravelController
     use EloquentBuilderTrait;
 
     const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+
+    /**
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @throws \Exception
+     */
+    public function welcome()
+    {
+        return view('welcome');
+    }
 
     public function index(Request $request)
     {
@@ -52,6 +60,81 @@ class UserController extends LaravelController
 
         sleep(1);
         return $this->response($this->toSCIMArray($parsedData));
+    }
+
+    /**
+     * Create data
+     *
+     * @param Request $request
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @throws \Exception
+     */
+    public function store(Request $request)
+    {
+        $dataPost = $request->all();
+        $importSetting = new ImportSettingsManager();
+
+        Log::info('-----------------creating user...-----------------');
+        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
+
+        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $setting = $importSetting->getSCIMImportSettings($filePath);
+
+        // save user resources model
+        $queue = new ImportQueueManager();
+        $queue->push(new DBImporterFromScimJob($dataPost, $setting));
+
+        // save users resource
+        UserResource::create([
+            "data" => json_encode($request->all()),
+        ]);
+        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
+    }
+
+    /**
+     * Show detail data
+     *
+     * @param $id
+     */
+    public function show($id)
+    {
+        // do something
+    }
+
+    /**
+     * Update
+     *
+     * @param $id
+     */
+    public function update($id)
+    {
+        // do something
+    }
+
+    /**
+     * Destroy user
+     *
+     * @param $id
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     */
+    public function destroy($id)
+    {
+        Log::info('-----------------DELETE USER...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $response = [
+            'totalResults' => count([]),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+
+        return $this->response($response);
     }
 
     /**
@@ -95,62 +178,4 @@ class UserController extends LaravelController
         ];
         return $arr;
     }
-
-    public function store(Request $request)
-    {
-        $dataPost = $request->all();
-        $importSetting = new ImportSettingsManager();
-
-        Log::info('-----------------creating user...-----------------');
-        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
-
-        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
-        $setting = $importSetting->getSCIMImportSettings($filePath);
-
-        // save user resources model
-        $queue = new ImportQueueManager();
-        $queue->push(new DBImporterFromScimJob($dataPost, $setting));
-
-        // save users resource
-        UserResource::create([
-            "data" => json_encode($request->all()),
-        ]);
-        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
-    }
-
-    /**
-     * Delete user
-     */
-    public function delete($id)
-    {
-        Log::info('-----------------DELETE USER...-----------------');
-        Log::debug($id);
-        Log::info('--------------------------------------------------');
-
-        $response = [
-            'totalResults' => count([]),
-            "itemsPerPage" => 10,
-            "startIndex" => 1,
-            "schemas" => [
-                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
-            ],
-            'Resources' => [],
-        ];
-
-        return $this->response($response);
-    }
-
-    /**
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     * @throws \Exception
-     */
-    public function welcome()
-    {
-        return view('welcome');
-    }
 }
-
-
-
-

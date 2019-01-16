@@ -53,46 +53,9 @@ class GroupController extends LaravelController
 
     /**
      * @param Request $request
-     * @return bool
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @throws \Exception
      */
-    private function setFilterForRequest(Request &$request): bool
-    {
-        $filter = explode(' ', $request->input('filter'));
-        try {
-            $request["filter_groups"] = array(
-                0 =>
-                    array(
-                        'filters' =>
-                            array(
-                                0 =>
-                                    array(
-                                        'key' => $filter[0],
-                                        'value' => $filter[2],
-                                        'operator' => $filter[1],
-                                    ),
-                            ),
-                    ),
-            );
-            return true;
-        } catch (\Exception $exception) {
-            return false;
-        }
-    }
-
-    public function toSCIMArray($dataArray)
-    {
-        $arr = [
-            'totalResults' => count($dataArray),
-            "itemsPerPage" => 10,
-            "startIndex" => 1,
-            "schemas" => [
-                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
-            ],
-            'Resources' => [],
-        ];
-        return $arr;
-    }
-
     public function store(Request $request)
     {
         $dataPost = $request->all();
@@ -115,5 +78,96 @@ class GroupController extends LaravelController
         ]);
 
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"]}');
+    }
+
+    /**
+     * Show detail data
+     *
+     * @param $id
+     */
+    public function show($id)
+    {
+        // do something
+    }
+
+    /**
+     * Update
+     *
+     * @param $id
+     */
+    public function update($id)
+    {
+        // do something
+    }
+
+    /**
+     * Destroy user
+     *
+     * @param $id
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     */
+    public function destroy($id)
+    {
+        Log::info('-----------------DELETE GROUPS...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $response = [
+            'totalResults' => count([]),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+
+        return $this->response($response);
+    }
+
+    /**
+     * @param Request $request
+     * @return bool
+     */
+    private function setFilterForRequest(Request &$request): bool
+    {
+        $filter = explode(' ', $request->input('filter'));
+        try {
+            $request["filter_groups"] = [
+                0 =>
+                    [
+                        'filters' =>
+                            [
+                                0 =>
+                                    [
+                                        'key' => $filter[0],
+                                        'value' => $filter[2],
+                                        'operator' => $filter[1],
+                                    ],
+                            ],
+                    ],
+            ];
+            return true;
+        } catch (\Exception $exception) {
+            return false;
+        }
+    }
+
+    /**
+     * @param $dataArray
+     * @return array
+     */
+    private function toSCIMArray($dataArray)
+    {
+        $arr = [
+            'totalResults' => count($dataArray),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+        return $arr;
     }
 }
