@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 
 Route::get('Users', 'UserController@index')->middleware('azure');
 Route::post('Users', 'UserController@store')->middleware('azure');
+Route::delete('Users/{id}', 'UserController@delete')->middleware('azure');
 
 Route::get('Groups', 'GroupController@index')->middleware('azure');
 Route::post('Groups', 'GroupController@store')->middleware('azure');

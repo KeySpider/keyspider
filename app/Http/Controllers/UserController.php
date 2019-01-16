@@ -20,10 +20,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Models\User;
+use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
-use App\Ldaplibs\Import\SCIMReader;
+use function GuzzleHttp\Promise\all;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -110,7 +111,34 @@ class UserController extends LaravelController
         // save user resources model
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
+
+        // save users resource
+        UserResource::create([
+            "data" => json_encode($request->all()),
+        ]);
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
+    }
+
+    /**
+     * Delete user
+     */
+    public function delete($id)
+    {
+        Log::info('-----------------DELETE USER...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $response = [
+            'totalResults' => count([]),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+
+        return $this->response($response);
     }
 
     /**
@@ -122,5 +150,7 @@ class UserController extends LaravelController
         return view('welcome');
     }
 }
+
+
 
 
