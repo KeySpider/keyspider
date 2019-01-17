@@ -281,6 +281,7 @@ class ImportSettingsManager extends SettingsManager
         } catch (\Exception $exception) {
             Log::error('Key error SCIM import validation');
             Log::error($validate->getMessageBag());
+            dd($validate->getMessageBag());
         }
 
 
@@ -299,6 +300,7 @@ class ImportSettingsManager extends SettingsManager
             $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
+            dd($exception->getMessage());
         }
 
         return $iniSCIMSettingsArray;
