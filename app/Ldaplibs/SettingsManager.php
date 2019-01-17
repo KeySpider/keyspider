@@ -78,26 +78,20 @@ class SettingsManager
             dd($exception->getMessage());
         }
 
-        try
-        {
+        try {
             $master_db_config = $this->key_spider['Master DB Configurtion']['master_db_config'];
-            if (!file_exists($master_db_config)){
+            if (!file_exists($master_db_config)) {
                 throw new \Exception($master_db_config.' is not existed');
             }
             $allKeysValues = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"));
             $import_config_files_array = $allKeysValues['import_config'];
-            foreach ($import_config_files_array as $file)
-            {
-                if(file_exists($file))
-                {
+            foreach ($import_config_files_array as $file) {
+                if(file_exists($file)) {
                     continue;
                 }
-
                 throw new \Exception($file.' is not existed');
             }
-        }
-        catch (\Exception $exception)
-        {
+        } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
             dd($exception->getMessage());
