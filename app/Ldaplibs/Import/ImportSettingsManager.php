@@ -267,8 +267,26 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getSCIMImportSettings($filePath)
     {
-        $iniSCIMSettingsArray = [];
+        try {
+            $iniArray = parse_ini_file($filePath, true);
+            $rules = [
+                self::SCIM_INPUT_BACIC_CONFIGURATION => 'required',
+                self::SCIM_INPUT_FORMAT_CONVERSION => 'required'
+            ];
+            // Validate main keys
+            $validate = Validator::make($iniArray, $rules);
+            if ($validate->fails()) {
+                throw new \Exception($validate->getMessageBag());
+            }
+        }
+        catch (\Exception $exception){
+            Log::error('Key error SCIM import validation');
+            Log::error($validate->getMessageBag());
+            dd($validate->getMessageBag());
+        }
 
+
+        $iniSCIMSettingsArray = [];
         try {
             $iniSCIMSettingsArray = parse_ini_file($filePath, true);
             $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
@@ -282,7 +300,8 @@ class ImportSettingsManager extends SettingsManager
             }
             $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
         } catch (\Exception $exception) {
-            Log::error($exception);
+            Log::error($exception->getMessage());
+            dd($exception->getMessage());
         }
 
         return $iniSCIMSettingsArray;
