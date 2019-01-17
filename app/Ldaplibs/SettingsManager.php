@@ -84,7 +84,8 @@ class SettingsManager
             if (!file_exists($master_db_config)){
                 throw new \Exception($master_db_config.' is not existed');
             }
-            $import_config_files_array = $this->key_spider['Master DB Configurtion']['import_config'];
+            $allKeysValues = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"));
+            $import_config_files_array = $allKeysValues['import_config'];
             foreach ($import_config_files_array as $file)
             {
                 if(file_exists($file))
