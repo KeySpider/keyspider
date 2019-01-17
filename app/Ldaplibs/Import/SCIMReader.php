@@ -207,7 +207,7 @@ class SCIMReader
             $stt = $match['exp3'];
 
             if ($attribute === 'department') {
-                $valueAttribute = $dataPost[config('const.scim_schema')]['department'];
+                $valueAttribute = isset($dataPost[config('const.scim_schema')]) ? $dataPost[config('const.scim_schema')]['department'] : null;
             } else {
                 $valueAttribute = isset($dataPost[$attribute]) ? $dataPost[$attribute] : null;
             }

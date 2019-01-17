@@ -22,7 +22,6 @@ namespace Tests\Unit;
 use App\Jobs\DBExtractorJob;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use Tests\TestCase;
-use function App\Console\Commands\array2string;
 
 class ExtractQueueTest extends TestCase
 {
