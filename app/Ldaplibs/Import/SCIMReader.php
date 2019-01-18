@@ -154,7 +154,7 @@ class SCIMReader
 
             $stringValue = implode(",", $scimInputFormat);
 
-            if ($isExit[0]->exists === FALSE) {
+            if ($isExit[0]->exists === false) {
                 $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
                 return DB::insert($query);
             } else {

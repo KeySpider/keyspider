@@ -71,7 +71,6 @@ class SettingsManager
                 Log::error('Key spider INI is not correct!');
                 throw new \Exception($validate->getMessageBag());
             }
-
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
@@ -86,7 +85,7 @@ class SettingsManager
             $allKeysValues = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"));
             $import_config_files_array = $allKeysValues['import_config'];
             foreach ($import_config_files_array as $file) {
-                if(file_exists($file)) {
+                if (file_exists($file)) {
                     continue;
                 }
                 throw new \Exception($file.' is not existed');

@@ -56,10 +56,17 @@ class UserController extends LaravelController
         $this->applyResourceOptions($query, $resourceOptions);
 
         $users = $query->get();
-        $parsedData = $this->parseData($users, $resourceOptions, 'users');
+        $parsedData = $this->parseData($users, $resourceOptions);
 
-        sleep(1);
-        return $this->response($this->toSCIMArray($parsedData));
+        foreach ($parsedData as $key => $item) {
+            $item['addresses'] = json_decode($item['addresses']);
+            $item['meta'] = json_decode($item['meta']);
+            $item['name'] = json_decode($item['name']);
+            $item['phoneNumbers'] = json_decode($item['phoneNumbers']);
+            $item['roles'] = json_decode($item['roles']);
+        }
+
+        return $this->response($this->toSCIMArray($parsedData), $code = 200);
     }
 
     /**
@@ -89,7 +96,23 @@ class UserController extends LaravelController
         UserResource::create([
             "data" => json_encode($request->all()),
         ]);
-        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"]}');
+
+        // save users
+        $dataUser = [
+            'externalId' => $dataPost['externalId'],
+            'userName' => $dataPost['userName'],
+            'active' => (boolean)$dataPost['active'],
+            'addresses' => json_encode($dataPost['addresses']),
+            'displayName' => $dataPost['displayName'],
+            'meta' => json_encode($dataPost['meta']),
+            'name' => json_encode($dataPost['name']),
+            'phoneNumbers' => json_encode($dataPost['phoneNumbers']),
+            'roles' => json_encode($dataPost['roles']),
+            'title' => $dataPost['title'],
+        ];
+        User::create($dataUser);
+
+        return $this->response($dataPost, $code = 201);
     }
 
     /**
@@ -106,10 +129,28 @@ class UserController extends LaravelController
      * Update
      *
      * @param $id
+     * @param Request $request
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
      */
-    public function update($id)
+    public function update($id, Request $request)
     {
         // do something
+        Log::info('-----------------PATCH USER...-----------------');
+        Log::debug($id);
+        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
+
+        $response = [
+            'totalResults' => count([]),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+
+        return $this->response($response);
     }
 
     /**
@@ -144,6 +185,7 @@ class UserController extends LaravelController
     private function setFilterForRequest(Request &$request): bool
     {
         $filter = explode(' ', $request->input('filter'));
+
         try {
             $request["filter_groups"] = [
                 0 =>
@@ -153,7 +195,7 @@ class UserController extends LaravelController
                                 0 =>
                                     [
                                         'key' => $filter[0],
-                                        'value' => $filter[2],
+                                        'value' => trim($filter[2],'"'),
                                         'operator' => $filter[1],
                                     ],
                             ],
@@ -174,7 +216,7 @@ class UserController extends LaravelController
             "schemas" => [
                 "urn:ietf:params:scim:api:messages:2.0:ListResponse"
             ],
-            'Resources' => [],
+            'Resources' => $dataArray,
         ];
         return $arr;
     }

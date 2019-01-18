@@ -19,8 +19,6 @@
 
 namespace App\Ldaplibs\Import;
 
-use App\Http\Models\User;
-use App\Http\Models\UserResource;
 use Illuminate\Support\Facades\Log;
 
 class DBImporterFromScimData

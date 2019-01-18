@@ -203,7 +203,7 @@ class CSVReader implements DataInputReader
 
                     $stringValue = implode(",", $dataTmp);
 
-                    if ($isExit[0]->exists === FALSE) {
+                    if ($isExit[0]->exists === false) {
                         $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
                         DB::insert($query);
                     } else {

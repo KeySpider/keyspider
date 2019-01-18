@@ -36,8 +36,8 @@ class VerifyAzureADToken
     {
         $authorization = $request->header('authorization');
 
-        if($authorization !== "Bearer ".config('app.azure_token')) {
-            throw new SCIMException('The Authorization token header not found', $code = 401);
+        if ($authorization !== "Bearer ".config('app.azure_token')) {
+            throw (new SCIMException('The Authorization token header not found'))->setCode(401);
         }
 
         return $next($request);
