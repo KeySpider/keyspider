@@ -305,4 +305,19 @@ class ImportSettingsManager extends SettingsManager
 
         return $iniSCIMSettingsArray;
     }
+
+    public function getColumnsConversion(){
+        $import_settings = parse_ini_file('/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/import/UserInfoSCIMInput.ini', true);
+        $masterDBConf = parse_ini_file('/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/MasterDBConf.ini', true);
+        $table_name = $import_settings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $formatConversion = $import_settings[self::SCIM_INPUT_FORMAT_CONVERSION];
+        $dbConfigOfTable = $masterDBConf[$table_name];
+        $result = [];
+        foreach ($formatConversion as $key=>$value){
+            if(isset($dbConfigOfTable[$key])){
+                $result[$value] = $dbConfigOfTable[$key];
+            }
+        }
+        return $result;
+    }
 }
