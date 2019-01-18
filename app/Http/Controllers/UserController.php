@@ -19,11 +19,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\SCIMException;
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -64,6 +66,7 @@ class UserController extends LaravelController
             $item['name'] = json_decode($item['name']);
             $item['phoneNumbers'] = json_decode($item['phoneNumbers']);
             $item['roles'] = json_decode($item['roles']);
+            $item[config('const.scim_schema')] = json_decode($item['department']);
         }
 
         return $this->response($this->toSCIMArray($parsedData), $code = 200);
@@ -109,6 +112,7 @@ class UserController extends LaravelController
             'phoneNumbers' => json_encode($dataPost['phoneNumbers']),
             'roles' => json_encode($dataPost['roles']),
             'title' => $dataPost['title'],
+            'department' => json_encode($dataPost[config('const.scim_schema')]),
         ];
         User::create($dataUser);
 
@@ -130,27 +134,58 @@ class UserController extends LaravelController
      *
      * @param $id
      * @param Request $request
-     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @return void
+     * @throws SCIMException
      */
     public function update($id, Request $request)
     {
+        $user = User::where('id', $id)->first();
+
+        if (!$user) {
+            throw (new SCIMException('User Not Found'))->setCode(400);
+        }
+
+        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+
         // do something
         Log::info('-----------------PATCH USER...-----------------');
         Log::debug($id);
         Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-        $response = [
-            'totalResults' => count([]),
-            "itemsPerPage" => 10,
-            "startIndex" => 1,
-            "schemas" => [
-                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
-            ],
-            'Resources' => [],
-        ];
+        $input = $request->input();
 
-        return $this->response($response);
+        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+            throw (new SCIMException(sprintf(
+                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
+                json_encode($input['schemas'])
+            )))->setCode(404);
+        }
+
+        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
+            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
+            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
+        }
+
+        foreach ($input['Operations'] as $operation) {
+            if (strtolower($operation['op']) === 'replace') {
+                $scimReader = new SCIMReader();
+                $options = [
+                    "path" => $filePath,
+                    'operation' => $operation,
+                ];
+                $scimReader->updateReplaceSCIM($id, $options);
+            }
+        }
+
+        $user = User::where('id', $id)->first();
+        $user['addresses'] = json_decode($user['addresses']);
+        $user['meta'] = json_decode($user['meta']);
+        $user['name'] = json_decode($user['name']);
+        $user['phoneNumbers'] = json_decode($user['phoneNumbers']);
+        $user['roles'] = json_decode($user['roles']);
+
+        throw (new SCIMException('Update success'))->setCode(200);
     }
 
     /**
@@ -195,7 +230,7 @@ class UserController extends LaravelController
                                 0 =>
                                     [
                                         'key' => $filter[0],
-                                        'value' => trim($filter[2],'"'),
+                                        'value' => trim($filter[2], '"'),
                                         'operator' => $filter[1],
                                     ],
                             ],

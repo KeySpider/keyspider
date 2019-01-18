@@ -19,6 +19,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Http\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -207,7 +208,8 @@ class SCIMReader
             $stt = $match['exp3'];
 
             if ($attribute === 'department') {
-                $valueAttribute = isset($dataPost[config('const.scim_schema')]) ? $dataPost[config('const.scim_schema')]['department'] : null;
+                $valueAttribute = isset($dataPost[config('const.scim_schema')]) ?
+                    $dataPost[config('const.scim_schema')]['department'] : null;
             } else {
                 $valueAttribute = isset($dataPost[$attribute]) ? $dataPost[$attribute] : null;
             }
@@ -218,30 +220,93 @@ class SCIMReader
 
             $isRegx = preg_match("/{$regx}/", $valueAttribute, $data);
 
-            if ($isRegx) {
-                if ($regx === '\s') {
-                    return str_replace(' ', '', $valueAttribute);
-                }
-                if ($regx === '\w') {
-                    return strtolower($valueAttribute);
-                }
+            if ($regx === '\s') {
+                return str_replace(' ', '', $valueAttribute);
+            }
+            if ($regx === '\w') {
+                return strtolower($valueAttribute);
+            }
 
-                switch ($stt) {
-                    case '$1':
-                        $str = isset($data[1]) ? $data[1] : null;
-                        break;
-                    case '$2':
-                        $str = isset($data[2]) ? $data[2] : null;
-                        break;
-                    case '$3':
-                        $str = isset($data[3]) ? $data[3] : null;
-                        break;
-                    default:
-                        $str = null;
-                }
+            switch ($stt) {
+                case '$1':
+                    $str = isset($data[1]) ? $data[1] : null;
+                    break;
+                case '$2':
+                    $str = isset($data[2]) ? $data[2] : null;
+                    break;
+                case '$3':
+                    $str = isset($data[3]) ? $data[3] : null;
+                    break;
+                default:
+                    $str = null;
             }
 
             return $str;
         }
+    }
+
+    public function updateReplaceSCIM($id, $options)
+    {
+        $externalId = null;
+        $path = $options['path'];
+        $operation = $options['operation'];
+
+        $user = User::where('id', $id)->first();
+
+        if ($user) {
+            $externalId = $user->externalId;
+        }
+
+        $importSetting = new ImportSettingsManager();
+        $setting = $importSetting->getSCIMImportSettings($path);
+
+
+        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+        $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
+
+        $attributeValue = null;
+        $columns = [];
+        $dataUpdate = [];
+
+        foreach ($setting[config('const.scim_format')] as $key => $valueSetting) {
+            if ($key !== "" && preg_match($pattern2, $key) !== 1) {
+                $isCheck = preg_match($pattern, $valueSetting, $match);
+
+                if ($isCheck) {
+                    $attributeValue = $match['exp1'];
+
+                    if ($attributeValue === $operation['path']) {
+                        array_push($columns, "\"{$key}\"");
+                        $str = $this->convertDataFollowSetting($valueSetting, [
+                            $attributeValue => $operation['value'],
+                        ]);
+
+                        array_push($dataUpdate, "'{$str}'");
+                    }
+                }
+            }
+        }
+
+        $nameTable = $this->getTableName($setting);
+
+
+        $condition = "\$\${$externalId}\$\$";
+        $firstColumn = "{$nameTable}.001";
+
+        $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
+        Log::debug($query);
+        $isExit = DB::select($query);
+
+        $stringValue = implode(",", $dataUpdate);
+        $columns = implode(",", $columns);
+
+        if (!empty($columns) && !empty($dataUpdate)) {
+            if ($isExit[0]->exists) {
+                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
+                DB::update($query);
+            }
+        }
+
+        return $user;
     }
 }

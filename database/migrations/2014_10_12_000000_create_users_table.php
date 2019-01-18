@@ -25,6 +25,7 @@ class CreateUsersTable extends Migration
             $table->text('phoneNumbers')->nullable();
             $table->text('roles')->nullable();
             $table->string('title')->nullable();
+            $table->json('department')->nullable();
             $table->timestamps();
         });
     }
