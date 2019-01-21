@@ -312,11 +312,11 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getColumnsConversion()
     {
-        $import_settings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
+        $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
 
-        $table_name = $import_settings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
-        $formatConversion = $import_settings[self::SCIM_INPUT_FORMAT_CONVERSION];
+        $table_name = $importSettings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $formatConversion = $importSettings[self::SCIM_INPUT_FORMAT_CONVERSION];
         $dbConfigOfTable = $masterDBConf[$table_name];
         $result = [];
 
