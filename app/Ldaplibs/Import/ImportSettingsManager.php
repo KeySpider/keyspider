@@ -250,7 +250,8 @@ class ImportSettingsManager extends SettingsManager
         if (is_dir($path)) {
             foreach (scandir($path) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if (in_array($ext, $validateFile) && preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
+                if (in_array($ext, $validateFile) &&
+                    preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
                     array_push($data, "{$path}/{$file}");
                 }
             }
@@ -306,15 +307,21 @@ class ImportSettingsManager extends SettingsManager
         return $iniSCIMSettingsArray;
     }
 
-    public function getColumnsConversion(){
-        $import_settings = parse_ini_file('/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/import/UserInfoSCIMInput.ini', true);
-        $masterDBConf = parse_ini_file('/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/MasterDBConf.ini', true);
+    /**
+     * @return array
+     */
+    public function getColumnsConversion()
+    {
+        $import_settings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
+        $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
+
         $table_name = $import_settings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
         $formatConversion = $import_settings[self::SCIM_INPUT_FORMAT_CONVERSION];
         $dbConfigOfTable = $masterDBConf[$table_name];
         $result = [];
-        foreach ($formatConversion as $key=>$value){
-            if(isset($dbConfigOfTable[$key])){
+
+        foreach ($formatConversion as $key => $value) {
+            if (isset($dbConfigOfTable[$key])) {
                 $result[$value] = $dbConfigOfTable[$key];
             }
         }
