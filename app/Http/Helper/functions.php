@@ -95,3 +95,60 @@ if (!function_exists('clean')) {
         return str_replace('$', '', $string); // Replaces all spaces with hyphens.
     }
 }
+
+if (!function_exists('arrays_are_similar')) {
+    /**
+     * Determine if two associative arrays are similar
+     *
+     * Both arrays must have the same indexes with identical values
+     * without respect to key ordering
+     *
+     * @param array $a
+     * @param array $b
+     * @return bool
+     */
+    function arrays_are_similar($a, $b)
+    {
+        // if the indexes don't match, return immediately
+        if (count(array_diff_assoc($a, $b))) {
+            return false;
+        }
+        // we know that the indexes, but maybe not values, match.
+        // compare the values between the two arrays
+        foreach ($a as $k => $v) {
+            if ($v !== $b[$k]) {
+                return false;
+            }
+        }
+        // we have identical indexes, and no unequal values
+        return true;
+    }
+}
+
+if (!function_exists('array_diff_assoc_recursive')) {
+    /**
+     * @param $array1
+     * @param $array2
+     * @return int
+     */
+    function array_diff_assoc_recursive($array1, $array2)
+    {
+        foreach ($array1 as $key => $value) {
+            if (is_array($value)) {
+                if (!isset($array2[$key])) {
+                    $difference[$key] = $value;
+                } elseif (!is_array($array2[$key])) {
+                    $difference[$key] = $value;
+                } else {
+                    $new_diff = array_diff_assoc_recursive($value, $array2[$key]);
+                    if ($new_diff != false) {
+                        $difference[$key] = $new_diff;
+                    }
+                }
+            } elseif (!isset($array2[$key]) || $array2[$key] != $value) {
+                $difference[$key] = $value;
+            }
+        }
+        return !isset($difference) ? 0 : $difference;
+    }
+}
