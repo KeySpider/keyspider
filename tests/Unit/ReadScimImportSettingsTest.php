@@ -100,7 +100,7 @@ class ReadScimImportSettingsTest extends TestCase
     {
         $importSettingsManager = new ImportSettingsManager();
         $resource = json_decode('{"001":"montes.nascetur.ridiculus","002":"2019/01/22","003":"","004":"Office of the Director of Public Prosecutions","005":"admin","013":"2019/01/22","014":"admin","015":"0","006":"Barrera","007":"Scarlet","008":"BarreraScarlet","009":"","010":"hogehoge","011":"hogehoga"}', true);
-        $iniFilePath = '/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/import/UserInfoSCIMInput.ini';
+        $iniFilePath = '/Applications/MAMP/htdocs/LDAP_ID/storage/unittest/settings/scim/UserInfoSCIMInput.ini';
         $formattedSCIM = $importSettingsManager->formatDBToSCIMStandard($resource, $iniFilePath);
         $expected_result = [
             "userName" => "montes.nascetur.ridiculus",
