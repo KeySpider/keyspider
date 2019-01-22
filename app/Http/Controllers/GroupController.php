@@ -72,11 +72,6 @@ class GroupController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
 
-        // save users resource
-        GroupResource::create([
-            "data" => json_encode($request->all()),
-        ]);
-
         return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"]}');
     }
 

@@ -250,15 +250,9 @@ class SCIMReader
 
     public function updateReplaceSCIM($id, $options)
     {
-        $externalId = null;
+        $externalId = $id;
         $path = $options['path'];
         $operation = $options['operation'];
-
-        $user = User::where('id', $id)->first();
-
-        if ($user) {
-            $externalId = $user->externalId;
-        }
 
         $importSetting = new ImportSettingsManager();
         $setting = $importSetting->getSCIMImportSettings($path);
@@ -279,7 +273,8 @@ class SCIMReader
                     $attributeValue = $match['exp1'];
 
                     if ($attributeValue === $operation['path']) {
-                        array_push($columns, "\"{$key}\"");
+                        $newsKey = substr($key, -3);
+                        array_push($columns, "\"{$newsKey}\"");
                         $str = $this->convertDataFollowSetting($valueSetting, [
                             $attributeValue => $operation['value'],
                         ]);
@@ -292,9 +287,8 @@ class SCIMReader
 
         $nameTable = $this->getTableName($setting);
 
-
         $condition = "\$\${$externalId}\$\$";
-        $firstColumn = "{$nameTable}.001";
+        $firstColumn = "001";
 
         $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
         Log::debug($query);
@@ -310,6 +304,6 @@ class SCIMReader
             }
         }
 
-        return $user;
+        return true;
     }
 }

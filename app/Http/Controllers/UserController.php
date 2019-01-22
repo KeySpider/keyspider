@@ -50,44 +50,55 @@ class UserController extends LaravelController
 
     public function index(Request $request)
     {
+        $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+
         $filter = explode(' ', $request->input('filter'));
 
-        $importSetting = new ImportSettingsManager();
-        $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
-        $dataSetting = $importSetting->getColumnsConversion($fileIni);
+        $column = isset($filter[0]) && $filter[0] === 'userName' ? '001' : null;
+        $filterValue = isset($filter[2]) ? $filter[2] : null;
 
-        $this->setFilterForRequest($request);
-        $resourceOptions = $this->parseResourceOptions($request);
+        $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
+        $isPattern = preg_match($pattern, $filterValue, $result);
 
-        // Start a new query for books using Eloquent query builder
-        // (This would normally live somewhere else, e.g. in a Repository)
-        $query = User::query();
-        $this->applyResourceOptions($query, $resourceOptions);
-
-        $users = $query->get();
-        $parsedData = $this->parseData($users, $resourceOptions);
-
-//        $querytest = "select * from \"AAA\" where (\"AAA.001\" = 'tuananh')";
-//        $datatest = DB::select($querytest);
-
-        $datatest = AAA::where('001', 'montes.nascetur.ridiculus')->get()->toArray();
-
-        $response = [];
-        foreach ($datatest as $key => $value) {
-            dd($value);
+        $valueQuery = null;
+        if ($isPattern) {
+            $valueQuery = $result[1];
         }
 
-        foreach ($parsedData as $key => $item) {
-            $item['addresses'] = json_decode($item['addresses']);
-            $item['meta'] = json_decode($item['meta']);
-            $item['name'] = json_decode($item['name']);
-            $item['phoneNumbers'] = json_decode($item['phoneNumbers']);
-            $item['roles'] = json_decode($item['roles']);
-            $item[config('const.scim_schema')] = json_decode($item['department']);
-            unset($item['department']);
+        $dataQuery = AAA::where($column, $valueQuery)->first();
+
+        $dataFormat = [];
+        if ($dataQuery) {
+            $importSetting = new ImportSettingsManager();
+            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $fileIni);
+            $dataFormat['id'] = $dataFormat['userName'];
+            unset($dataFormat[0]);
         }
 
-        return $this->response($this->toSCIMArray($parsedData), $code = 200);
+        $jsonData = [];
+        if (!empty($dataFormat)) {
+            $data = [
+                'id' => $dataFormat['userName'],
+                "externalId" => $dataFormat['userName'],
+                "userName" => str_replace("\"", "", $filterValue),
+                "active" => true,
+                "displayName" => $dataFormat['displayName'],
+                "meta" => [
+                    "resourceType" => "User",
+                ],
+                "name" => [
+                    "formatted" => "",
+                    "familyName" => "",
+                    "givenName" => "",
+                ],
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
+                    "department" => $dataFormat['department']
+                ],
+            ];
+            array_push($jsonData, $data);
+        }
+
+        return $this->response($this->toSCIMArray($jsonData), $code = 200);
     }
 
     /**
@@ -113,27 +124,6 @@ class UserController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
 
-        // save users resource
-        UserResource::create([
-            "data" => json_encode($request->all()),
-        ]);
-
-        // save users
-        $dataUser = [
-            'externalId' => $dataPost['externalId'],
-            'userName' => $dataPost['userName'],
-            'active' => (boolean)$dataPost['active'],
-            'addresses' => json_encode($dataPost['addresses']),
-            'displayName' => $dataPost['displayName'],
-            'meta' => json_encode($dataPost['meta']),
-            'name' => json_encode($dataPost['name']),
-            'phoneNumbers' => json_encode($dataPost['phoneNumbers']),
-            'roles' => json_encode($dataPost['roles']),
-            'title' => $dataPost['title'],
-            'department' => json_encode($dataPost[config('const.scim_schema')]),
-        ];
-        User::create($dataUser);
-
         return $this->response($dataPost, $code = 201);
     }
 
@@ -157,19 +147,19 @@ class UserController extends LaravelController
      */
     public function update($id, Request $request)
     {
-        $user = User::where('id', $id)->first();
+        // do something
+        Log::info('-----------------PATCH USER...-----------------');
+        Log::debug($id);
+        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
+
+        $user = AAA::where('001', $id)->first();
 
         if (!$user) {
             throw (new SCIMException('User Not Found'))->setCode(400);
         }
 
         $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
-
-        // do something
-        Log::info('-----------------PATCH USER...-----------------');
-        Log::debug($id);
-        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
 
         $input = $request->input();
 
@@ -195,13 +185,6 @@ class UserController extends LaravelController
                 $scimReader->updateReplaceSCIM($id, $options);
             }
         }
-
-        $user = User::where('id', $id)->first();
-        $user['addresses'] = json_decode($user['addresses']);
-        $user['meta'] = json_decode($user['meta']);
-        $user['name'] = json_decode($user['name']);
-        $user['phoneNumbers'] = json_decode($user['phoneNumbers']);
-        $user['roles'] = json_decode($user['roles']);
 
         throw (new SCIMException('Update success'))->setCode(200);
     }

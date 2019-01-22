@@ -305,10 +305,9 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
-     * @param $fileIni
      * @return array
      */
-    public function getColumnsConversion($fileIni)
+    public function getColumnsConversion()
     {
         $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
@@ -345,7 +344,7 @@ class ImportSettingsManager extends SettingsManager
         } catch (\Exception $e) {
             Log::error($e->getMessage());
         }
-        //Convert keys "AAA.001" to "001"
+
         $newKeys = array_map(function ($k) {
             return substr($k, strpos($k, '.')+1);
         }, array_keys($conversion));
