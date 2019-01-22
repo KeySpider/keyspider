@@ -341,13 +341,13 @@ class ImportSettingsManager extends SettingsManager
             $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
-//            dd($e->getMessage());
+            dd($e->getMessage());
         }
         //Convert keys "AAA.001" to "001"
         $newKeys = array_map(function ($k){return substr($k, strpos($k,'.')+1);}, array_keys($conversion));
-        $newConversion = array_combine(array_values($conversion), $newKeys);
+        $newValues = array_map(function ($v){return $this->getSCIMFieldFromExpression($v);}, array_values($conversion));
+        $newConversion = array_combine($newValues, $newKeys);
         $result = [];
-        $newConversion = array_map(function ($v){return $this->getSCIMFieldFromExpression($v);}, $newConversion);
         foreach ($newConversion as $k=>$v){
             if(isset($resource[$v]))
             {
