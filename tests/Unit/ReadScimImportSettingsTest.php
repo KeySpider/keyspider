@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ALL */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -94,5 +95,29 @@ class ReadScimImportSettingsTest extends TestCase
                 ],
         ];
         $this->assertTrue($scim_settings == $expected_result);
+    }
+
+    public function testSCIMFormat()
+    {
+        $importSettingsManager = new ImportSettingsManager();
+        $resource = json_decode('{"001":"montes.nascetur.ridiculus","002":"2019/01/22","003":"","004":"Office of the Director of Public Prosecutions","005":"admin","013":"2019/01/22","014":"admin","015":"0","006":"Barrera","007":"Scarlet","008":"BarreraScarlet","009":"","010":"hogehoge","011":"hogehoga"}', true);
+        $iniFilePath = '/Applications/MAMP/htdocs/LDAP_ID/storage/unittest/settings/scim/UserInfoSCIMInput.ini';
+        $formattedSCIM = $importSettingsManager->formatDBToSCIMStandard($resource, $iniFilePath);
+        $expected_result = [
+            "userName" => "montes.nascetur.ridiculus",
+            "TODAY()" => "2019/01/22",
+            "password" => "",
+            "department" => "Office of the Director of Public Prosecutions",
+            "roles" => "admin",
+            "admin" => "admin",
+            0 => "0",
+            "displayName" => "BarreraScarlet",
+            "mail" => "",
+            "hogehoge" => "hogehoge",
+            "hogehoga" => "hogehoga",
+        ];
+
+        self::assertTrue($formattedSCIM==$expected_result);
+
     }
 }

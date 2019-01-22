@@ -41,9 +41,9 @@ class ImportSettingsManager extends SettingsManager
      *
      * @param $iniSettingsFiles
      */
-    const SCIM_INPUT_BACIC_CONFIGURATION = 'SCIM Input Bacic Configuration';
+    public const SCIM_INPUT_BACIC_CONFIGURATION = 'SCIM Input Bacic Configuration';
 
-    const SCIM_INPUT_FORMAT_CONVERSION = 'SCIM Input Format Conversion';
+    public const SCIM_INPUT_FORMAT_CONVERSION = 'SCIM Input Format Conversion';
 
     public function __construct($iniSettingsFiles = null)
     {
@@ -58,7 +58,7 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getScheduleImportExecution(): array
     {
-        if ($this->key_spider == null) {
+        if ($this->key_spider === null) {
             Log::error('Wrong key spider! Do nothing.');
             return [];
         }
@@ -76,7 +76,7 @@ class ImportSettingsManager extends SettingsManager
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
                 );
-                if (count($filesFromPattern) == 0) {
+                if (count($filesFromPattern) === 0) {
                     continue;
                 }
                 $filesArray = [];
@@ -111,7 +111,7 @@ class ImportSettingsManager extends SettingsManager
 
         foreach ($this->iniImportSettingsFiles as $iniImportSettingsFile) {
             $tableContents = parse_ini_file($iniImportSettingsFile, true);
-            if ($tableContents == null) {
+            if ($tableContents === null) {
                 Log::error('Can not run import schedule');
                 return [];
             }
@@ -150,7 +150,6 @@ class ImportSettingsManager extends SettingsManager
                 return false;
             }
         }
-        Log::info('areAllImportIniFilesValid: YES');
         return true;
     }
 
@@ -185,22 +184,18 @@ class ImportSettingsManager extends SettingsManager
         // Validate main keys
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
-            Log::error('Key error validation');
-            Log::error('Error file: ' . $fileName ? $fileName : '');
-            Log::error($validate->getMessageBag());
+            $this->logErrorOfValidation($fileName, $validate);
             return false;
         }
 
         // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
-        if ($validate == null) {
+        if ($validate === null) {
             Log::info('Please create the folder in your server');
             return false;
         }
         if ($validate->fails()) {
-            Log::error('Key error validation');
-            Log::error('Error file: ' . $fileName ? $fileName : '');
-            Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            $this->logErrorOfValidation($fileName, $validate);
             return false;
         }
         return true;
@@ -210,7 +205,7 @@ class ImportSettingsManager extends SettingsManager
      * @param $iniArray
      * @return \Illuminate\Contracts\Validation\Validator
      */
-    private function validateBasicConfiguration($iniArray)
+    private function validateBasicConfiguration($iniArray): \Illuminate\Contracts\Validation\Validator
     {
         $tempIniArray = [];
         $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
@@ -248,11 +243,11 @@ class ImportSettingsManager extends SettingsManager
         $validateFile = ['csv'];
 
         if (is_dir($path)) {
-            foreach (scandir($path) as $key => $file) {
+            foreach (scandir($path, SCANDIR_SORT_NONE) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if (in_array($ext, $validateFile) &&
+                if (in_array($ext, $validateFile, true) &&
                     preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
-                    array_push($data, "{$path}/{$file}");
+                    $data[] = "{$path}/{$file}";
                 }
             }
         }
@@ -262,11 +257,11 @@ class ImportSettingsManager extends SettingsManager
 
     /**
      * Get settings for import SCIM
-     * @param null $filePath
+     * @param  $filePath
      * @return array
      * @throws \Exception
      */
-    public function getSCIMImportSettings($filePath)
+    public function getSCIMImportSettings($filePath): array
     {
         try {
             $iniArray = parse_ini_file($filePath, true);
@@ -277,7 +272,7 @@ class ImportSettingsManager extends SettingsManager
             // Validate main keys
             $validate = Validator::make($iniArray, $rules);
             if ($validate->fails()) {
-                throw new \Exception($validate->getMessageBag());
+                throw new \RuntimeException($validate->getMessageBag());
             }
         } catch (\Exception $exception) {
             Log::error('Key error SCIM import validation');
@@ -305,9 +300,10 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
+     * Get columns' name conversion from ini file.
      * @return array
      */
-    public function getColumnsConversion()
+    public function getColumnsConversion(): array
     {
         $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
@@ -325,30 +321,45 @@ class ImportSettingsManager extends SettingsManager
         return $result;
     }
 
+    /**
+     * Get standard name from formular expression.
+     * @param $value
+     * @return mixed
+     */
     private function getSCIMFieldFromExpression($value)
     {
         $parsedArray = array();
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $success = preg_match($pattern, $value, $parsedArray);
-        if (isset($parsedArray['exp1'])) {
-            return ($parsedArray['exp1']);
-        } else {
-            return $value;
+        if ($success && isset($parsedArray['exp1'])) {
+            return $parsedArray['exp1'];
         }
+
+        return $value;
     }
 
-    public function formatDBToSCIMStandard($resource, $iniFilePathOfResource)
+    /**
+     * Problem: Data from DB is conflict with data from AzureAD cause fields' name
+     * Need to convert based on INI settings file.
+     * @param $resource : like: '001' => string(25) "montes.nascetur.ridiculus"
+     * @param $iniFilePathOfResource : path of Ini settings file
+     * @return array
+     */
+    public function formatDBToSCIMStandard($resource, $iniFilePathOfResource): array
     {
+        //Get Scim format conversion from ini settings file.
+        $conversion = [];
         try {
             $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
         }
-
+        //AAA.001 should be 001 (column name)
         $newKeys = array_map(function ($k) {
             return substr($k, strpos($k, '.')+1);
         }, array_keys($conversion));
 
+        //get standard name from expression.
         $newValues = array_map(function ($v) {
             return $this->getSCIMFieldFromExpression($v);
         }, array_values($conversion));
@@ -361,5 +372,17 @@ class ImportSettingsManager extends SettingsManager
             }
         }
         return $result;
+    }
+
+    /**
+     * @param $fileName
+     * @param $validate
+     */
+    private function logErrorOfValidation($fileName, $validate): void
+    {
+        Log::error('Key error validation');
+        Log::error(('Error file: ' . $fileName) ? $fileName : '');
+        /** @noinspection PhpUndefinedMethodInspection */
+        Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
 }
