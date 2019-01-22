@@ -13,7 +13,9 @@ class CreateAAATable extends Migration
      */
     public function up()
     {
-        Schema::create('AAA', function (Blueprint $table) {});
+        Schema::create('AAA', function (Blueprint $table) {
+            $table->string('001')->primary();
+        });
     }
 
     /**

@@ -82,10 +82,10 @@ class SCIMReader
 
         foreach ($dataFormat as $key => $item) {
             if ($key !== "" && preg_match($pattern, $key) !== 1) {
-                array_push($columns, "\"{$key}\"");
+                $newstring = substr($key, -3);
+                array_push($columns, "\"{$newstring}\"");
             }
         }
-
         return $columns;
     }
 
@@ -129,6 +129,7 @@ class SCIMReader
     {
         $nameTable = $this->getTableName($setting);
         $scimInputFormat = $setting[config('const.scim_format')];
+
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
         $columns = implode(",", $columns);
@@ -139,21 +140,23 @@ class SCIMReader
             }
         }
 
+        $data = [];
         foreach ($scimInputFormat as $key => $value) {
             $item = $this->processGroup($value, $dataPost);
-            $scimInputFormat[$key] = "\$\${$item}\$\$";
+            $newsKey = substr($key, -3);
+            $data[$newsKey] = "\$\${$item}\$\$";
         }
 
-        if (!empty($scimInputFormat)) {
-            $condition = clean($scimInputFormat["{$nameTable}.001"]);
+        if (!empty($data)) {
+            $condition = clean($data["001"]);
             $condition = "\$\${$condition}\$\$";
-            $firstColumn = "{$nameTable}.001";
+            $firstColumn = "001";
 
             $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
             Log::debug($query);
             $isExit = DB::select($query);
 
-            $stringValue = implode(",", $scimInputFormat);
+            $stringValue = implode(",", $data);
 
             if ($isExit[0]->exists === false) {
                 $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";

@@ -126,7 +126,13 @@ class DBExtractor
 
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
-        foreach ($extractCondition as $column => $where) {
+        $dataColumn = [];
+        foreach ($extractCondition as $key => $value) {
+            $newsKey = substr($key, -3);
+            $dataColumn[$newsKey] = $value;
+        }
+
+        foreach ($dataColumn as $column => $where) {
             if ($this->checkExitsString($where)) {
                 $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
                 $query = "\"{$column}\" <= '{$where}'";
@@ -164,9 +170,9 @@ class DBExtractor
         $leftJoin = empty($leftJoin) ? '' : implode('', $leftJoin);
 
         if ($table === "\"AAA\"") {
-            $sql = "SELECT {$selectColumn} FROM {$table} {$leftJoin} {$queries}";
+            $sql = "SELECT * FROM {$table} {$leftJoin} {$queries}";
         } else {
-            $sql = "SELECT {$selectColumn} FROM {$table} {$queries}";
+            $sql = "SELECT * FROM {$table} {$queries}";
         }
 
         return $sql;

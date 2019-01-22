@@ -305,11 +305,12 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
+     * @param $fileIni
      * @return array
      */
-    public function getColumnsConversion()
+    public function getColumnsConversion($fileIni)
     {
-        $import_settings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
+        $import_settings = parse_ini_file($fileIni, true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
 
         $table_name = $import_settings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];

@@ -20,6 +20,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\SCIMException;
+use App\Http\Models\AAA;
 use App\Http\Models\User;
 use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
@@ -27,6 +28,7 @@ use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
@@ -48,8 +50,13 @@ class UserController extends LaravelController
 
     public function index(Request $request)
     {
-        $this->setFilterForRequest($request);
+        $filter = explode(' ', $request->input('filter'));
 
+        $importSetting = new ImportSettingsManager();
+        $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $dataSetting = $importSetting->getColumnsConversion($fileIni);
+
+        $this->setFilterForRequest($request);
         $resourceOptions = $this->parseResourceOptions($request);
 
         // Start a new query for books using Eloquent query builder
@@ -60,6 +67,16 @@ class UserController extends LaravelController
         $users = $query->get();
         $parsedData = $this->parseData($users, $resourceOptions);
 
+//        $querytest = "select * from \"AAA\" where (\"AAA.001\" = 'tuananh')";
+//        $datatest = DB::select($querytest);
+
+        $datatest = AAA::where('001', 'montes.nascetur.ridiculus')->get()->toArray();
+
+        $response = [];
+        foreach ($datatest as $key => $value) {
+            dd($value);
+        }
+
         foreach ($parsedData as $key => $item) {
             $item['addresses'] = json_decode($item['addresses']);
             $item['meta'] = json_decode($item['meta']);
@@ -67,6 +84,7 @@ class UserController extends LaravelController
             $item['phoneNumbers'] = json_decode($item['phoneNumbers']);
             $item['roles'] = json_decode($item['roles']);
             $item[config('const.scim_schema')] = json_decode($item['department']);
+            unset($item['department']);
         }
 
         return $this->response($this->toSCIMArray($parsedData), $code = 200);

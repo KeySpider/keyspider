@@ -133,7 +133,8 @@ class CSVReader implements DataInputReader
         $fields = [];
         foreach ($setting[self::CONVERSION] as $key => $item) {
             if ($key !== "" && preg_match($pattern, $key) !== 1) {
-                array_push($fields, "\"{$key}\"");
+                $newstring = substr($key, -3);
+                array_push($fields, "\"{$newstring}\"");
             }
         }
         return $fields;
@@ -196,7 +197,7 @@ class CSVReader implements DataInputReader
                 if (!empty($dataTmp)) {
                     $condition = clean($dataTmp[0]);
                     $condition = "\$\${$condition}\$\$";
-                    $cl = "{$nameTable}.001";
+                    $cl = "001";
 
                     $query = "select exists(select 1 from \"{$nameTable}\" where \"{$cl}\" = {$condition})";
                     $isExit = DB::select($query);
