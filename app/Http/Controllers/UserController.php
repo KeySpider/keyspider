@@ -21,17 +21,16 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\SCIMException;
 use App\Http\Models\AAA;
-use App\Http\Models\User;
-use App\Http\Models\UserResource;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
+use Tmilos\ScimFilterParser\Mode;
+use Tmilos\ScimFilterParser\Parser;
 
 class UserController extends LaravelController
 {
@@ -52,10 +51,9 @@ class UserController extends LaravelController
     {
         $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
 
-        $filter = explode(' ', $request->input('filter'));
-
-        $column = isset($filter[0]) && $filter[0] === 'userName' ? '001' : null;
-        $filterValue = isset($filter[2]) ? $filter[2] : null;
+        $parser = new Parser(Mode::FILTER());
+        $node = $parser->parse($request->input('filter'));
+        $filterValue = $node->compareValue;
 
         $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
         $isPattern = preg_match($pattern, $filterValue, $result);
@@ -65,7 +63,7 @@ class UserController extends LaravelController
             $valueQuery = $result[1];
         }
 
-        $dataQuery = AAA::where($column, $valueQuery)->first();
+        $dataQuery = AAA::where('001', $valueQuery)->first();
 
         $dataFormat = [];
         if ($dataQuery) {

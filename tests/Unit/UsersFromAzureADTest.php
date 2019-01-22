@@ -67,11 +67,12 @@ class UsersFromAzureADTest extends TestCase
      */
     public function testApiGetUsers()
     {
+        $this->testImportDataUserIntoMasterDB();
         $response = $this
             ->withHeaders([
                 'Authorization' => 'Bearer '.config('app.azure_token'),
             ])
-            ->get('api/Users?filter=userName eq "223d461654-0fc4-4dc8-8aa2-3dcf64837452%22"');
+            ->get('api/Users?filter=userName eq "test@gmail.com"');
 
         $response->assertStatus(200);
     }
