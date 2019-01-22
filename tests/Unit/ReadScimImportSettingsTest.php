@@ -117,7 +117,6 @@ class ReadScimImportSettingsTest extends TestCase
         ];
 
         self::assertTrue($formattedSCIM==$expected_result);
-//        dd($formattedSCIM);
 
     }
 }
