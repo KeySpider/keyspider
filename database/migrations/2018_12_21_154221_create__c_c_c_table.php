@@ -13,7 +13,9 @@ class CreateCCCTable extends Migration
      */
     public function up()
     {
-        Schema::create('CCC', function (Blueprint $table) {});
+        Schema::create('CCC', function (Blueprint $table) {
+            $table->string('001')->primary();
+        });
     }
 
     /**

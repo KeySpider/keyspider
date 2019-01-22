@@ -32,7 +32,7 @@ class ExtractQueueTest extends TestCase
      */
     public function testBasicTest()
     {
-        $unittestExportDir = '/Applications/MAMP/htdocs/LDAP_ID/storage/unittest/export/';
+        $unittestExportDir = storage_path('unittest/export/');
         array_map('unlink', glob($unittestExportDir . '*.*'));
         sleep(1);
 

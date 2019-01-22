@@ -26,7 +26,7 @@ class ReadScimImportSettingsTest extends TestCase
 {
     public function testUserInfoSCIMInput()
     {
-        $filePath = '/Applications/MAMP/htdocs/LDAP_ID/storage/unittest/settings/scim/UserInfoSCIMInput.ini';
+        $filePath = storage_path('unittest/settings/scim/UserInfoSCIMInput.ini');
         $importSettingsManager = new ImportSettingsManager();
         print ("\r\n Do unit test for reading Scim settings on file: " . $filePath);
         try {
@@ -64,7 +64,7 @@ class ReadScimImportSettingsTest extends TestCase
 
     public function testRoleInfoSCIMInput()
     {
-        $filePath = '/Applications/MAMP/htdocs/LDAP_ID/storage/unittest/settings/scim/RoleInfoSCIMInput.ini';
+        $filePath = storage_path('unittest/settings/scim/RoleInfoSCIMInput.ini');
         $importSettingsManager = new ImportSettingsManager();
         print ("\r\n Do unit test for reading Scim settings on file: " . $filePath);
         try {

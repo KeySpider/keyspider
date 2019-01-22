@@ -19,6 +19,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Models\CCC;
 use App\Http\Models\GroupResource;
 use App\Http\Models\User;
 use App\Jobs\DBImporterFromScimJob;
@@ -28,6 +29,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
+use Tmilos\ScimFilterParser\Mode;
+use Tmilos\ScimFilterParser\Parser;
 
 class GroupController extends LaravelController
 {
@@ -35,20 +38,36 @@ class GroupController extends LaravelController
 
     public function index(Request $request)
     {
-        $this->setFilterForRequest($request);
+        $fileIni = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
 
-        $resourceOptions = $this->parseResourceOptions($request);
+        $parser = new Parser(Mode::FILTER());
+        $node = $parser->parse($request->input('filter'));
 
-        // Start a new query for books using Eloquent query builder
-        // (This would normally live somewhere else, e.g. in a Repository)
-        $query = User::query();
-        $this->applyResourceOptions($query, $resourceOptions);
+        $dataQuery = CCC::where('003', $node->compareValue)->first();
 
-        $users = $query->get();
-        $parsedData = $this->parseData($users, $resourceOptions, 'users');
+        $dataFormat = [];
+        if ($dataQuery) {
+            $importSetting = new ImportSettingsManager();
+            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $fileIni);
+            unset($dataFormat[0]);
+            unset($dataFormat[""]);
+        }
 
-        sleep(1);
-        return $this->response($this->toSCIMArray($parsedData));
+        $jsonData = [];
+        if (!empty($dataFormat)) {
+            $data = [
+                "id" => $dataFormat['externalId'],
+                "externalId" => $dataFormat['externalId'],
+                "displayName" => $dataFormat['displayName'],
+                "meta" => [
+                    "resourceType" => "Group",
+                ],
+                "members" => [],
+            ];
+            array_push($jsonData, $data);
+        }
+
+        return $this->response($this->toSCIMArray($jsonData), $code = 200);
     }
 
     /**
@@ -72,12 +91,7 @@ class GroupController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
 
-        // save users resource
-        GroupResource::create([
-            "data" => json_encode($request->all()),
-        ]);
-
-        return $this->response('{"schemas":["urn:ietf:params:scim:schemas:core:2.0:Group"]}');
+        return $this->response($dataPost, 200);
     }
 
     /**
@@ -94,10 +108,97 @@ class GroupController extends LaravelController
      * Update
      *
      * @param $id
+     * @param Request $request
      */
-    public function update($id)
+    public function update($id, Request $request)
     {
         // do something
+        Log::info('-----------------PATCH GROUP...-----------------');
+        Log::debug($id);
+        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
+        Log::info('--------------------------------------------------');
+
+//        $user = AAA::where('001', $id)->first();
+//
+//        if (!$user) {
+//            throw (new SCIMException('User Not Found'))->setCode(400);
+//        }
+//
+//        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+//
+//        $input = $request->input();
+//
+//        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+//            throw (new SCIMException(sprintf(
+//                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
+//                json_encode($input['schemas'])
+//            )))->setCode(404);
+//        }
+//
+//        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
+//            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
+//            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
+//        }
+//
+//        foreach ($input['Operations'] as $operation) {
+//            if (strtolower($operation['op']) === 'replace') {
+//                $scimReader = new SCIMReader();
+//                $options = [
+//                    "path" => $filePath,
+//                    'operation' => $operation,
+//                ];
+//                $scimReader->updateReplaceSCIM($id, $options);
+//            }
+//        }
+//
+//        throw (new SCIMException('Update success'))->setCode(200);
+    }
+
+    public function detail($id)
+    {
+        // do something
+        Log::info('-----------------DETAIL GROUP...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $dataQuery = CCC::where('001', $id)->first();
+        dd($dataQuery);
+
+        $dataFormat = [];
+        if ($dataQuery) {
+            $importSetting = new ImportSettingsManager();
+            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $fileIni);
+            unset($dataFormat[0]);
+            unset($dataFormat[""]);
+        }
+
+        $jsonData = [];
+        if (!empty($dataFormat)) {
+            $data = [
+                "id" => $dataFormat['externalId'],
+                "externalId" => $dataFormat['externalId'],
+                "displayName" => $dataFormat['displayName'],
+                "meta" => [
+                    "resourceType" => "Group",
+                ],
+                "members" => [],
+            ];
+            array_push($jsonData, $data);
+        }
+
+        return $this->response($this->toSCIMArray($jsonData), $code = 200);
+
+        $response = [
+            'totalResults' => count([]),
+            "itemsPerPage" => 10,
+            "startIndex" => 1,
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+            ],
+            'Resources' => [],
+        ];
+
+        return $this->response($response);
     }
 
     /**
@@ -166,7 +267,7 @@ class GroupController extends LaravelController
             "schemas" => [
                 "urn:ietf:params:scim:api:messages:2.0:ListResponse"
             ],
-            'Resources' => [],
+            'Resources' => $dataArray,
         ];
         return $arr;
     }

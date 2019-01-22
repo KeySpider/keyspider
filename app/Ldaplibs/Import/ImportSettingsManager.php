@@ -281,8 +281,6 @@ class ImportSettingsManager extends SettingsManager
             }
         } catch (\Exception $exception) {
             Log::error('Key error SCIM import validation');
-            Log::error($validate->getMessageBag());
-            dd($validate->getMessageBag());
         }
 
 
@@ -301,7 +299,6 @@ class ImportSettingsManager extends SettingsManager
             $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            dd($exception->getMessage());
         }
 
         return $iniSCIMSettingsArray;
@@ -333,26 +330,33 @@ class ImportSettingsManager extends SettingsManager
         $parsedArray = array();
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $success = preg_match($pattern, $value, $parsedArray);
-        if (isset($parsedArray['exp1']))
+        if (isset($parsedArray['exp1'])) {
             return ($parsedArray['exp1']);
-        else return $value;
+        } else {
+            return $value;
+        }
     }
 
-    public function formatDBToSCIMStandard($resource, $iniFilePathOfResource){
+    public function formatDBToSCIMStandard($resource, $iniFilePathOfResource)
+    {
         try {
             $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
-            dd($e->getMessage());
         }
-        //Convert keys "AAA.001" to "001"
-        $newKeys = array_map(function ($k){return substr($k, strpos($k,'.')+1);}, array_keys($conversion));
-        $newValues = array_map(function ($v){return $this->getSCIMFieldFromExpression($v);}, array_values($conversion));
+
+        $newKeys = array_map(function ($k) {
+            return substr($k, strpos($k, '.')+1);
+        }, array_keys($conversion));
+
+        $newValues = array_map(function ($v) {
+            return $this->getSCIMFieldFromExpression($v);
+        }, array_values($conversion));
+
         $newConversion = array_combine($newValues, $newKeys);
         $result = [];
-        foreach ($newConversion as $k=>$v){
-            if(isset($resource[$v]))
-            {
+        foreach ($newConversion as $k => $v) {
+            if (isset($resource[$v])) {
                 $result[$k] = $resource[$v];
             }
         }

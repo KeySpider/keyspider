@@ -13,7 +13,9 @@ class CreateBBBTable extends Migration
      */
     public function up()
     {
-        Schema::create('BBB', function (Blueprint $table) {});
+        Schema::create('BBB', function (Blueprint $table) {
+            $table->string('001')->primary();
+        });
     }
 
     /**
