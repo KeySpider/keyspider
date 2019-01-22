@@ -343,7 +343,7 @@ class ImportSettingsManager extends SettingsManager
             $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
-//            dd($e->getMessage());
+            dd($e->getMessage());
         }
         //Convert keys "AAA.001" to "001"
         $newKeys = array_map(function ($k){return substr($k, strpos($k,'.')+1);}, array_keys($conversion));
