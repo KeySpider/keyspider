@@ -1,0 +1,27 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+    ],
+    "Operations": [
+        {
+            "op": "Replace",
+            "path": "displayName",
+            "value": "Demo Test"
+        },
+        {
+            "op": "Replace",
+            "path": "name.givenName",
+            "value": "Demo"
+        },
+        {
+            "op": "Replace",
+            "path": "name.familyName",
+            "value": "Test"
+        },
+        {
+            "op": "Replace",
+            "path": "name.formatted",
+            "value": "Demo Test"
+        }
+    ]
+}

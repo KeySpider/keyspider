@@ -1,47 +1,49 @@
 {
-    "schemas": [
-        "urn:ietf:params:scim:schemas:core:2.0:User",
-        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-    ],
-    "externalId": "montes.nascetur.ridiculus",
-    "userName": "montes.nascetur.ridiculus@keyspider.onmicrosoft.com",
-    "active": true,
-    "addresses": [
-        {
-            "primary": false,
-            "type": "work",
-            "country": "Timor-Leste",
-            "formatted": "1-983-540-6701",
-            "locality": "Ourense",
-            "postalCode": "96255",
-            "region": "Galicia",
-            "streetAddress": "5791 Fusce Street"
-        }
-    ],
-    "displayName": "Barrera Scarlet",
-    "meta": {
-        "resourceType": "User"
-    },
-    "name": {
-        "formatted": "Scarlet Barrera",
-        "familyName": "Barrera",
-        "givenName": "Scarlet"
-    },
-    "phoneNumbers": [
-        {
-            "primary": false,
-            "type": "mobile",
-            "value": "1-888-595-2511"
-        },
-        {
-            "primary": true,
-            "type": "work",
-            "value": "1-983-540-6701"
-        }
-    ],
-    "roles": ["admin"],
-    "title": "Biogeographer",
-    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
-        "department": "Office of the Director of Public Prosecutions"
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User",
+    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+  ],
+  "externalId": "montes.nascetur.ridiculus",
+  "userName": "montes.nascetur.ridiculus@keyspider.onmicrosoft.com",
+  "active": true,
+  "addresses": [
+    {
+      "primary": false,
+      "type": "work",
+      "country": "Timor-Leste",
+      "formatted": "1-983-540-6701",
+      "locality": "Ourense",
+      "postalCode": "96255",
+      "region": "Galicia",
+      "streetAddress": "5791 Fusce Street"
     }
+  ],
+  "displayName": "Barrera Scarlet",
+  "meta": {
+    "resourceType": "User"
+  },
+  "name": {
+    "formatted": "Scarlet Barrera",
+    "familyName": "Barrera",
+    "givenName": "Scarlet"
+  },
+  "phoneNumbers": [
+    {
+      "primary": false,
+      "type": "mobile",
+      "value": "1-888-595-2511"
+    },
+    {
+      "primary": true,
+      "type": "work",
+      "value": "1-983-540-6701"
+    }
+  ],
+  "roles": [
+    "admin"
+  ],
+  "title": "Biogeographer",
+  "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+    "department": "Office of the Director of Public Prosecutions"
+  }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -210,11 +211,11 @@ class ApplyingSCIMImporting extends TestCase
 
         $outputExpect = [
             "montes.nascetur.ridiculus",
-            "2019/01/21",
+            Carbon::now()->format('Y/m/d'),
             null,
             "Office of the Director of Public Prosecutions",
             "admin",
-            "2019/01/21",
+            Carbon::now()->format('Y/m/d'),
             "admin",
             "0",
             "Barrera",
@@ -256,9 +257,9 @@ class ApplyingSCIMImporting extends TestCase
 
         $outputExpect = [
             "ea7ef37b-4cf2-45e8-8016-8178e4f7898f",
-            "2019/01/21",
+            Carbon::now()->format('Y/m/d'),
             "KS 10",
-            "2019/01/21",
+            Carbon::now()->format('Y/m/d'),
             "admin",
             "0",
             null,

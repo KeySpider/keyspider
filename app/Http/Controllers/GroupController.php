@@ -95,7 +95,7 @@ class GroupController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
 
-        return $this->response($dataPost, 200);
+        return $this->response($dataPost, 201);
     }
 
     /**
