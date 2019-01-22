@@ -310,17 +310,48 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getColumnsConversion($fileIni)
     {
-        $import_settings = parse_ini_file($fileIni, true);
+        $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
 
-        $table_name = $import_settings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
-        $formatConversion = $import_settings[self::SCIM_INPUT_FORMAT_CONVERSION];
+        $table_name = $importSettings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $formatConversion = $importSettings[self::SCIM_INPUT_FORMAT_CONVERSION];
         $dbConfigOfTable = $masterDBConf[$table_name];
         $result = [];
 
         foreach ($formatConversion as $key => $value) {
             if (isset($dbConfigOfTable[$key])) {
                 $result[$value] = $dbConfigOfTable[$key];
+            }
+        }
+        return $result;
+    }
+
+    private function getSCIMFieldFromExpression($value)
+    {
+        $parsedArray = array();
+        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+        $success = preg_match($pattern, $value, $parsedArray);
+        if (isset($parsedArray['exp1']))
+            return ($parsedArray['exp1']);
+        else return $value;
+    }
+
+    public function formatDBToSCIMStandard($resource, $iniFilePathOfResource){
+        try {
+            $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+//            dd($e->getMessage());
+        }
+        //Convert keys "AAA.001" to "001"
+        $newKeys = array_map(function ($k){return substr($k, strpos($k,'.')+1);}, array_keys($conversion));
+        $newConversion = array_combine(array_values($conversion), $newKeys);
+        $result = [];
+        $newConversion = array_map(function ($v){return $this->getSCIMFieldFromExpression($v);}, $newConversion);
+        foreach ($newConversion as $k=>$v){
+            if(isset($resource[$v]))
+            {
+                $result[$k] = $resource[$v];
             }
         }
         return $result;
