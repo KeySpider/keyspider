@@ -150,7 +150,6 @@ class ImportSettingsManager extends SettingsManager
                 return false;
             }
         }
-        Log::info('areAllImportIniFilesValid: YES');
         return true;
     }
 
@@ -185,9 +184,7 @@ class ImportSettingsManager extends SettingsManager
         // Validate main keys
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
-            Log::error('Key error validation');
-            Log::error('Error file: ' . $fileName ? $fileName : '');
-            Log::error($validate->getMessageBag());
+            $this->logErrorOfValidation($fileName, $validate);
             return false;
         }
 
@@ -198,9 +195,7 @@ class ImportSettingsManager extends SettingsManager
             return false;
         }
         if ($validate->fails()) {
-            Log::error('Key error validation');
-            Log::error('Error file: ' . $fileName ? $fileName : '');
-            Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            $this->logErrorOfValidation($fileName, $validate);
             return false;
         }
         return true;
@@ -248,11 +243,11 @@ class ImportSettingsManager extends SettingsManager
         $validateFile = ['csv'];
 
         if (is_dir($path)) {
-            foreach (scandir($path) as $key => $file) {
+            foreach (scandir($path, SCANDIR_SORT_NONE) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
                 if (in_array($ext, $validateFile) &&
                     preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
-                    array_push($data, "{$path}/{$file}");
+                    $data[] = "{$path}/{$file}";
                 }
             }
         }
@@ -262,7 +257,7 @@ class ImportSettingsManager extends SettingsManager
 
     /**
      * Get settings for import SCIM
-     * @param null $filePath
+     * @param  $filePath
      * @return array
      * @throws \Exception
      */
@@ -305,6 +300,7 @@ class ImportSettingsManager extends SettingsManager
     }
 
     /**
+     * Get columns' name conversion from ini file.
      * @return array
      */
     public function getColumnsConversion()
@@ -325,30 +321,44 @@ class ImportSettingsManager extends SettingsManager
         return $result;
     }
 
+    /**
+     * Get standard name from formular expression.
+     * @param $value
+     * @return mixed
+     */
     private function getSCIMFieldFromExpression($value)
     {
         $parsedArray = array();
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $success = preg_match($pattern, $value, $parsedArray);
-        if (isset($parsedArray['exp1'])) {
+        if ($success && isset($parsedArray['exp1'])) {
             return ($parsedArray['exp1']);
-        } else {
-            return $value;
         }
+
+        return $value;
     }
 
+    /**
+     * Problem: Data from DB is conflict with data from AzureAD cause fields' name
+     * Need to convert based on INI settings file.
+     * @param $resource : like: '001' => string(25) "montes.nascetur.ridiculus"
+     * @param $iniFilePathOfResource : path of Ini settings file
+     * @return array
+     */
     public function formatDBToSCIMStandard($resource, $iniFilePathOfResource)
     {
+        //Get Scim format conversion from ini settings file.
         try {
             $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
         }
-
+        //AAA.001 should be 001 (column name)
         $newKeys = array_map(function ($k) {
             return substr($k, strpos($k, '.')+1);
         }, array_keys($conversion));
 
+        //get standard name from expression.
         $newValues = array_map(function ($v) {
             return $this->getSCIMFieldFromExpression($v);
         }, array_values($conversion));
@@ -361,5 +371,16 @@ class ImportSettingsManager extends SettingsManager
             }
         }
         return $result;
+    }
+
+    /**
+     * @param $fileName
+     * @param $validate
+     */
+    private function logErrorOfValidation($fileName, $validate): void
+    {
+        Log::error('Key error validation');
+        Log::error(('Error file: ' . $fileName) ? $fileName : '');
+        Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
 }
