@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 Route::middleware('azure')->group(function () {
+
     // Users
     Route::get('Users', 'UserController@index');
     Route::post('Users', 'UserController@store');

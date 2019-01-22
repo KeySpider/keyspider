@@ -21,8 +21,6 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\SCIMException;
 use App\Http\Models\CCC;
-use App\Http\Models\GroupResource;
-use App\Http\Models\User;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
@@ -38,6 +36,10 @@ class GroupController extends LaravelController
 {
     use EloquentBuilderTrait;
 
+    /**
+     * @param Request $request
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     */
     public function index(Request $request)
     {
         $fileIni = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
@@ -111,6 +113,7 @@ class GroupController extends LaravelController
      *
      * @param $id
      * @param Request $request
+     * @throws SCIMException
      */
     public function update($id, Request $request)
     {
