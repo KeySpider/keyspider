@@ -19,12 +19,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\SCIMException;
 use App\Http\Models\CCC;
 use App\Http\Models\GroupResource;
 use App\Http\Models\User;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
@@ -118,40 +120,39 @@ class GroupController extends LaravelController
         Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-//        $user = AAA::where('001', $id)->first();
-//
-//        if (!$user) {
-//            throw (new SCIMException('User Not Found'))->setCode(400);
-//        }
-//
-//        $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
-//
-//        $input = $request->input();
-//
-//        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
-//            throw (new SCIMException(sprintf(
-//                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
-//                json_encode($input['schemas'])
-//            )))->setCode(404);
-//        }
-//
-//        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
-//            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
-//            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
-//        }
-//
-//        foreach ($input['Operations'] as $operation) {
-//            if (strtolower($operation['op']) === 'replace') {
-//                $scimReader = new SCIMReader();
-//                $options = [
-//                    "path" => $filePath,
-//                    'operation' => $operation,
-//                ];
-//                $scimReader->updateReplaceSCIM($id, $options);
-//            }
-//        }
-//
-//        throw (new SCIMException('Update success'))->setCode(200);
+        $group = CCC::where('001', $id)->first();
+
+        if (!$group) {
+            throw (new SCIMException('User Not Found'))->setCode(400);
+        }
+
+        $filePath = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
+        $input = $request->input();
+
+        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+            throw (new SCIMException(sprintf(
+                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
+                json_encode($input['schemas'])
+            )))->setCode(404);
+        }
+
+        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
+            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
+            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
+        }
+
+        foreach ($input['Operations'] as $operation) {
+            if (strtolower($operation['op']) === 'replace') {
+                $scimReader = new SCIMReader();
+                $options = [
+                    "path" => $filePath,
+                    'operation' => $operation,
+                ];
+                $scimReader->updateReplaceSCIM($id, $options);
+            }
+        }
+
+        throw (new SCIMException('Update success'))->setCode(200);
     }
 
     public function detail($id)
@@ -162,7 +163,8 @@ class GroupController extends LaravelController
         Log::info('--------------------------------------------------');
 
         $dataQuery = CCC::where('001', $id)->first();
-        dd($dataQuery);
+
+        $fileIni = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
 
         $dataFormat = [];
         if ($dataQuery) {
@@ -174,7 +176,7 @@ class GroupController extends LaravelController
 
         $jsonData = [];
         if (!empty($dataFormat)) {
-            $data = [
+            $jsonData = [
                 "id" => $dataFormat['externalId'],
                 "externalId" => $dataFormat['externalId'],
                 "displayName" => $dataFormat['displayName'],
@@ -182,23 +184,13 @@ class GroupController extends LaravelController
                     "resourceType" => "Group",
                 ],
                 "members" => [],
+                "schemas" => [
+                    "urn:ietf:params:scim:api:messages:2.0:Group"
+                ],
             ];
-            array_push($jsonData, $data);
         }
 
-        return $this->response($this->toSCIMArray($jsonData), $code = 200);
-
-        $response = [
-            'totalResults' => count([]),
-            "itemsPerPage" => 10,
-            "startIndex" => 1,
-            "schemas" => [
-                "urn:ietf:params:scim:api:messages:2.0:ListResponse"
-            ],
-            'Resources' => [],
-        ];
-
-        return $this->response($response);
+        return $this->response($jsonData, $code = 200);
     }
 
     /**
