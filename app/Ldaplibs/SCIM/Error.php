@@ -31,17 +31,17 @@ class Error implements Jsonable
     public function toJson($options = 0)
     {
         return json_encode(array_filter([
-            "schemas" => ['urn:ietf:params:scim:api:messages:2.0:Error'],
-            "detail" => $this->detail,
-            "status" => $this->status,
-            "scimType" => ($this->status === 400 ? $this->scimType : null),
+            'schemas' => ['urn:ietf:params:scim:api:messages:2.0:Error'],
+            'detail' => $this->detail,
+            'status' => $this->status,
+            'scimType' => $this->status === 400 ? $this->scimType : null,
 
             // not defined in SCIM 2.0
             'errors' => $this->errors
         ]), $options);
     }
 
-    public function __construct($detail, $status = "404", $scimType = "invalidValue")
+    public function __construct($detail, $status = '404', $scimType = 'invalidValue')
     {
         $this->detail = $detail;
         $this->status = $status;
