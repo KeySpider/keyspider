@@ -19,7 +19,6 @@
 
 namespace App\Ldaplibs\Import;
 
-//use App\Http\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -163,7 +162,8 @@ class SCIMReader
                 return DB::insert($query);
             }
 
-            $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
+            $query = "update \"{$nameTable}\" set ({$columns}) =
+                    ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
             return DB::update($query);
         }
     }
@@ -302,7 +302,8 @@ class SCIMReader
         $columns = implode(',', $columns);
 
         if (!empty($columns) && !empty($dataUpdate) && $isExit[0]->exists) {
-            $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
+            $query = "update \"{$nameTable}\" set ({$columns}) = 
+                    ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
             DB::update($query);
         }
 

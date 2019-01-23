@@ -1,4 +1,4 @@
-<?php /** @noinspection SpellCheckingInspection */
+<?php
 
 /*******************************************************************************
  * Key Spider
@@ -86,7 +86,6 @@ class ExtractSettingsManager extends SettingsManager
                 return false;
             }
         }
-//        Log::info('areAllExtractIniFilesValid: YES');
         return true;
     }
 
@@ -191,7 +190,8 @@ class ExtractSettingsManager extends SettingsManager
     private function getValidatorOfBasicConfiguration($iniArray): array
     {
         $tempIniArray = [];
-        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] =
+            $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],

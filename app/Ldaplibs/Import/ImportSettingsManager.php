@@ -1,5 +1,4 @@
-<?php /** @noinspection HtmlUnknownTag */
-/** @noinspection SpellCheckingInspection */
+<?php
 
 /*******************************************************************************
  * Key Spider
