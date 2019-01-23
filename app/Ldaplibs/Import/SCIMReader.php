@@ -1,5 +1,4 @@
-<?php /** @noinspection NotOptimalRegularExpressionsInspection */
-
+<?php
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -20,7 +19,7 @@
 
 namespace App\Ldaplibs\Import;
 
-
+//use App\Http\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -221,6 +220,8 @@ class SCIMReader
             if ($regx === '') {
                 return $valueAttribute;
             }
+
+            $isRegx = preg_match("/{$regx}/", $valueAttribute, $data);
 
             if ($regx === '\s') {
                 return str_replace(' ', '', $valueAttribute);
