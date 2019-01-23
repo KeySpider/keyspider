@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Log;
 
 class CSVDelivery implements DataDelivery
 {
-    const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
+    public const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
     protected $setting;
 
     public function __construct($setting)
@@ -52,8 +53,8 @@ class CSVDelivery implements DataDelivery
         $filePattern = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
         $outputType = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
 
-        Log::info("From: " . $deliverySource);
-        Log::info("To  : " . $deliveryDestination);
+        Log::info('From: ' . $deliverySource);
+        Log::info('To  : ' . $deliveryDestination);
 
         if (!is_dir($deliverySource)) {
             return;
@@ -67,11 +68,11 @@ class CSVDelivery implements DataDelivery
 
                 $sizeOfSourceFile = File::size($deliverySourcePath);
                 // data delivery history
-                Log::info("Delivery file: " . $sourceFile);
+                Log::info('Delivery file: ' . $sourceFile);
                 $deliveryHistories = [
-                    "output_type" => $outputType,
-                    "delivery_source" => $deliverySourcePath,
-                    "file_size" => (string)$sizeOfSourceFile, // byte
+                    'output_type' => $outputType,
+                    'delivery_source' => $deliverySourcePath,
+                    'file_size' => (string)$sizeOfSourceFile, // byte
                     'execution_at' => Carbon::now()->format('Y/m/d h:i'),
                     'status' => 1 // success
                 ];
@@ -115,12 +116,10 @@ class CSVDelivery implements DataDelivery
         return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
     }
 
+
     /**
-     * Get rows column csv file
-     *
-     * @param \phpDocumentor\Reflection\File $fileCSV
-     *
-     * @return int rowsColumn
+     * @param $fileCSV
+     * @return int|void
      */
     private function rowsColumnCSV($fileCSV)
     {
@@ -129,7 +128,7 @@ class CSVDelivery implements DataDelivery
             $data = [];
             foreach (file($fileCSV) as $line) {
                 $dataLine = str_getcsv($line);
-                array_push($data, $dataLine);
+                $data[] = $dataLine;
             }
 
             $rowsColumn = count($data);

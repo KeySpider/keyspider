@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -20,12 +21,17 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
-use DB;
+
 use Exception;
 use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
+    /**
+     * define const
+     */
+    public const CONVERSION = 'CSV Import Process Format Conversion';
+    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
     /**
      * @var array $setting
      * @var string $fileName
@@ -34,12 +40,6 @@ class DBImporter
     protected $setting;
     protected $fileName;
     protected $csvReader;
-
-    /**
-     * define const
-     */
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Basic Configuration";
 
     /**
      * DBImporter constructor.
@@ -59,7 +59,7 @@ class DBImporter
      *
      * @return void
      */
-    public function import()
+    public function import(): void
     {
         try {
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];

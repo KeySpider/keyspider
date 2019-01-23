@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -55,10 +56,10 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
      *
      * @return void
      */
-    public function handle()
+    public function handle(): void
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::importToDBFromDataPost();
+        $this->importToDBFromDataPost();
     }
 
     /**
@@ -67,7 +68,7 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
      */
     public function getJobName()
     {
-        return "Import to database";
+        return 'Import to database';
     }
 
     /**
@@ -87,7 +88,7 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
      *
      * @return \DateTime
      */
-    public function retryUntil()
+    public function retryUntil(): \DateTime
     {
         return now()->addSeconds((int)$this->queueSettings['retry_after']);
     }

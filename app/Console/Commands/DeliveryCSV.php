@@ -1,4 +1,6 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+/** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -56,11 +58,11 @@ class DeliveryCSV extends Command
                 $this->deliveryDataForTimeExecution($settingOfTimeExecution);
             }
         } else {
-            Log::error("Can not run delivery schedule, getting error from config ini files");
+            Log::error('Can not run delivery schedule, getting error from config ini files');
         }
     }
 
-    public function deliveryDataForTimeExecution($settings)
+    public function deliveryDataForTimeExecution($settings): void
     {
         $queue = new DeliveryQueueManager();
         foreach ($settings as $dataSchedule) {

@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -61,7 +62,7 @@ class ImportCSV extends Command
         return null;
     }
 
-    private function importDataForTimeExecution($dataSchedule)
+    private function importDataForTimeExecution($dataSchedule): void
     {
         foreach ($dataSchedule as $data) {
             $setting = $data['setting'];
@@ -77,7 +78,7 @@ class ImportCSV extends Command
 
             if (empty($files)) {
                 $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
-                Log::info($infoSetting . " WITH FILES EMPTY");
+                Log::info($infoSetting . ' WITH FILES EMPTY');
             } else {
                 $queue = new ImportQueueManager();
                 foreach ($files as $file) {

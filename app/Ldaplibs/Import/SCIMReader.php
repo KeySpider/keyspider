@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection NotOptimalRegularExpressionsInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -19,7 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
-use App\Http\Models\User;
+
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +32,7 @@ class SCIMReader
      * @return array
      * @throws \Exception
      */
-    public function readData($filePath)
+    public function readData($filePath): array
     {
         $data = [];
 
@@ -49,7 +50,7 @@ class SCIMReader
      * @param $setting
      * @return string|null
      */
-    public function getTableName($setting)
+    public function getTableName($setting): ?string
     {
         $name = null;
 
@@ -58,10 +59,10 @@ class SCIMReader
 
             switch ($importTable['ImportTable']) {
                 case 'User':
-                    $name = "AAA";
+                    $name = 'AAA';
                     break;
                 case 'Role':
-                    $name = "CCC";
+                    $name = 'CCC';
                     break;
             }
 
@@ -75,15 +76,15 @@ class SCIMReader
      * @param $dataFormat
      * @return array
      */
-    public function getAllColumnFromSetting($dataFormat)
+    public function getAllColumnFromSetting($dataFormat): array
     {
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $columns = [];
 
         foreach ($dataFormat as $key => $item) {
-            if ($key !== "" && preg_match($pattern, $key) !== 1) {
+            if ($key !== '' && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
-                array_push($columns, "\"{$newstring}\"");
+                $columns[] = "\"{$newstring}\"";
             }
         }
         return $columns;
@@ -95,7 +96,7 @@ class SCIMReader
      * @param $setting
      * @return bool
      */
-    public function addColumns($setting)
+    public function addColumns($setting): bool
     {
         $sql = null;
         $nameTable = $this->getTableName($setting);
@@ -120,7 +121,7 @@ class SCIMReader
         return false;
     }
 
-    public function verifyData($data)
+    public function verifyData($data): void
     {
         // TODO: Implement verifyData() method.
     }
@@ -132,10 +133,10 @@ class SCIMReader
 
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
-        $columns = implode(",", $columns);
+        $columns = implode(',', $columns);
 
         foreach ($scimInputFormat as $key => $item) {
-            if ($key === "" || preg_match($pattern, $key) === 1) {
+            if ($key === '' || preg_match($pattern, $key) === 1) {
                 unset($scimInputFormat[$key]);
             }
         }
@@ -148,23 +149,23 @@ class SCIMReader
         }
 
         if (!empty($data)) {
-            $condition = clean($data["001"]);
+            $condition = clean($data['001']);
             $condition = "\$\${$condition}\$\$";
-            $firstColumn = "001";
+            $firstColumn = '001';
 
             $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
             Log::debug($query);
             $isExit = DB::select($query);
 
-            $stringValue = implode(",", $data);
+            $stringValue = implode(',', $data);
 
             if ($isExit[0]->exists === false) {
                 $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
                 return DB::insert($query);
-            } else {
-                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
-                return DB::update($query);
             }
+
+            $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
+            return DB::update($query);
         }
     }
 
@@ -182,8 +183,8 @@ class SCIMReader
             case 'hogehoga':
                 return 'hogehoga';
             case '(roles[0])':
-                if (!empty($dataPost["roles"])) {
-                    return $dataPost["roles"][0];
+                if (!empty($dataPost['roles'])) {
+                    return $dataPost['roles'][0];
                 }
                 return null;
             default:
@@ -214,14 +215,12 @@ class SCIMReader
                 $valueAttribute = isset($dataPost[config('const.scim_schema')]) ?
                     $dataPost[config('const.scim_schema')]['department'] : null;
             } else {
-                $valueAttribute = isset($dataPost[$attribute]) ? $dataPost[$attribute] : null;
+                $valueAttribute = $dataPost[$attribute] ?? null;
             }
 
-            if ($regx === "") {
+            if ($regx === '') {
                 return $valueAttribute;
             }
-
-            $isRegx = preg_match("/{$regx}/", $valueAttribute, $data);
 
             if ($regx === '\s') {
                 return str_replace(' ', '', $valueAttribute);
@@ -232,13 +231,13 @@ class SCIMReader
 
             switch ($stt) {
                 case '$1':
-                    $str = isset($data[1]) ? $data[1] : null;
+                    $str = $data[1] ?? null;
                     break;
                 case '$2':
-                    $str = isset($data[2]) ? $data[2] : null;
+                    $str = $data[2] ?? null;
                     break;
                 case '$3':
-                    $str = isset($data[3]) ? $data[3] : null;
+                    $str = $data[3] ?? null;
                     break;
                 default:
                     $str = null;
@@ -248,14 +247,18 @@ class SCIMReader
         }
     }
 
-    public function updateReplaceSCIM($id, $options)
+    public function updateReplaceSCIM($id, $options): bool
     {
         $externalId = $id;
         $path = $options['path'];
         $operation = $options['operation'];
 
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings($path);
+        try {
+            $setting = $importSetting->getSCIMImportSettings($path);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+        }
 
 
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
@@ -266,7 +269,7 @@ class SCIMReader
         $dataUpdate = [];
 
         foreach ($setting[config('const.scim_format')] as $key => $valueSetting) {
-            if ($key !== "" && preg_match($pattern2, $key) !== 1) {
+            if ($key !== '' && preg_match($pattern2, $key) !== 1) {
                 $isCheck = preg_match($pattern, $valueSetting, $match);
 
                 if ($isCheck) {
@@ -274,12 +277,12 @@ class SCIMReader
 
                     if ($attributeValue === $operation['path']) {
                         $newsKey = substr($key, -3);
-                        array_push($columns, "\"{$newsKey}\"");
+                        $columns[] = "\"{$newsKey}\"";
                         $str = $this->convertDataFollowSetting($valueSetting, [
                             $attributeValue => $operation['value'],
                         ]);
 
-                        array_push($dataUpdate, "'{$str}'");
+                        $dataUpdate[] = "'{$str}'";
                     }
                 }
             }
@@ -288,20 +291,18 @@ class SCIMReader
         $nameTable = $this->getTableName($setting);
 
         $condition = "\$\${$externalId}\$\$";
-        $firstColumn = "001";
+        $firstColumn = '001';
 
         $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
         Log::debug($query);
         $isExit = DB::select($query);
 
-        $stringValue = implode(",", $dataUpdate);
-        $columns = implode(",", $columns);
+        $stringValue = implode(',', $dataUpdate);
+        $columns = implode(',', $columns);
 
-        if (!empty($columns) && !empty($dataUpdate)) {
-            if ($isExit[0]->exists) {
-                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
-                DB::update($query);
-            }
+        if (!empty($columns) && !empty($dataUpdate) && $isExit[0]->exists) {
+            $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
+            DB::update($query);
         }
 
         return true;

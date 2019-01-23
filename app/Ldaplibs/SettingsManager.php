@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -24,14 +25,14 @@ use Illuminate\Support\Facades\Validator;
 
 class SettingsManager
 {
-    public const INI_CONFIGS = "ini_configs";
-    public const EXTRACTION_CONDITION = "Extraction Condition";
-    public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = "CSV Import Process Format Conversion";
-    public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = "Extraction Process Basic Configuration";
-    public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = "CSV Import Process Basic Configuration";
+    public const INI_CONFIGS = 'ini_configs';
+    public const EXTRACTION_CONDITION = 'Extraction Condition';
+    public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = 'CSV Import Process Format Conversion';
+    public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = 'Extraction Process Basic Configuration';
+    public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
 
-    public $iniMasterDBFile = null;
-    public $masterDBConfigData = null;
+    public $iniMasterDBFile;
+    public $masterDBConfigData;
     protected $key_spider;
 
     public function __construct($ini_settings_files = null)
@@ -49,7 +50,7 @@ class SettingsManager
         return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
     }
 
-    protected function contains($needle, $haystack)
+    protected function contains($needle, $haystack): bool
     {
         return strpos($haystack, $needle) !== false;
     }
@@ -58,10 +59,10 @@ class SettingsManager
     /**
      * @return bool|null
      */
-    public function validateKeySpider()
+    public function validateKeySpider(): ?bool
     {
         try {
-            $this->key_spider = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"), true);
+            $this->key_spider = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/KeySpider.ini'), true);
             $validate = Validator::make($this->key_spider, [
                 'Master DB Configurtion' => 'required',
                 'CSV Import Process Configration' => 'required',
@@ -69,7 +70,7 @@ class SettingsManager
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
-                throw new \Exception($validate->getMessageBag());
+                throw new \RuntimeException($validate->getMessageBag());
             }
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
@@ -80,15 +81,15 @@ class SettingsManager
         try {
             $master_db_config = $this->key_spider['Master DB Configurtion']['master_db_config'];
             if (!file_exists($master_db_config)) {
-                throw new \Exception($master_db_config.' is not existed');
+                throw new \RuntimeException($master_db_config.' is not existed');
             }
-            $allKeysValues = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/KeySpider.ini"));
+            $allKeysValues = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/KeySpider.ini'));
             $import_config_files_array = $allKeysValues['import_config'];
             foreach ($import_config_files_array as $file) {
                 if (file_exists($file)) {
                     continue;
                 }
-                throw new \Exception($file.' is not existed');
+                throw new \RuntimeException($file.' is not existed');
             }
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
@@ -98,7 +99,7 @@ class SettingsManager
         return true;
     }
 
-    public function isFolderExisted($folderPath)
+    public function isFolderExisted($folderPath): bool
     {
         return is_dir($folderPath);
     }
