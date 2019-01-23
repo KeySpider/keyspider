@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Log;
 
 class ExportCSV extends Command
 {
-    const CONFIGURATION = "CSV Import Process Basic Configuration";
+    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
     /**
      * The name and signature of the console command.
      *
@@ -39,16 +40,6 @@ class ExportCSV extends Command
      * @var string
      */
     protected $description = 'Reader setting import file and process it';
-
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
 
     /**
      * Execute the console command.
@@ -71,7 +62,7 @@ class ExportCSV extends Command
                 $this->exportDataForTimeExecution($settingOfTimeExecution);
             }
         } else {
-            Log::error("Can not run export schedule, getting error from config ini files");
+            Log::error('Can not run export schedule, getting error from config ini files');
         }
         return null;
     }

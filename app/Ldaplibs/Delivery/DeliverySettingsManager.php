@@ -30,7 +30,7 @@ class DeliverySettingsManager extends SettingsManager
     /**
      * define const
      */
-    const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
+    public const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
 
     /**
      * DeliverySettingsManager constructor.
@@ -39,11 +39,11 @@ class DeliverySettingsManager extends SettingsManager
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        $this->iniDeliverySettingsFolder = storage_path("" . self::INI_CONFIGS . "/extract/");
+        $this->iniDeliverySettingsFolder = storage_path('' . self::INI_CONFIGS . '/extract/');
         $allFiles = scandir($this->iniDeliverySettingsFolder);
         foreach ($allFiles as $fileName) {
             if ($this->contains('.ini', $fileName) && $this->contains('Output', $fileName)) {
-                $this->iniDeliverySettingsFiles[] = storage_path("" . self::INI_CONFIGS . "/extract/") . $fileName;
+                $this->iniDeliverySettingsFiles[] = storage_path('' . self::INI_CONFIGS . '/extract/') . $fileName;
             }
         }
     }
@@ -52,7 +52,7 @@ class DeliverySettingsManager extends SettingsManager
      * Get schedule delivery execution
      * @return array
      */
-    public function getScheduleDeliveryExecution()
+    public function getScheduleDeliveryExecution(): ?array
     {
         $timeArray = [];
         if (true) {
@@ -65,9 +65,9 @@ class DeliverySettingsManager extends SettingsManager
             }
             ksort($timeArray);
             return $timeArray;
-        } else {
-            Log::info("Error in Extract INI file");
-            return [];
         }
+
+        Log::info('Error in Extract INI file');
+        return [];
     }
 }

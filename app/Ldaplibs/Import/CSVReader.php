@@ -1,4 +1,6 @@
-<?php
+<?php /** @noinspection NotOptimalRegularExpressionsInspection */
+/** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -38,8 +40,8 @@ class CSVReader implements DataInputReader
     /**
      * define const
      */
-    const CONVERSION = "CSV Import Process Format Conversion";
-    const CONFIGURATION = "CSV Import Process Basic Configuration";
+    public const CONVERSION = 'CSV Import Process Format Conversion';
+    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
 
     /**
      * CSVReader constructor.
@@ -73,24 +75,24 @@ class CSVReader implements DataInputReader
 
                 $pattern = $options['pattern'];
                 $listFileCSV = [
-                    "setting" => $setting,
-                    "file_csv" => [],
+                    'setting' => $setting,
+                    'file_csv' => [],
                 ];
                 $pathDir = $path;
 
                 if (is_dir($pathDir)) {
                     foreach (scandir($pathDir) as $key => $file) {
                         $ext = pathinfo($file, PATHINFO_EXTENSION);
-                        if (in_array($ext, ['csv'])) {
+                        if ($ext === 'csv') {
                             $newPattern = removeExt($pattern);
                             $newFile = removeExt($file);
                             if (preg_match("/{$newPattern}/", $newFile)) {
-                                array_push($listFileCSV['file_csv'], "{$path}/{$file}");
+                                $listFileCSV['file_csv'][] = "{$path}/{$file}";
                             }
                         }
                     }
 
-                    array_push($dataCSV, $listFileCSV);
+                    $dataCSV[] = $listFileCSV;
                 }
             }
             return $dataCSV;
@@ -116,8 +118,7 @@ class CSVReader implements DataInputReader
      */
     public function getNameTableBase($setting)
     {
-        $nameTable = $setting[self::CONFIGURATION]['TableNameInDB'];
-        return $nameTable;
+        return $setting[self::CONFIGURATION]['TableNameInDB'];
     }
 
     /**
@@ -132,9 +133,9 @@ class CSVReader implements DataInputReader
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $fields = [];
         foreach ($setting[self::CONVERSION] as $key => $item) {
-            if ($key !== "" && preg_match($pattern, $key) !== 1) {
+            if ($key !== '' && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
-                array_push($fields, "\"{$newstring}\"");
+                $fields[] = "\"{$newstring}\"";
             }
         }
         return $fields;
@@ -150,7 +151,7 @@ class CSVReader implements DataInputReader
      */
     public function createTable($nameTable, $columns = [])
     {
-        $sql = "";
+        $sql = '';
 
         foreach ($columns as $key => $col) {
             if ($key < count($columns) - 1) {
@@ -180,10 +181,10 @@ class CSVReader implements DataInputReader
         try {
             DB::beginTransaction();
 
-            $csv = Reader::createFromPath($fileCSV, 'r');
-            $columns = implode(",", $columns);
+            $csv = Reader::createFromPath($fileCSV);
+            $columns = implode(',', $columns);
 
-            $stmt = (new Statement());
+            $stmt = new Statement();
             $records = $stmt->process($csv);
 
             foreach ($records as $key => $record) {
@@ -191,18 +192,18 @@ class CSVReader implements DataInputReader
 
                 $dataTmp = [];
                 foreach ($getDataAfterConvert as $item) {
-                    array_push($dataTmp, "\$\${$item}\$\$");
+                    $dataTmp[] = "\$\${$item}\$\$";
                 }
 
                 if (!empty($dataTmp)) {
                     $condition = clean($dataTmp[0]);
                     $condition = "\$\${$condition}\$\$";
-                    $cl = "001";
+                    $cl = '001';
 
                     $query = "select exists(select 1 from \"{$nameTable}\" where \"{$cl}\" = {$condition})";
                     $isExit = DB::select($query);
 
-                    $stringValue = implode(",", $dataTmp);
+                    $stringValue = implode(',', $dataTmp);
 
                     if ($isExit[0]->exists === false) {
                         $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
@@ -214,7 +215,7 @@ class CSVReader implements DataInputReader
                 }
             }
 
-            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+            $now = Carbon::now()->format('Ymdhis') . random_int(1000, 9999);
             $fileName = "hogehoge_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
@@ -233,13 +234,13 @@ class CSVReader implements DataInputReader
      *
      * @return array
      */
-    protected function getDataAfterProcess($dataLine, $options = [])
+    protected function getDataAfterProcess($dataLine, $options = []): array
     {
         $data = [];
         $conversions = $options['CONVERSATION'];
 
         foreach ($conversions as $key => $item) {
-            if ($key === "" || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
+            if ($key === '' || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
                 unset($conversions[$key]);
             }
         }
@@ -283,20 +284,20 @@ class CSVReader implements DataInputReader
 
         foreach ($data as $key => $item) {
             if ($stt === $key + 1) {
-                if ($regx === "") {
+                if ($regx === '') {
                     return $item;
-                } else {
-                    if ($regx === '\s') {
-                        return str_replace(' ', '', $item);
-                    }
-                    if ($regx === '\w') {
-                        return strtolower($item);
-                    }
-                    $check = preg_match("/{$regx}/", $item, $str);
+                }
 
-                    if ($check) {
-                        return $this->processGroup($str, $group);
-                    }
+                if ($regx === '\s') {
+                    return str_replace(' ', '', $item);
+                }
+                if ($regx === '\w') {
+                    return strtolower($item);
+                }
+                $check = preg_match("/{$regx}/", $item, $str);
+
+                if ($check) {
+                    return $this->processGroup($str, $group);
                 }
             }
         }
@@ -310,21 +311,21 @@ class CSVReader implements DataInputReader
      *
      * @return string
      */
-    protected function processGroup($str, $group)
+    protected function processGroup($str, $group): string
     {
-        if ($group === "$1") {
+        if ($group === '$1') {
             return $str[1];
         }
 
-        if ($group === "$2") {
+        if ($group === '$2') {
             return $str[2];
         }
 
-        if ($group === "$3") {
+        if ($group === '$3') {
             return $str[3];
         }
 
-        if ($group === "$1/$2/$3") {
+        if ($group === '$1/$2/$3') {
             return "{$str[1]}/{$str[2]}/{$str[3]}";
         }
 

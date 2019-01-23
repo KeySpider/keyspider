@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -35,7 +36,7 @@ use Exception;
 
 class Kernel extends ConsoleKernel
 {
-    const CONFIGURATION = "CSV Import Process Basic Configuration";
+    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
 
     /**
      * The Artisan commands provided by your application.
@@ -64,7 +65,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::error("Can not run import schedule: - Getting error from config ini files or - Nothing to import");
+            Log::error('Can not run import schedule: - Getting error from config ini files or - Nothing to import');
         }
 
         // Setup schedule for Extract
@@ -77,7 +78,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::error("Can not run export schedule, getting error from config ini files");
+            Log::error('Can not run export schedule, getting error from config ini files');
         }
 
         // Setup schedule for Delivery
@@ -89,7 +90,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::error("Can not run delivery schedule, getting error from config ini files");
+            Log::error('Can not run delivery schedule, getting error from config ini files');
         }
     }
 
@@ -108,7 +109,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param $dataSchedule
      */
-    private function importDataForTimeExecution($dataSchedule)
+    private function importDataForTimeExecution($dataSchedule): void
     {
         try {
             foreach ($dataSchedule as $data) {
@@ -130,7 +131,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param array $settings
      */
-    public function exportDataForTimeExecution($settings)
+    public function exportDataForTimeExecution($settings): void
     {
         try {
             $queue = new ExtractQueueManager();
@@ -147,7 +148,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param array $settings
      */
-    public function deliveryDataForTimeExecution($settings)
+    public function deliveryDataForTimeExecution($settings): void
     {
         try {
             $queue = new DeliveryQueueManager();

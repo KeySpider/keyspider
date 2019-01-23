@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -123,17 +124,14 @@ class ExtractSettingsManager extends SettingsManager
 
         $validate = Validator::make($iniArray, $rules);
         if ($validate->fails()) {
-            Log::error('Key error validation');
-            Log::error('Error file: ' . $filename ? $filename : '');
-            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            $this->doLogsForValidation($filename, $validate);
             return false;
         }
 
 // Validate children
-        list($tempIniArray, $validate) = $this->getValidatorOfBasicConfiguration($iniArray);
+        [$tempIniArray, $validate] = $this->getValidatorOfBasicConfiguration($iniArray);
         if ($validate->fails()) {
-            Log::error('Error file: ' . $filename ? $filename : '');
-            Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+            $this->doLogsForValidation($filename, $validate);
             return false;
         }
 
@@ -142,7 +140,7 @@ class ExtractSettingsManager extends SettingsManager
             return true;
         }
 
-        Log::error('Error file: ' . $filename ? $filename : '');
+        Log::error('Error file: ' . ($filename ?: ''));
         $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
         Log::error('The file is not existed: ' . $outputProcessConversion);
         return false;
@@ -168,7 +166,7 @@ class ExtractSettingsManager extends SettingsManager
     }
 
     /**
-     * In ini extract file, there're columns name must be maped from DB master
+     * In ini extract file, there're columns name must be mapped from DB master
      * @param $table_contents <p> array to convert
      * @param $masterDB <p> master db config in array </p>
      * @return mixed
@@ -203,5 +201,16 @@ class ExtractSettingsManager extends SettingsManager
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);
+    }
+
+    /**
+     * @param $filename
+     * @param $validate
+     */
+    private function doLogsForValidation($filename, $validate): void
+    {
+        Log::error('Key error validation');
+        Log::error('Error file: ' . ($filename ?: ''));
+        Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
 }

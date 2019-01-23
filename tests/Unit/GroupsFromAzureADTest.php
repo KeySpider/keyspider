@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ReturnTypeCanBeDeclaredInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -28,21 +29,21 @@ class GroupsFromAzureADTest extends TestCase
     use RefreshDatabase;
 
     public const ROLE_SETTING_DEFAULT = [
-        "SCIM Input Bacic Configuration" => [
-            "ImportTable" => "Role"
+        'SCIM Input Bacic Configuration' => [
+            'ImportTable' => 'Role'
         ],
-        "SCIM Input Format Conversion" => [
-            "# Role.Attribute1" => "3",
-            "CCC.001" => "(externalId)",
-            "CCC.002" => "TODAY()",
-            "CCC.003" => "(displayName)",
-            "CCC.009" => "TODAY()",
-            "CCC.010" => "admin",
-            "CCC.011" => "0",
-            "CCC.005" => "",
-            "CCC.006" => "",
-            "CCC.007" => "",
-            "CCC.008" => ""
+        'SCIM Input Format Conversion' => [
+            '# Role.Attribute1' => '3',
+            'CCC.001' => '(externalId)',
+            'CCC.002' => 'TODAY()',
+            'CCC.003' => '(displayName)',
+            'CCC.009' => 'TODAY()',
+            'CCC.010' => 'admin',
+            'CCC.011' => '0',
+            'CCC.005' => '',
+            'CCC.006' => '',
+            'CCC.007' => '',
+            'CCC.008' => ''
         ]
     ];
 
@@ -99,7 +100,7 @@ class GroupsFromAzureADTest extends TestCase
     public function testApiUpdateUser()
     {
         $this->testImportDataRoleIntoMasterDB();
-        $externalID = "ea7ef37b-4cf2-45e8-8016-8178e4f7898f";
+        $externalID = 'ea7ef37b-4cf2-45e8-8016-8178e4f7898f';
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataUpdateGroup.json')), true);
 
         $response = $this->withHeaders([

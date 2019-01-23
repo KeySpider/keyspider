@@ -23,11 +23,11 @@ use App\Ldaplibs\QueueManager;
 
 class DeliveryQueueManager extends QueueManager
 {
-    private $file_list = array();
+    private $fileList;
     private $history;
     public function __construct($file_list = null)
     {
-        $this->file_list = $file_list;
+        $this->fileList = $file_list;
         $this->history = new DeliveryHistoryManager();
     }
 

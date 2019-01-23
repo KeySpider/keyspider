@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ReturnTypeCanBeDeclaredInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -28,26 +29,26 @@ class UsersFromAzureADTest extends TestCase
     use RefreshDatabase;
 
     public const USER_SETTING_DEFAULT = [
-        "SCIM Input Bacic Configuration" => [
-            "ImportTable" => "User"
+        'SCIM Input Bacic Configuration' => [
+            'ImportTable' => 'User'
         ],
-        "SCIM Input Format Conversion" => [
-            "#User.hogehogi" => "",
-            "AAA.001" => "(userName,([A-Za-z0-9\._+]+)@(.*),$1)",
-            "AAA.002" => "TODAY()",
-            "AAA.003" => "(password)",
-            "AAA.004" => "(department)",
-            "" => "",
-            "AAA.005" => "(roles[0])",
-            "AAA.013" => "TODAY()",
-            "AAA.014" => "admin",
-            "AAA.015" => "0",
-            "AAA.006" => "(displayName,(.+) (.+),$1)",
-            "AAA.007" => "(displayName,(.+) (.+),$2)",
-            "AAA.008" => "(displayName,\s,)",
-            "AAA.009" => "(mail,\w,\l)",
-            "AAA.010" => "hogehoge",
-            "AAA.011" => "hogehoga",
+        'SCIM Input Format Conversion' => [
+            '#User.hogehogi' => '',
+            'AAA.001' => "(userName,([A-Za-z0-9\._+]+)@(.*),$1)",
+            'AAA.002' => 'TODAY()',
+            'AAA.003' => '(password)',
+            'AAA.004' => '(department)',
+            '' => '',
+            'AAA.005' => '(roles[0])',
+            'AAA.013' => 'TODAY()',
+            'AAA.014' => 'admin',
+            'AAA.015' => '0',
+            'AAA.006' => '(displayName,(.+) (.+),$1)',
+            'AAA.007' => '(displayName,(.+) (.+),$2)',
+            'AAA.008' => "(displayName,\s,)",
+            'AAA.009' => "(mail,\w,\l)",
+            'AAA.010' => 'hogehoge',
+            'AAA.011' => 'hogehoga',
         ]
     ];
 
@@ -103,7 +104,7 @@ class UsersFromAzureADTest extends TestCase
     public function testApiUpdateUser()
     {
         $this->testImportDataUserIntoMasterDB();
-        $userName = "montes.nascetur.ridiculus";
+        $userName = 'montes.nascetur.ridiculus';
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataUpdateUser.json')), true);
 
         $response = $this->withHeaders([

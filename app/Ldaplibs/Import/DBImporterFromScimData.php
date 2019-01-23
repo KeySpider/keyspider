@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection SpellCheckingInspection */
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Log;
 
 class DBImporterFromScimData
 {
-    const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+    public const SCHEMAS_EXTENSION_USER = 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User';
 
     protected $dataPost;
     protected $setting;
@@ -45,7 +46,7 @@ class DBImporterFromScimData
             return true;
         }
 
-        Log::error("Error of insert user to database");
+        Log::error('Error of insert user to database');
         return false;
     }
 }

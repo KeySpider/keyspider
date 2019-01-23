@@ -57,7 +57,7 @@ function xcopy($source, $dest, $permissions = 0755)
     $dir = dir($source);
     while (false !== $entry = $dir->read()) {
         // Skip pointers
-        if ($entry == '.' || $entry == '..') {
+        if ($entry === '.' || $entry === '..') {
             continue;
         }
 
@@ -97,7 +97,7 @@ class ImportQueueTest extends TestCase
         }
 
         $arrayOfFirstColumnInDB = $this->getArrayOfFirstColumnInDB();
-        $this->assertTrue($arrayOfFirstColumn== $arrayOfFirstColumnInDB);
+        $this->assertEquals($arrayOfFirstColumn, $arrayOfFirstColumnInDB);
     }
 
     /**
@@ -105,42 +105,41 @@ class ImportQueueTest extends TestCase
      */
     private function setDataToDoTest()
     {
-//        DB::statement('DELETE FROM "AAA";');
-        xcopy(storage_path("unittest/user/store/"), storage_path("unittest/user/"));
-
+        DB::statement('DELETE FROM "AAA";');
+        xcopy(storage_path('unittest/user/store/'), storage_path('unittest/user/'));
         $originalString = [
-            "setting" => [
-                "CSV Import Process Basic Configuration" => [
-                    "ImportTable" => "User",
-                    "FilePath" => storage_path("unittest/user"),
-                    "FileName" => "hogehoge[0-9]{3}.csv",
-                    "ProcessedFilePath" => storage_path("import_csv_processed/user"),
-                    "ExecutionTime" => ["00:00"],
-                    "TableNameInDB" => "AAA"
+            'setting' => [
+                'CSV Import Process Basic Configuration' => [
+                    'ImportTable' => 'User',
+                    'FilePath' => storage_path('unittest/user'),
+                    'FileName' => 'hogehoge[0-9]{3}.csv',
+                    'ProcessedFilePath' => storage_path('import_csv_processed/user'),
+                    'ExecutionTime' => ['00:00'],
+                    'TableNameInDB' => 'AAA'
                 ],
-                "CSV Import Process Format Conversion" => [
-                    "#User.hogehogi" => "",
-                    "AAA.001" => "(1,([A-Za-z0-9._+]+)@(.*),$1)",
-                    "AAA.002" => "(8,([0-9]{4})年([0-9]{2})月([0-9]{2})日,$1/$2/$3)",
-                    "AAA.003" => "(2)",
-                    "AAA.004" => "(4)",
-                    "" => "mvfxvlvllvlvf",
-                    "AAA.005" => "(5)",
-                    "AAA.013" => "TODAY()",
-                    "AAA.014" => "admin",
-                    "AAA.015" => "0",
-                    "AAA.006" => "(3,(.+) (.+),$1)",
-                    "AAA.007" => "(3,(.+) (.+),$2)",
-                    "AAA.008" => "(3,\s,)",
-                    "AAA.009" => "(1,\w,\l)",
-                    "AAA.010" => "(6)",
-                    "AAA.011" => "(7)",
+                'CSV Import Process Format Conversion' => [
+                    '#User.hogehogi' => '',
+                    'AAA.001' => '(1,([A-Za-z0-9._+]+)@(.*),$1)',
+                    'AAA.002' => '(8,([0-9]{4})年([0-9]{2})月([0-9]{2})日,$1/$2/$3)',
+                    'AAA.003' => '(2)',
+                    'AAA.004' => '(4)',
+                    '' => 'mvfxvlvllvlvf',
+                    'AAA.005' => '(5)',
+                    'AAA.013' => 'TODAY()',
+                    'AAA.014' => 'admin',
+                    'AAA.015' => '0',
+                    'AAA.006' => '(3,(.+) (.+),$1)',
+                    'AAA.007' => '(3,(.+) (.+),$2)',
+                    'AAA.008' => "(3,\s,)",
+                    'AAA.009' => "(1,\w,\l)",
+                    'AAA.010' => '(6)',
+                    'AAA.011' => '(7)',
                 ],
-                "IniFileName" => storage_path("import/UserInfoCSVImport.ini"),
+                'IniFileName' => storage_path('import/UserInfoCSVImport.ini'),
             ],
-            "files" => [
-                storage_path("unittest/user/hogehoge101.csv"),
-                storage_path("unittest/user/hogehoge102.csv"),
+            'files' => [
+                storage_path('unittest/user/hogehoge101.csv'),
+                storage_path('unittest/user/hogehoge102.csv'),
             ]
         ];
         return $originalString;
@@ -153,11 +152,7 @@ class ImportQueueTest extends TestCase
     private function getArrayOfFirstColumnFromCSVFile($file)
     {
         $array = array();
-        $array_map = [];
-        foreach (file($file) as $key => $v) {
-            $array_map[$key] = str_getcsv($v, ",");
-        }
-        $csv = $array_map;
+        $csv = array_map(function($v){return str_getcsv($v, ',');}, file($file));
         foreach ($csv as $row) {
             $array[] = explode('@', $row[0])[0];
         }

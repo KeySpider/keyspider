@@ -24,11 +24,11 @@ use Illuminate\Support\Facades\Log;
 
 class QueueManager
 {
-    public const INI_CONFIGS = "ini_configs";
+    public const INI_CONFIGS = 'ini_configs';
 
     public static function getQueueSettings()
     {
-        $queueSettings = parse_ini_file(storage_path("" . self::INI_CONFIGS . "/QueueSettings.ini"), true);
+        $queueSettings = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/QueueSettings.ini'), true);
         return $queueSettings['Queue Settings'];
     }
 
@@ -37,19 +37,19 @@ class QueueManager
      * <p> Job to be pushed </p>
      * <p> Log job information when pushing
      */
-    public function push(JobInterface $job)
+    public function push(JobInterface $job): void
     {
         dispatch($job);
-        Log::alert("---------------Job logger---------------");
-        Log::info("Job type: " . $job->getJobName());
-        Log::info("Job details:");
+        Log::alert('---------------Job logger---------------');
+        Log::info('Job type: ' . $job->getJobName());
+        Log::info('Job details:');
         Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 
     /**
      * Push high priority
      */
-    public function pushHighPriority()
+    public function pushHighPriority(): void
     {
         // do something
     }
@@ -57,7 +57,7 @@ class QueueManager
     /**
      * @param $file
      */
-    public function pop($file)
+    public function pop($file): void
     {
         // do something
     }
