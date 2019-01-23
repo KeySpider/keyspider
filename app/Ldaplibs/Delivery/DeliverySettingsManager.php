@@ -65,9 +65,9 @@ class DeliverySettingsManager extends SettingsManager
             }
             ksort($timeArray);
             return $timeArray;
-        } else {
-            Log::info("Error in Extract INI file");
-            return [];
         }
+
+        Log::info("Error in Extract INI file");
+        return [];
     }
 }
