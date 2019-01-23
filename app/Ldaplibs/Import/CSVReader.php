@@ -83,7 +83,7 @@ class CSVReader implements DataInputReader
                 if (is_dir($pathDir)) {
                     foreach (scandir($pathDir) as $key => $file) {
                         $ext = pathinfo($file, PATHINFO_EXTENSION);
-                        if ($ext == 'csv') {
+                        if ($ext === 'csv') {
                             $newPattern = removeExt($pattern);
                             $newFile = removeExt($file);
                             if (preg_match("/{$newPattern}/", $newFile)) {
@@ -215,7 +215,7 @@ class CSVReader implements DataInputReader
                 }
             }
 
-            $now = Carbon::now()->format('Ymdhis') . rand(1000, 9999);
+            $now = Carbon::now()->format('Ymdhis') . random_int(1000, 9999);
             $fileName = "hogehoge_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
