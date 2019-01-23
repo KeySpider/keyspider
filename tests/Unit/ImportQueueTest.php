@@ -1,4 +1,4 @@
-<?php /** @noinspection SlowArrayOperationsInLoopInspection */
+<?php
 
 /*******************************************************************************
  * Key Spider
@@ -22,6 +22,7 @@ namespace Tests\Unit;
 
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Import\ImportQueueManager;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -71,6 +72,8 @@ function xcopy($source, $dest, $permissions = 0755)
 
 class ImportQueueTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
      * A basic test example.
      *
@@ -84,6 +87,7 @@ class ImportQueueTest extends TestCase
         $files = $originalString['files'];
         $arrayOfFirstColumn = array();
         $queue = new ImportQueueManager();
+
         foreach ($files as $file) {
             $array = $this->getArrayOfFirstColumnFromCSVFile($file);
             $arrayOfFirstColumn = array_merge($arrayOfFirstColumn, $array);
@@ -99,10 +103,11 @@ class ImportQueueTest extends TestCase
     /**
      * @return array
      */
-    private function setDataToDoTest(): array
+    private function setDataToDoTest()
     {
-        DB::statement('DELETE FROM "AAA";');
+//        DB::statement('DELETE FROM "AAA";');
         xcopy(storage_path("unittest/user/store/"), storage_path("unittest/user/"));
+
         $originalString = [
             "setting" => [
                 "CSV Import Process Basic Configuration" => [
@@ -145,10 +150,14 @@ class ImportQueueTest extends TestCase
      * @param $file
      * @return array
      */
-    private function getArrayOfFirstColumnFromCSVFile($file): array
+    private function getArrayOfFirstColumnFromCSVFile($file)
     {
         $array = array();
-        $csv = array_map(function($v){return str_getcsv($v, ",");}, file($file));
+        $array_map = [];
+        foreach (file($file) as $key => $v) {
+            $array_map[$key] = str_getcsv($v, ",");
+        }
+        $csv = $array_map;
         foreach ($csv as $row) {
             $array[] = explode('@', $row[0])[0];
         }
@@ -158,7 +167,7 @@ class ImportQueueTest extends TestCase
     /**
      * @return array
      */
-    private function getArrayOfFirstColumnInDB(): array
+    private function getArrayOfFirstColumnInDB()
     {
         $arrayOfFirstColumnInDB = array();
         $sql = 'SELECT "001" FROM "AAA"';

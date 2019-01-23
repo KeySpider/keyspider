@@ -45,236 +45,153 @@ class DBExtractor
         $this->setting = $setting;
     }
 
-    /**
-     * process extract
-     */
-    public function process()
+    public function processExtract()
     {
         try {
-            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+            $setting = $this->setting;
 
-            $setting                 = $this->setting;
-            $outputProcessConvention = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-            $extractTable            = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractCondition        = $setting[self::EXTRACTION_CONDITION];
-            $formatConvention        = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
-
-            // get sql query by condition in setting file
+            $extractTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $table = $this->switchTable($extractTable);
-            $sql = $this->getSQLQueryByExtractCondition("\"{$table}\"", $extractCondition, $formatConvention);
 
-            // get data by query
-            $results = $this->getDataByQuery($sql);
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $whereData = $this->extractCondition($extractCondition);
 
-            // extract csv file into temp
-            $infoOutputIni = parse_ini_file(($outputProcessConvention));
 
-            $fileName = $infoOutputIni['FileName'];
-            $tempPath = $infoOutputIni['TempPath'];
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
-            mkDirectory($tempPath);
-
-            if (is_file("{$tempPath}/$fileName")) {
-                $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
+            if ($table === "AAA") {
+                // join
+                $results = DB::table('AAA')
+                    ->where($whereData)
+                    ->select($selectColumns)
+                    ->leftJoin('BBB', 'AAA.004', 'BBB.001')
+                    ->leftJoin('CCC', 'AAA.005', 'CCC.001')
+                    ->get();
+            } else {
+                $results = DB::table($table)
+                    ->select($selectColumns)
+                    ->where($whereData)
+                    ->get();
             }
 
-            Log::info("Export to file: $fileName into $tempPath");
+            if (!empty($results->toArray())) {
+                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+                $settingOutput = $this->getContentOutputCSV($pathOutput);
 
-            $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
+                $this->processOutputDataExtract($settingOutput, $results, $formatConvention);
+            }
+        } catch (Exception $exception) {
+            Log::error($exception);
+        }
+    }
 
-            // create csv file
-            foreach ($results as $data) {
-                $dataTmp = [];
-                foreach ($data as $column => $line) {
-                    foreach ($formatConvention as $format) {
-                        $isPattern = preg_match($pattern, $format, $item);
-                        if ($isPattern) {
-                            $columnTmp = null;
-                            if (isset($item['exp3'])) {
-                                $columnTmp = $item['exp3'];
-                            } else {
-                                $columnTmp = $item['exp1'];
-                            }
+    /**
+     * @param $extractCondition
+     * @return mixed
+     */
+    public function extractCondition($extractCondition)
+    {
+        $whereData = [];
+        foreach ($extractCondition as $key => &$condition) {
+            // condition
+            if ($condition === 'TODAY() + 7') {
+                $condition = Carbon::now()->addDay(7)->format('Y/m/d');
+                array_push($whereData, [$key, '<=', $condition]);
+            } else {
+                array_push($whereData, [$key,'=', $condition]);
+            }
+        }
+        return $whereData;
+    }
 
-                            if ($columnTmp === $column) {
-                                array_push($dataTmp, $line);
-                            }
+    public function getColumnsSelect($nameTable, $settingConvention)
+    {
+        $selectColumns = [
+            "{$nameTable}.*"
+        ];
+
+        $arraySelectColumns = [
+            "{$nameTable}.001"
+        ];
+
+        if ($nameTable === "AAA") {
+            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+
+            foreach ($settingConvention as $key => $value) {
+                $isFormat = preg_match($pattern, $value, $data);
+                if ($isFormat) {
+                    if (!in_array($data['exp1'], $arraySelectColumns)) {
+                        array_push($arraySelectColumns, $data['exp1']);
+                    }
+
+                    if (isset($data['exp3'])) {
+                        if (!in_array($data['exp3'], $arraySelectColumns)) {
+                            array_push($arraySelectColumns, $data['exp3']);
                         }
                     }
                 }
-                fputcsv($file, $dataTmp, ',');
             }
-            fclose($file);
-        } catch (Exception $e) {
-            Log::error($e);
+
+            $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
         }
+
+        return $selectColumns;
     }
 
-    /**
-     * Get sql query by condition
-     *
-     * @param $table
-     * @param $extractCondition
-     * @param $formatConvention
-     * @return string
-     */
-    public function getSQLQueryByExtractCondition($table, $extractCondition, $formatConvention)
+    public function convertArrayColumnsIntoString($arraySelectColumns)
     {
-        $queries = [];
-        $selectColumn = [];
-        $leftJoin = [];
+        foreach ($arraySelectColumns as $key => $column) {
+            $arraySelectColumns[$key] = "{$column} as {$column}";
+        }
 
+        return $arraySelectColumns;
+    }
+
+    public function getContentOutputCSV($path)
+    {
+        $content = parse_ini_file(($path));
+        return $content;
+    }
+
+    public function processOutputDataExtract($settingOutput, $results, $formatConvention)
+    {
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
-        $dataColumn = [];
-        foreach ($extractCondition as $key => $value) {
-            $newsKey = substr($key, -3);
-            $dataColumn[$newsKey] = $value;
-        }
+        $tempPath = $settingOutput['TempPath'];
+        $fileName = $settingOutput['FileName'];
 
-        foreach ($dataColumn as $column => $where) {
-            if ($this->checkExitsString($where)) {
-                $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
-                $query = "\"{$column}\" <= '{$where}'";
-            } else {
-                $query = "\"{$column}\" = '{$where}'";
-            }
-            array_push($selectColumn, "\"{$column}\"");
-            array_push($queries, $query);
-        }
+        mkDirectory($tempPath);
 
-        foreach ($formatConvention as $key => $value) {
-            $isFormat = preg_match($pattern, $value, $data);
-            if ($isFormat) {
-                array_push($selectColumn, "\"{$data['exp1']}\"");
-            }
+        if (is_file("{$tempPath}/$fileName")) {
+            $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
         }
+        Log::info("Export to file: $fileName into $tempPath");
+        $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
-        if ($table === "\"AAA\"") {
-            foreach ($formatConvention as $key => $item) {
-                $isCheckPattern = preg_match($pattern, $item, $data);
-                if ($isCheckPattern) {
-                    if (isset($data['exp3'])) {
-                        $joinTable = $this->getJoinTable($data['exp3']);
-                        $tmp = "left join \"{$joinTable['table']}\" 
-                        on \"{$data['exp1']}\" = \"{$joinTable['keyJoin']}\" ";
-                        array_push($leftJoin, $tmp);
-                        array_push($selectColumn, "\"{$data['exp3']}\"");
+        // create csv file
+        foreach ($results as $data) {
+            $dataTmp = [];
+            foreach ($data as $column => $line) {
+                foreach ($formatConvention as $format) {
+                    $isPattern = preg_match($pattern, $format, $item);
+                    if ($isPattern) {
+                        $columnTmp = null;
+                        if (isset($item['exp3'])) {
+                            $columnTmp = $item['exp3'];
+                        } else {
+                            $columnTmp = $item['exp1'];
+                        }
+
+                        if ($columnTmp === $column) {
+                            array_push($dataTmp, $line);
+                        }
                     }
                 }
             }
+            fputcsv($file, $dataTmp, ',');
         }
-
-        $queries = empty($queries) ? '' : "WHERE " . implode(' AND ', $queries);
-        $selectColumn = empty($selectColumn) ? "*" : implode(',', $selectColumn);
-        $leftJoin = empty($leftJoin) ? '' : implode('', $leftJoin);
-
-        if ($table === "\"AAA\"") {
-            $sql = "SELECT * FROM {$table} {$leftJoin} {$queries}";
-        } else {
-            $sql = "SELECT * FROM {$table} {$queries}";
-        }
-
-        return $sql;
-    }
-
-    /**
-     * @param $data
-     * @return array
-     */
-    public function getJoinTable($data)
-    {
-        $results = [];
-
-        if (strpos($data, "AAA") !== false) {
-            $results = [
-                'table' => "AAA",
-                'keyJoin' => "AAA.001",
-            ];
-        }
-        if (strpos($data, "BBB") !== false) {
-            $results = [
-                'table' => "BBB",
-                'keyJoin' => "BBB.001",
-            ];
-        }
-        if (strpos($data, "CCC") !== false) {
-            $results = [
-                'table' => "CCC",
-                'keyJoin' => "CCC.001",
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * @param $sql
-     * @return mixed
-     */
-    public function getDataByQuery($sql)
-    {
-        ini_set('memory_limit', '512M');
-        $result = DB::select($sql);
-        $results = json_decode(json_encode($result), true);
-        $nRecords = sizeof($results);
-        Log::info("Number of records to be extracted: $nRecords");
-        return $results;
-    }
-
-    /**
-     * Extract data by condition in setting file
-     *
-     * @param array $condition
-     * @param string $table
-     *
-     * @author ngulb@tech.est-rouge.com
-     *
-     * @return array
-     */
-    public function extractDataByCondition($condition, $table)
-    {
-        try {
-            $table   = "\"{$table}\"";
-            $queries = [];
-
-            foreach ($condition as $column => $where) {
-                if ($this->checkExitsString($where)) {
-                    $where = Carbon::now()->addDay($this->checkExitsString($where))->format('Y/m/d');
-                    $query = "\"{$column}\" <= '{$where}'";
-                } else {
-                    $query = "\"{$column}\" = '{$where}'";
-                }
-                array_push($queries, $query);
-            }
-
-            // select * from "AAA" where "AAA.002" <= 'TODAY() + 7' and "AAA.015" = '0';
-            $queries = implode(' AND ', $queries);
-
-            $sql = "SELECT * FROM {$table} WHERE {$queries} ";
-            $result = DB::select($sql);
-            $resultArray = json_decode(json_encode($result), true);
-            return $resultArray[0];
-        } catch (Exception $e) {
-            Log::error($e);
-        }
-    }
-
-    /**
-     * Check exits string
-     *
-     * @param string $str
-     *
-     * @author ngulb@tech.est-rouge.com
-     *
-     * @return bool
-     */
-    public function checkExitsString($str)
-    {
-        if (strpos($str, 'TODAY()') !== false) {
-            return (int)substr($str, -1);
-        }
-        return false;
+        fclose($file);
     }
 
     /**

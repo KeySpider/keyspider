@@ -57,7 +57,7 @@ class DBExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::process();
+        parent::processExtract();
     }
 
     /**

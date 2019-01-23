@@ -50,7 +50,7 @@ class ExtractQueueTest extends TestCase
     /**
      * @return array
      */
-    private function setDataToDoTest(): array
+    private function setDataToDoTest()
     {
         $json_delivery_schedule = '{
     "00:00": [
