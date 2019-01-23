@@ -52,7 +52,7 @@ class DeliverySettingsManager extends SettingsManager
      * Get schedule delivery execution
      * @return array
      */
-    public function getScheduleDeliveryExecution()
+    public function getScheduleDeliveryExecution(): ?array
     {
         $timeArray = [];
         if (true) {
