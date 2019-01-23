@@ -283,17 +283,7 @@ class ImportSettingsManager extends SettingsManager
 
         $iniSCIMSettingsArray = [];
         try {
-            $iniSCIMSettingsArray = parse_ini_file($filePath, true);
-            $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
-            $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
-            $columnNameConversion = $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION];
-            foreach ($columnNameConversion as $key => $value) {
-                if (isset($masterDBConversion[$key])) {
-                    $columnNameConversion[$masterDBConversion[$key]] = $value;
-                    unset($columnNameConversion[$key]);
-                }
-            }
-            $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+            $iniSCIMSettingsArray = $this->getSCIMInputFormatConversion($filePath);
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
         }
@@ -310,9 +300,9 @@ class ImportSettingsManager extends SettingsManager
         $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
         $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
 
-        $table_name = $importSettings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $tableName = $importSettings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
         $formatConversion = $importSettings[self::SCIM_INPUT_FORMAT_CONVERSION];
-        $dbConfigOfTable = $masterDBConf[$table_name];
+        $dbConfigOfTable = $masterDBConf[$tableName];
         $result = [];
 
         foreach ($formatConversion as $key => $value) {
@@ -386,5 +376,26 @@ class ImportSettingsManager extends SettingsManager
         Log::error(('Error file: ' . $fileName) ? $fileName : '');
         /** @noinspection PhpUndefinedMethodInspection */
         Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Based on MasterDBConf.ini, convert columns name from SCIM to our DB
+     * @param $filePath
+     * @return array|bool
+     */
+    private function getSCIMInputFormatConversion($filePath)
+    {
+        $iniSCIMSettingsArray = parse_ini_file($filePath, true);
+        $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
+        $columnNameConversion = $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION];
+        foreach ($columnNameConversion as $key => $value) {
+            if (isset($masterDBConversion[$key])) {
+                $columnNameConversion[$masterDBConversion[$key]] = $value;
+                unset($columnNameConversion[$key]);
+            }
+        }
+        $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+        return $iniSCIMSettingsArray;
     }
 }
