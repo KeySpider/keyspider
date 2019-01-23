@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -25,6 +26,7 @@ class DeliveryQueueManager extends QueueManager
 {
     private $fileList;
     private $history;
+
     public function __construct($file_list = null)
     {
         $this->fileList = $file_list;

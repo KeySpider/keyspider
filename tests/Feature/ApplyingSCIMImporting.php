@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ApplyingSCIMImporting extends TestCase
 {
-    use RefreshDatabase;
+//    use RefreshDatabase;
 
     public const USER_SETTING_DEFAULT = [
         "SCIM Input Bacic Configuration" => [

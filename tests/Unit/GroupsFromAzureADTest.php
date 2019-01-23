@@ -26,7 +26,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class GroupsFromAzureADTest extends TestCase
 {
-    use RefreshDatabase;
+//    use RefreshDatabase;
 
     public const ROLE_SETTING_DEFAULT = [
         'SCIM Input Bacic Configuration' => [

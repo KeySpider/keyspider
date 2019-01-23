@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -23,6 +24,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class DBExtractor
 {
@@ -56,30 +58,41 @@ class DBExtractor
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $whereData = $this->extractCondition($extractCondition);
 
+            $checkColumns = [];
+            foreach ($whereData as $item) {
+                array_push($checkColumns, substr($item[0], -3));
+            }
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
+            $results = null;
             if ($table === "AAA") {
                 // join
-                $results = DB::table('AAA')
-                    ->where($whereData)
-                    ->select($selectColumns)
-                    ->leftJoin('BBB', 'AAA.004', 'BBB.001')
-                    ->leftJoin('CCC', 'AAA.005', 'CCC.001')
-                    ->get();
+                if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
+                    $results = DB::table($table)
+                        ->where($whereData)
+                        ->select($selectColumns)
+                        ->leftJoin('BBB', 'AAA.004', 'BBB.001')
+                        ->leftJoin('CCC', 'AAA.005', 'CCC.001')
+                        ->get();
+                }
             } else {
-                $results = DB::table($table)
-                    ->select($selectColumns)
-                    ->where($whereData)
-                    ->get();
+                if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
+                    $results = DB::table($table)
+                        ->select($selectColumns)
+                        ->where($whereData)
+                        ->get();
+                }
             }
 
-            if (!empty($results->toArray())) {
-                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-                $settingOutput = $this->getContentOutputCSV($pathOutput);
+            if ($results) {
+                if (!empty($results->toArray())) {
+                    $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+                    $settingOutput = $this->getContentOutputCSV($pathOutput);
 
-                $this->processOutputDataExtract($settingOutput, $results, $formatConvention);
+                    $this->processOutputDataExtract($settingOutput, $results, $formatConvention);
+                }
             }
         } catch (Exception $exception) {
             Log::error($exception);
@@ -105,6 +118,11 @@ class DBExtractor
         return $whereData;
     }
 
+    /**
+     * @param $nameTable
+     * @param $settingConvention
+     * @return array|mixed
+     */
     public function getColumnsSelect($nameTable, $settingConvention)
     {
         $selectColumns = [
@@ -139,6 +157,10 @@ class DBExtractor
         return $selectColumns;
     }
 
+    /**
+     * @param $arraySelectColumns
+     * @return mixed
+     */
     public function convertArrayColumnsIntoString($arraySelectColumns)
     {
         foreach ($arraySelectColumns as $key => $column) {
@@ -148,12 +170,21 @@ class DBExtractor
         return $arraySelectColumns;
     }
 
+    /**
+     * @param $path
+     * @return array|bool
+     */
     public function getContentOutputCSV($path)
     {
         $content = parse_ini_file(($path));
         return $content;
     }
 
+    /**
+     * @param $settingOutput
+     * @param $results
+     * @param $formatConvention
+     */
     public function processOutputDataExtract($settingOutput, $results, $formatConvention)
     {
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";

@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -36,6 +37,13 @@ class GroupController extends LaravelController
 {
     use EloquentBuilderTrait;
 
+    protected $roleModel;
+
+    public function __construct(CCC $roleModel)
+    {
+        $this->roleModel = $roleModel;
+    }
+
     /**
      * @param Request $request
      * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
@@ -47,7 +55,7 @@ class GroupController extends LaravelController
         $parser = new Parser(Mode::FILTER());
         $node = $parser->parse($request->input('filter'));
 
-        $dataQuery = CCC::where('003', $node->compareValue)->first();
+        $dataQuery = $this->roleModel->where('003', $node->compareValue)->first();
 
         $dataFormat = [];
         if ($dataQuery) {
@@ -123,10 +131,10 @@ class GroupController extends LaravelController
         Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-        $group = CCC::where('001', $id)->first();
+        $group = $this->roleModel->where('001', $id)->first();
 
         if (!$group) {
-            throw (new SCIMException('User Not Found'))->setCode(400);
+            throw (new SCIMException('Group Not Found'))->setCode(400);
         }
 
         $filePath = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
@@ -165,7 +173,7 @@ class GroupController extends LaravelController
         Log::debug($id);
         Log::info('--------------------------------------------------');
 
-        $dataQuery = CCC::where('001', $id)->first();
+        $dataQuery = $this->roleModel->where('001', $id)->first();
 
         $fileIni = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
 
@@ -219,34 +227,6 @@ class GroupController extends LaravelController
         ];
 
         return $this->response($response);
-    }
-
-    /**
-     * @param Request $request
-     * @return bool
-     */
-    private function setFilterForRequest(Request &$request): bool
-    {
-        $filter = explode(' ', $request->input('filter'));
-        try {
-            $request["filter_groups"] = [
-                0 =>
-                    [
-                        'filters' =>
-                            [
-                                0 =>
-                                    [
-                                        'key' => $filter[0],
-                                        'value' => $filter[2],
-                                        'operator' => $filter[1],
-                                    ],
-                            ],
-                    ],
-            ];
-            return true;
-        } catch (\Exception $exception) {
-            return false;
-        }
     }
 
     /**

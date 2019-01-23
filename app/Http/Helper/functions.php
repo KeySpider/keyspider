@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -17,33 +18,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-
-if (!function_exists('isTableNameInDatabase')) {
-    /**
-     * @param string $tableName
-     * @return bool
-     */
-    function isTableNameInDatabase($tableName)
-    {
-        $query = "SELECT EXISTS (
-           SELECT 1
-           FROM   information_schema.tables 
-           WHERE  table_schema = 'public'
-           AND    table_name = '{$tableName}'
-        );";
-        $result = DB::select($query);
-
-        if (!empty($result)) {
-            $flag = $result[0]->exists;
-        } else {
-            $flag = false;
-        }
-
-        return $flag;
-    }
-}
 
 if (!function_exists('removeExt')) {
     /**

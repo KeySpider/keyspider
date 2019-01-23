@@ -26,7 +26,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class UsersFromAzureADTest extends TestCase
 {
-    use RefreshDatabase;
+//    use RefreshDatabase;
 
     public const USER_SETTING_DEFAULT = [
         'SCIM Input Bacic Configuration' => [

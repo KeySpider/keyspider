@@ -127,7 +127,7 @@ class ExtractSettingsManager extends SettingsManager
             return false;
         }
 
-// Validate children
+        // Validate children
         [$tempIniArray, $validate] = $this->getValidatorOfBasicConfiguration($iniArray);
         if ($validate->fails()) {
             $this->doLogsForValidation($filename, $validate);

@@ -28,11 +28,14 @@ use Illuminate\Support\Facades\Log;
 class CSVDelivery implements DataDelivery
 {
     public const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
-    protected $setting;
 
-    public function __construct($setting)
+    protected $setting;
+    protected $deliveryHistoryModel;
+
+    public function __construct($setting, DeliveryHistory $deliveryHistoryModel)
     {
         $this->setting = $setting;
+        $this->deliveryHistoryModel = $deliveryHistoryModel;
     }
 
     public function format()
@@ -116,7 +119,6 @@ class CSVDelivery implements DataDelivery
         return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
     }
 
-
     /**
      * @param $fileCSV
      * @return int|void
@@ -124,6 +126,7 @@ class CSVDelivery implements DataDelivery
     private function rowsColumnCSV($fileCSV)
     {
         $rowsColumn = 0;
+
         if (file_exists($fileCSV)) {
             $data = [];
             foreach (file($fileCSV) as $line) {
@@ -143,7 +146,7 @@ class CSVDelivery implements DataDelivery
      */
     public function saveToHistory(array $historyData)
     {
-        DeliveryHistory::create($historyData);
+        $this->deliveryHistoryModel->create($historyData);
     }
 
     /**

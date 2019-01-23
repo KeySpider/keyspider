@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -23,5 +24,5 @@ use App\Ldaplibs\QueueManager;
 
 class ExtractQueueManager extends QueueManager
 {
-
+    // do something
 }

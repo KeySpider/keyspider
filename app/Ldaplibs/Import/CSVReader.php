@@ -51,53 +51,6 @@ class CSVReader implements DataInputReader
         $this->setting = $setting;
     }
 
-    /**
-     * Get all csv file from setting
-     *
-     * @return array
-     */
-    public function getListFileCsvSetting()
-    {
-        // get name table from file setting
-        $dataCSV = [];
-        $settings = $this->setting->getRuleOfImport();
-
-        if (!empty($settings)) {
-            foreach ($settings as $setting) {
-                // Scan file csv from path, setting
-                $path = $setting[self::CONFIGURATION]['FilePath'];
-
-                $options = [
-                    'file_type' => 'csv',
-                    'pattern' => $setting[self::CONFIGURATION]['FileName'],
-                ];
-
-                $pattern = $options['pattern'];
-                $listFileCSV = [
-                    'setting' => $setting,
-                    'file_csv' => [],
-                ];
-                $pathDir = $path;
-
-                if (is_dir($pathDir)) {
-                    foreach (scandir($pathDir) as $key => $file) {
-                        $ext = pathinfo($file, PATHINFO_EXTENSION);
-                        if ($ext === 'csv') {
-                            $newPattern = removeExt($pattern);
-                            $newFile = removeExt($file);
-                            if (preg_match("/{$newPattern}/", $newFile)) {
-                                $listFileCSV['file_csv'][] = "{$path}/{$file}";
-                            }
-                        }
-                    }
-
-                    $dataCSV[] = $listFileCSV;
-                }
-            }
-            return $dataCSV;
-        }
-    }
-
     /** Get name table from setting file
      *
      * @param array $setting

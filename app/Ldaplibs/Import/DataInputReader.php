@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -21,7 +22,6 @@ namespace App\Ldaplibs\Import;
 
 interface DataInputReader
 {
-    public function getListFileCsvSetting();
     public function getNameTableFromSetting($setting);
     public function getNameTableBase($setting);
     public function getAllColumnFromSetting($setting);

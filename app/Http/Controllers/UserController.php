@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -36,7 +37,14 @@ class UserController extends LaravelController
 {
     use EloquentBuilderTrait;
 
-    const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+    public const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+
+    protected $userModel;
+
+    public function __construct(AAA $userModel)
+    {
+        $this->userModel = $userModel;
+    }
 
     /**
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
@@ -47,6 +55,10 @@ class UserController extends LaravelController
         return view('welcome');
     }
 
+    /**
+     * @param Request $request
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     */
     public function index(Request $request)
     {
         $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
@@ -63,7 +75,7 @@ class UserController extends LaravelController
             $valueQuery = $result[1];
         }
 
-        $dataQuery = AAA::where('001', $valueQuery)->first();
+        $dataQuery = $this->userModel->where('001', $valueQuery)->first();
 
         $dataFormat = [];
         if ($dataQuery) {
@@ -151,7 +163,7 @@ class UserController extends LaravelController
         Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-        $user = AAA::where('001', $id)->first();
+        $user = $this->userModel->where('001', $id)->first();
 
         if (!$user) {
             throw (new SCIMException('User Not Found'))->setCode(400);
@@ -210,35 +222,6 @@ class UserController extends LaravelController
         ];
 
         return $this->response($response);
-    }
-
-    /**
-     * @param Request $request
-     * @return bool
-     */
-    private function setFilterForRequest(Request &$request): bool
-    {
-        $filter = explode(' ', $request->input('filter'));
-
-        try {
-            $request["filter_groups"] = [
-                0 =>
-                    [
-                        'filters' =>
-                            [
-                                0 =>
-                                    [
-                                        'key' => $filter[0],
-                                        'value' => trim($filter[2], '"'),
-                                        'operator' => $filter[1],
-                                    ],
-                            ],
-                    ],
-            ];
-            return true;
-        } catch (\Exception $exception) {
-            return false;
-        }
     }
 
     private function toSCIMArray($dataArray)
