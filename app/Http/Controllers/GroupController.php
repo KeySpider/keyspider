@@ -134,7 +134,7 @@ class GroupController extends LaravelController
         $group = $this->roleModel->where('001', $id)->first();
 
         if (!$group) {
-            throw (new SCIMException('Group Not Found'))->setCode(400);
+            throw (new SCIMException('Group Not Found'))->setCode(404);
         }
 
         $filePath = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
@@ -188,6 +188,7 @@ class GroupController extends LaravelController
         $jsonData = [];
         if (!empty($dataFormat)) {
             $jsonData = [
+                "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                 "id" => $dataFormat['externalId'],
                 "externalId" => $dataFormat['externalId'],
                 "displayName" => $dataFormat['displayName'],
@@ -195,9 +196,6 @@ class GroupController extends LaravelController
                     "resourceType" => "Group",
                 ],
                 "members" => [],
-                "schemas" => [
-                    "urn:ietf:params:scim:api:messages:2.0:Group"
-                ],
             ];
         }
 

@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -24,6 +25,8 @@ Route::middleware('azure')->group(function () {
     Route::post('Users', 'UserController@store');
     Route::patch('Users/{id}', 'UserController@update');
     Route::delete('Users/{id}', 'UserController@destroy');
+    Route::get('Users/{id}', 'UserController@detail');
+
 
     // Groups
     Route::get('Groups', 'GroupController@index');
