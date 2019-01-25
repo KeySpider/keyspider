@@ -32,10 +32,10 @@ class CSVDelivery implements DataDelivery
     protected $setting;
     protected $deliveryHistoryModel;
 
-    public function __construct($setting, DeliveryHistory $deliveryHistoryModel)
+    public function __construct($setting)
     {
         $this->setting = $setting;
-        $this->deliveryHistoryModel = $deliveryHistoryModel;
+        $this->deliveryHistoryModel = new DeliveryHistory();
     }
 
     public function format()
