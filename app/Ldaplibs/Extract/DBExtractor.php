@@ -91,7 +91,7 @@ class DBExtractor
                     $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                     $settingOutput = $this->getContentOutputCSV($pathOutput);
 
-                    $this->processOutputDataExtract($settingOutput, $results, $formatConvention);
+                    $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
                 }
             }
         } catch (Exception $exception) {
@@ -185,7 +185,7 @@ class DBExtractor
      * @param $results
      * @param $formatConvention
      */
-    public function processOutputDataExtract($settingOutput, $results, $formatConvention)
+    public function processOutputDataExtract($settingOutput, $results, $formatConvention, $table)
     {
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
@@ -206,16 +206,25 @@ class DBExtractor
             foreach ($data as $column => $line) {
                 foreach ($formatConvention as $format) {
                     $isPattern = preg_match($pattern, $format, $item);
+
                     if ($isPattern) {
                         $columnTmp = null;
+
                         if (isset($item['exp3'])) {
                             $columnTmp = $item['exp3'];
                         } else {
                             $columnTmp = $item['exp1'];
                         }
 
-                        if ($columnTmp === $column) {
-                            array_push($dataTmp, $line);
+                        if ($table === 'AAA') {
+                            if ($columnTmp === $column) {
+                                array_push($dataTmp, $line);
+                            }
+                        } else {
+                            $arrayColumn = explode('.', $columnTmp);
+                            if ($arrayColumn[1] === $column) {
+                                array_push($dataTmp, $line);
+                            }
                         }
                     }
                 }
