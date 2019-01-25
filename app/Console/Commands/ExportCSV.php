@@ -52,7 +52,6 @@ class ExportCSV extends Command
         // Setup schedule for Extract
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-
         $arrayOfSetting = [];
         foreach ($extractSetting as $ex) {
             $arrayOfSetting = array_merge($arrayOfSetting, $ex);
@@ -77,7 +76,7 @@ class ExportCSV extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule['setting'];
             $extractor = new DBExtractor($setting);
-            $extractor->process();
+            $extractor->processExtract();
         }
     }
 }
