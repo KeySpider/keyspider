@@ -70,7 +70,8 @@ class SettingsManager
                 'Master DB Configurtion' => 'required',
                 'CSV Import Process Configration' => 'required',
                 'SCIM Input Process Configration' => 'required',
-                'CSV Extract Process Configration' => 'required'
+                'CSV Extract Process Configration' => 'required',
+                'CSV Output Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
