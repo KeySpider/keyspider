@@ -59,11 +59,11 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getScheduleImportExecution(): array
     {
-        if ($this->key_spider === null) {
+        if ($this->keySpider === null) {
             Log::error('Wrong key spider! Do nothing.');
             return [];
         }
-        $allFiles = $this->key_spider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
+        $allFiles = $this->keySpider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
         foreach ($allFiles as $fileName) {
             $this->iniImportSettingsFiles[] = $fileName;
         }
