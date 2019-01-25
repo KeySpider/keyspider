@@ -59,6 +59,7 @@ class Kernel extends HttpKernel
         'api' => [
             'throttle:60,1',
             'bindings',
+            'request_logger'
         ],
     ];
 
@@ -80,6 +81,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'azure' => VerifyAzureADToken::class,
+        'request_logger' => \App\Http\Middleware\LogRequests::class
     ];
 
     /**
