@@ -29,23 +29,20 @@ class ExtractSettingsManager extends SettingsManager
     public const EXTRACTION_PROCESS_FORMAT_CONVERSION = 'Extraction Process Format Conversion';
     public const OUTPUT_PROCESS_CONVERSION = 'Output Process Conversion';
 
-    protected $iniExportSettingsFolder;
     protected $iniExportSettingsFiles = [];
 
     /**
      * ExtractSettingsManager constructor.
      * @param null $iniSettingsFiles
      */
+    const CSV_EXTRACT_PROCESS_CONFIGRATION = 'CSV Extract Process Configration';
+
+    const EXTRACT_CONFIG = 'extract_config';
+
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        $this->iniExportSettingsFolder = storage_path('' . self::INI_CONFIGS . '/extract/');
-        $allFiles = scandir($this->iniExportSettingsFolder);
-        foreach ($allFiles as $fileName) {
-            if ($this->contains('.ini', $fileName) && $this->contains('Extraction', $fileName)) {
-                $this->iniExportSettingsFiles[] = storage_path('' . self::INI_CONFIGS . '/extract/') . $fileName;
-            }
-        }
+        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
     }
 
     /**
@@ -60,7 +57,10 @@ class ExtractSettingsManager extends SettingsManager
             foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
                 $tableContent = parse_ini_file($iniExportSettingsFile, true);
                 $masterDB = $this->masterDBConfigData;
-                $tableContent = $this->convertFollowingDbMaster($tableContent, self::EXTRACTION_CONDITION, $masterDB);
+                $tableContent = $this->convertFollowingDbMaster($tableContent,
+                    self::EXTRACTION_CONDITION,
+                    $masterDB);
+
                 $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
                 foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
                     $filesArray['setting'] = $tableContent;
