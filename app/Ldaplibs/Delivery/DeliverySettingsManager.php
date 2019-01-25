@@ -37,16 +37,14 @@ class DeliverySettingsManager extends SettingsManager
      * DeliverySettingsManager constructor.
      * @param null $iniSettingsFiles
      */
+    const CSV_OUTPUT_PROCESS_CONFIGRATION = 'CSV Output Process Configration';
+
+    const OUTPUT_CONFIG = 'output_config';
+
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        $this->iniDeliverySettingsFolder = storage_path('' . self::INI_CONFIGS . '/extract/');
-        $allFiles = scandir($this->iniDeliverySettingsFolder);
-        foreach ($allFiles as $fileName) {
-            if ($this->contains('.ini', $fileName) && $this->contains('Output', $fileName)) {
-                $this->iniDeliverySettingsFiles[] = storage_path('' . self::INI_CONFIGS . '/extract/') . $fileName;
-            }
-        }
+        $this->iniDeliverySettingsFiles = $this->keySpider[self::CSV_OUTPUT_PROCESS_CONFIGRATION][self::OUTPUT_CONFIG];
     }
 
     /**
