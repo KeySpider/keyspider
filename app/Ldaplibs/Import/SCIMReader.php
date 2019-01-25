@@ -249,19 +249,20 @@ class SCIMReader
         }
     }
 
-    public function updateReplaceSCIM($id, $options): bool
+    /**
+     * @param $id
+     * @param $options
+     * @return bool
+     * @throws \Exception
+     */
+    public function updateReplaceSCIM($id, $options)
     {
         $externalId = $id;
         $path = $options['path'];
         $operation = $options['operation'];
 
         $importSetting = new ImportSettingsManager();
-        try {
-            $setting = $importSetting->getSCIMImportSettings($path);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-        }
-
+        $setting = $importSetting->getSCIMImportSettings($path);
 
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
@@ -290,13 +291,21 @@ class SCIMReader
             }
         }
 
+        if ($operation['path'] === 'active') {
+            array_push($columns, "\"015\"");
+            if ($operation['value'] === 'False') {
+                array_push($dataUpdate, '1');
+            } else {
+                array_push($dataUpdate, '1');
+            }
+        }
+
         $nameTable = $this->getTableName($setting);
 
         $condition = "\$\${$externalId}\$\$";
         $firstColumn = '001';
 
         $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
-        Log::debug($query);
         $isExit = DB::select($query);
 
         $stringValue = implode(',', $dataUpdate);

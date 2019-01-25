@@ -112,6 +112,54 @@ class UserController extends LaravelController
     }
 
     /**
+     * @param $id
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     */
+    public function detail($id)
+    {
+        Log::info('-----------------DETAIL USER...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+
+        $dataQuery = $this->userModel->where('001', $id)->first();
+
+        $dataFormat = [];
+        if ($dataQuery) {
+            $importSetting = new ImportSettingsManager();
+            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $fileIni);
+            $dataFormat['id'] = $dataFormat['userName'];
+            unset($dataFormat[0]);
+        }
+
+        $jsonData = [];
+        if (!empty($dataFormat)) {
+            $jsonData = [
+                "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                'id' => $dataFormat['userName'],
+                "externalId" => $dataFormat['userName'],
+                "userName" => "{$id}@keyspider.onmicrosoft.com",
+                "active" => true,
+                "displayName" => $dataFormat['displayName'],
+                "meta" => [
+                    "resourceType" => "User",
+                ],
+                "name" => [
+                    "formatted" => "",
+                    "familyName" => "",
+                    "givenName" => "",
+                ],
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
+                    "department" => $dataFormat['department']
+                ],
+            ];
+        }
+
+        return $this->response($jsonData, $code = 200);
+    }
+
+    /**
      * Create data
      *
      * @param Request $request
@@ -138,16 +186,6 @@ class UserController extends LaravelController
     }
 
     /**
-     * Show detail data
-     *
-     * @param $id
-     */
-    public function show($id)
-    {
-        // do something
-    }
-
-    /**
      * Update
      *
      * @param $id
@@ -166,7 +204,7 @@ class UserController extends LaravelController
         $user = $this->userModel->where('001', $id)->first();
 
         if (!$user) {
-            throw (new SCIMException('User Not Found'))->setCode(400);
+            throw (new SCIMException('User Not Found'))->setCode(404);
         }
 
         $filePath = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
@@ -186,6 +224,7 @@ class UserController extends LaravelController
         }
 
         foreach ($input['Operations'] as $operation) {
+            // process Operations Replace
             if (strtolower($operation['op']) === 'replace') {
                 $scimReader = new SCIMReader();
                 $options = [
@@ -194,6 +233,8 @@ class UserController extends LaravelController
                 ];
                 $scimReader->updateReplaceSCIM($id, $options);
             }
+
+            // process operations Add
         }
 
         throw (new SCIMException('Update success'))->setCode(200);
@@ -224,6 +265,10 @@ class UserController extends LaravelController
         return $this->response($response);
     }
 
+    /**
+     * @param $dataArray
+     * @return array
+     */
     private function toSCIMArray($dataArray)
     {
         $arr = [

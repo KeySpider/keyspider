@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -17,7 +18,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 
-namespace Tests\Feature;
+namespace Tests\Unit;
 
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
