@@ -28,6 +28,7 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
 use Tmilos\ScimFilterParser\Mode;
@@ -55,7 +56,10 @@ class GroupController extends LaravelController
         $parser = new Parser(Mode::FILTER());
         $node = $parser->parse($request->input('filter'));
 
-        $dataQuery = $this->roleModel->where('003', $node->compareValue)->first();
+        $dataQuery = null;
+        if (Schema::hasColumn($this->roleModel, '003')) {
+            $dataQuery = $this->roleModel->where('003', $node->compareValue)->first();
+        }
 
         $dataFormat = [];
         if ($dataQuery) {

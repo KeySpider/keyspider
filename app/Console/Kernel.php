@@ -64,8 +64,6 @@ class Kernel extends ConsoleKernel
                     $this->importDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        } else {
-            Log::error('Can not run import schedule: - Getting error from config ini files or - Nothing to import');
         }
 
         // Setup schedule for Extract
@@ -77,8 +75,6 @@ class Kernel extends ConsoleKernel
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        } else {
-            Log::error('Can not run export schedule, getting error from config ini files');
         }
 
         // Setup schedule for Delivery
@@ -89,8 +85,6 @@ class Kernel extends ConsoleKernel
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
-        } else {
-            Log::error('Can not run delivery schedule, getting error from config ini files');
         }
     }
 

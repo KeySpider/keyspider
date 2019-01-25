@@ -140,7 +140,7 @@ class UserController extends LaravelController
                 'id' => $dataFormat['userName'],
                 "externalId" => $dataFormat['userName'],
                 "userName" => "{$id}@keyspider.onmicrosoft.com",
-                "active" => true,
+                "active" => $dataQuery->{'015'} === '0' ? true : false,
                 "displayName" => $dataFormat['displayName'],
                 "meta" => [
                     "resourceType" => "User",
@@ -190,7 +190,7 @@ class UserController extends LaravelController
      *
      * @param $id
      * @param Request $request
-     * @return void
+     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
      * @throws SCIMException
      */
     public function update($id, Request $request)
@@ -223,21 +223,32 @@ class UserController extends LaravelController
             unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
         }
 
+        $processReplace = [];
         foreach ($input['Operations'] as $operation) {
             // process Operations Replace
             if (strtolower($operation['op']) === 'replace') {
-                $scimReader = new SCIMReader();
-                $options = [
-                    "path" => $filePath,
-                    'operation' => $operation,
-                ];
-                $scimReader->updateReplaceSCIM($id, $options);
+                array_push($processReplace, $operation);
             }
-
-            // process operations Add
         }
 
-        throw (new SCIMException('Update success'))->setCode(200);
+        foreach ($processReplace as $key => $op) {
+            $scimReader = new SCIMReader();
+            $options = [
+                "path" => $filePath,
+                'operation' => $op,
+            ];
+            $scimReader->updateReplaceSCIM($id, $options);
+        }
+
+        $jsonResponse = [
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:Success"
+            ],
+            "detail" => "Update User success",
+            "status"=> 200
+        ];
+
+        return $this->response($jsonResponse);
     }
 
     /**

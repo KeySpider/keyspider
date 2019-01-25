@@ -212,8 +212,11 @@ class SCIMReader
             $stt = $match['exp3'];
 
             if ($attribute === 'department') {
-                $valueAttribute = isset($dataPost[config('const.scim_schema')]) ?
-                    $dataPost[config('const.scim_schema')]['department'] : null;
+                if (isset($dataPost[config('const.scim_schema')])) {
+                    $valueAttribute = $dataPost[config('const.scim_schema')]['department'];
+                } else {
+                    $valueAttribute = isset($dataPost['department']) ? $dataPost['department'] : null;
+                }
             } else {
                 $valueAttribute = $dataPost[$attribute] ?? null;
             }
@@ -222,7 +225,7 @@ class SCIMReader
                 return $valueAttribute;
             }
 
-            $isRegx = preg_match("/{$regx}/", $valueAttribute, $data);
+            preg_match("/{$regx}/", $valueAttribute, $data);
 
             if ($regx === '\s') {
                 return str_replace(' ', '', $valueAttribute);
@@ -277,15 +280,15 @@ class SCIMReader
 
                 if ($isCheck) {
                     $attributeValue = $match['exp1'];
+                    $departmentField = config('const.scim_schema').":{$attributeValue}";
 
-                    if ($attributeValue === $operation['path']) {
+                    if ($attributeValue === $operation['path'] || $departmentField === $operation['path']) {
                         $newsKey = substr($key, -3);
                         $columns[] = "\"{$newsKey}\"";
                         $str = $this->convertDataFollowSetting($valueSetting, [
                             $attributeValue => $operation['value'],
                         ]);
-
-                        $dataUpdate[] = "'{$str}'";
+                        array_push($dataUpdate, "'{$str}'");
                     }
                 }
             }
