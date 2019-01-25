@@ -65,7 +65,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no Importing schedule.');
+            Log::info('Currently, there is no file import to process.');
         }
 
         // Setup schedule for Extract
@@ -78,7 +78,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no Extracting schedule.');
+            Log::info('Currently, there is no file extracting.');
         }
 
         // Setup schedule for Delivery
@@ -90,7 +90,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no Delivery schedule.');
+            Log::info('Currently, there is no file delivery.');
         }
     }
 
