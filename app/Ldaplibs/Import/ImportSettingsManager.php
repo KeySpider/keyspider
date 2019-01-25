@@ -34,7 +34,6 @@ class ImportSettingsManager extends SettingsManager
      * @var array
      */
     private $iniImportSettingsFiles = [];
-    private $iniImportSettingsFolder;
     private $allTableSettingsContent;
 
     /**
@@ -49,7 +48,6 @@ class ImportSettingsManager extends SettingsManager
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        $this->iniImportSettingsFolder = '';
     }
 
     /**
@@ -63,10 +61,7 @@ class ImportSettingsManager extends SettingsManager
             Log::error('Wrong key spider! Do nothing.');
             return [];
         }
-        $allFiles = $this->keySpider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
-        foreach ($allFiles as $fileName) {
-            $this->iniImportSettingsFiles[] = $fileName;
-        }
+        $this->iniImportSettingsFiles = $this->keySpider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
 
         $rule = $this->getRuleOfImport();
 
