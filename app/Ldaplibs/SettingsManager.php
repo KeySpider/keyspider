@@ -33,14 +33,14 @@ class SettingsManager
 
     public $iniMasterDBFile;
     public $masterDBConfigData;
-    protected $key_spider;
+    protected $keySpider;
 
     public function __construct($ini_settings_files = null)
     {
         if (!$this->validateKeySpider()) {
-            $this->key_spider = null;
+            $this->keySpider = null;
         } else {
-            $this->iniMasterDBFile = $this->key_spider['Master DB Configurtion']['master_db_config'];
+            $this->iniMasterDBFile = $this->keySpider['Master DB Configurtion']['master_db_config'];
             $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
         }
     }
@@ -62,11 +62,15 @@ class SettingsManager
     public function validateKeySpider(): ?bool
     {
         try {
-            $this->key_spider = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/KeySpider.ini'), true);
-            $validate = Validator::make($this->key_spider, [
+            $this->keySpider = parse_ini_file(
+                storage_path(self::INI_CONFIGS . '/KeySpider.ini'),
+                true);
+
+            $validate = Validator::make($this->keySpider, [
                 'Master DB Configurtion' => 'required',
                 'CSV Import Process Configration' => 'required',
-                'SCIM Input Process Configration' => 'required'
+                'SCIM Input Process Configration' => 'required',
+                'CSV Extract Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
@@ -79,18 +83,18 @@ class SettingsManager
         }
 
         try {
-            $master_db_config = $this->key_spider['Master DB Configurtion']['master_db_config'];
-            if (!file_exists($master_db_config)) {
-                throw new \RuntimeException($master_db_config.' is not existed');
-            }
-            $allKeysValues = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/KeySpider.ini'));
-            $import_config_files_array = $allKeysValues['import_config'];
-            foreach ($import_config_files_array as $file) {
-                if (file_exists($file)) {
-                    continue;
-                }
-                throw new \RuntimeException($file.' is not existed');
-            }
+            $filesPath = parse_ini_file(storage_path(self::INI_CONFIGS .
+                '/KeySpider.ini'));
+
+            $allFilesInKeySpider = array_merge($filesPath['import_config'],
+                $filesPath['extract_config'],
+                [$filesPath['master_db_config']]);
+            array_walk($allFilesInKeySpider,
+                function ($filePath) {
+                    if (!file_exists($filePath)) {
+                        throw new \RuntimeException("[KeySpider validation error] The file: <$filePath> is not existed!");
+                    }
+                });
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
