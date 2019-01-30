@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class AddIsUpdatedToCccTable extends Migration
 {
@@ -23,7 +23,7 @@ class AddIsUpdatedToCccTable extends Migration
     public function up()
     {
         Schema::table('CCC', function (Blueprint $table) {
-            $table->json('isUpdated')->default(json_encode(self::DATA_UPDATED_DEFAULT));
+            $table->json('updateFlags')->default(json_encode(self::DATA_UPDATED_DEFAULT));
         });
     }
 
