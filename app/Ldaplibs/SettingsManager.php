@@ -104,6 +104,7 @@ class SettingsManager
                 'KeySettings' => 'required',
                 'KeySettings.Azure_key' => 'required',
                 'KeySettings.Encryption_key' => 'required',
+                'KeySettings.Encrypted_fields' => 'required',
             ]);
             if ($validate->fails()) {
                 throw new \Exception($validate->getMessageBag());
