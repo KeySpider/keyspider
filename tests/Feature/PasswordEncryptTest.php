@@ -22,6 +22,15 @@ class PasswordEncryptTest extends TestCase
         print "Input string     : $testedString\n";
         print "Encrypted string : $encryptedString\n";
         print "Decrypted string : $decryptedString\n";
+
         $this->assertEquals($testedString, $decryptedString);
+    }
+
+    public function testGetEncryptedFields()
+    {
+        $settings = new SettingsManager();
+        print "getEncryptedFields: \n";
+        var_dump($settings->getEncryptedFields());
+        $this->assertEquals(['AAA.002'], $settings->getEncryptedFields());
     }
 }

@@ -132,6 +132,14 @@ class SettingsManager
     }
 
     /**
+     * @return Array of fields encrypted
+     */
+    public function getEncryptedFields()
+    {
+        return $this->generalKeys['KeySettings']['Encrypted_fields'];
+    }
+
+    /**
      *
      * @param $data
      * @param $key
