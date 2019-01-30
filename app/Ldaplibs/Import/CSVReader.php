@@ -133,6 +133,9 @@ class CSVReader implements DataInputReader
         try {
             DB::beginTransaction();
 
+            $settingManagement = new SettingsManager();
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
+
             $csv = Reader::createFromPath($fileCSV);
             $columns = implode(',', $columns);
 
@@ -140,11 +143,16 @@ class CSVReader implements DataInputReader
             $records = $stmt->process($csv);
 
             foreach ($records as $key => $record) {
+                $dataTmp = [];
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
 
-                $dataTmp = [];
-                foreach ($getDataAfterConvert as $item) {
-                    $dataTmp[] = "\$\${$item}\$\$";
+                foreach ($getDataAfterConvert as $key => $dataColumn) {
+                    if (in_array($key, $getEncryptedFields)) {
+                        $dataColumn = $settingManagement->passwordEncrypt($dataColumn);
+                        $dataTmp[] = "\$\${$dataColumn}\$\$";
+                    } else {
+                        $dataTmp[] = "\$\${$dataColumn}\$\$";
+                    }
                 }
 
                 if (!empty($dataTmp)) {

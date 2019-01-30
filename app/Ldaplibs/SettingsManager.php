@@ -73,7 +73,6 @@ class SettingsManager
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
-            dd($exception->getMessage());
         }
 
         try {
@@ -190,6 +189,4 @@ class SettingsManager
     {
         return strpos($haystack, $needle) !== false;
     }
-
-
 }
