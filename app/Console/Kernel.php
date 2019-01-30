@@ -65,7 +65,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no file import to process.');
+            Log::debug('Currently, there is no file import to process.');
         }
 
         // Setup schedule for Extract
