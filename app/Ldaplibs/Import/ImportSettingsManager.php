@@ -201,7 +201,7 @@ class ImportSettingsManager extends SettingsManager
      * @param $iniArray
      * @return \Illuminate\Contracts\Validation\Validator
      */
-    private function validateBasicConfiguration($iniArray): \Illuminate\Contracts\Validation\Validator
+    private function validateBasicConfiguration($iniArray)
     {
         $tempIniArray = [];
         $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
