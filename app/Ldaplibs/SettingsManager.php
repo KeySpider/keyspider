@@ -103,6 +103,7 @@ class SettingsManager
                 'KeySettings' => 'required',
                 'KeySettings.Azure_key' => 'required',
                 'KeySettings.Encryption_key' => 'required',
+                'KeySettings.Encrypted_fields' => 'required',
             ]);
             if ($validate->fails()) {
                 throw new \Exception($validate->getMessageBag());
@@ -164,14 +165,19 @@ class SettingsManager
      */
     public function passwordDecrypt($data, $key = null)
     {
-        $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
-        // To decrypt, split the encrypted data from our IV - our unique separator used was "::"
-        list($encryptedData, $initializationVector) = explode('::', base64_decode($data), 2);
-        return openssl_decrypt($encryptedData,
-            self::ENCRYPT_STANDARD_METHOD,
-            $encryptionKey,
-            0,
-            $initializationVector);
+        try {
+            $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
+            // To decrypt, split the encrypted data from our IV - our unique separator used was "::"
+            list($encryptedData, $initializationVector) = explode('::', base64_decode($data), 2);
+            return openssl_decrypt($encryptedData,
+                self::ENCRYPT_STANDARD_METHOD,
+                $encryptionKey,
+                0,
+                $initializationVector);
+        } catch (\Exception $exception) {
+            Log::error("Decrypt exception: $exception->getMessage()");
+            return null;
+        }
     }
 
     protected function removeExt($file_name)
