@@ -23,16 +23,16 @@ namespace App\Console;
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
 use App\Jobs\DeliveryJob;
+use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Ldaplibs\Delivery\DeliverySettingsManager;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use Exception;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class Kernel extends ConsoleKernel
 {
@@ -78,7 +78,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no file extracting.');
+            Log::debug('Currently, there is no file extracting.');
         }
 
         // Setup schedule for Delivery
@@ -90,7 +90,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no file delivery.');
+            Log::debug('Currently, there is no file delivery.');
         }
     }
 
