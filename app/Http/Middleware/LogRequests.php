@@ -32,6 +32,6 @@ class LogRequests
             "Request : {[$body]} \n".
             "Response : {$response->getContent()} \n";
 
-        Log::info($log);
+        Log::debug($log);
     }
 }
