@@ -14,7 +14,6 @@ class AddIsUpdatedToCccTable extends Migration
             "isUpdated" => 0
         ]
     ];
-
     /**
      * Run the migrations.
      *
@@ -23,7 +22,7 @@ class AddIsUpdatedToCccTable extends Migration
     public function up()
     {
         Schema::table('CCC', function (Blueprint $table) {
-            $table->json('isUpdated')->default(json_encode(self::DATA_UPDATED_DEFAULT));
+            $table->json('updateFlags')->default(json_encode(self::DATA_UPDATED_DEFAULT));
         });
     }
 
