@@ -30,7 +30,7 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = 'CSV Import Process Format Conversion';
     public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = 'Extraction Process Basic Configuration';
     public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
-    const GENERAL_SETTINGS_INI_PATH = '/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/GeneralSettings.ini';
+    const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
     const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
     public $iniMasterDBFile;
     public $masterDBConfigData;
@@ -100,7 +100,7 @@ class SettingsManager
     private function isGeneralSettingsFileValid(): bool
     {
         try {
-            $this->generalKeys = parse_ini_file(self::GENERAL_SETTINGS_INI_PATH, true);
+            $this->generalKeys = parse_ini_file(storage_path(self::GENERAL_SETTINGS_INI_PATH), true);
             $validate = Validator::make($this->generalKeys, [
                 'KeySettings' => 'required',
                 'KeySettings.Azure_key' => 'required',
