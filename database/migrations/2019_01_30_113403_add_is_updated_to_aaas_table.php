@@ -23,7 +23,7 @@ class AddIsUpdatedToAaasTable extends Migration
     public function up()
     {
         Schema::table('AAA', function (Blueprint $table) {
-            $table->json('updateFlags')->default(json_encode(self::DATA_UPDATED_DEFAULT));
+            $table->json('016')->default(json_encode(self::DATA_UPDATED_DEFAULT));
         });
     }
 

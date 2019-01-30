@@ -23,7 +23,7 @@ class AddIsUpdatedToBbbTable extends Migration
     public function up()
     {
         Schema::table('BBB', function (Blueprint $table) {
-            $table->json('updateFlags')->default(json_encode(self::DATA_UPDATED_DEFAULT));
+            $table->json('013')->default(json_encode(self::DATA_UPDATED_DEFAULT));
         });
     }
 
