@@ -288,7 +288,7 @@ class SCIMReader
                         $str = $this->convertDataFollowSetting($valueSetting, [
                             $attributeValue => $operation['value'],
                         ]);
-                        array_push($dataUpdate, "'{$str}'");
+                        array_push($dataUpdate, "\$\${$str}\$\$");
                     }
                 }
             }

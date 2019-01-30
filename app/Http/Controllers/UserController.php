@@ -61,51 +61,72 @@ class UserController extends LaravelController
      */
     public function index(Request $request)
     {
+        $result = null;
         $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $query = $request->input('filter', null);
 
-        $parser = new Parser(Mode::FILTER());
-        $node = $parser->parse($request->input('filter'));
-        $filterValue = $node->compareValue;
+        if ($request->has('filter')) {
+            if ($query) {
+                $parser = new Parser(Mode::FILTER());
+                $node = $parser->parse($query);
+                $filterValue = $node->compareValue;
+            } else {
+                $filterValue = null;
+            }
 
-        $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
-        $isPattern = preg_match($pattern, $filterValue, $result);
+            $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
+            $isPattern = preg_match($pattern, $filterValue, $result);
 
-        $valueQuery = null;
-        if ($isPattern) {
-            $valueQuery = $result[1];
+            $valueQuery = null;
+            if ($isPattern) {
+                $valueQuery = $result[1];
+            }
+
+            $dataQuery = $this->userModel->where('001', $valueQuery)->get();
+        } else {
+            $dataQuery = $this->userModel->where('015', '0')->get();
         }
 
-        $dataQuery = $this->userModel->where('001', $valueQuery)->first();
+        $dataConvert = [];
 
-        $dataFormat = [];
-        if ($dataQuery) {
+        if (!empty($dataQuery->toArray())) {
             $importSetting = new ImportSettingsManager();
-            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $fileIni);
-            $dataFormat['id'] = $dataFormat['userName'];
-            unset($dataFormat[0]);
+
+            foreach ($dataQuery as $data) {
+                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $fileIni);
+                $dataFormat['id'] = $dataFormat['userName'];
+                $dataFormat['externalId'] = $dataFormat['userName'];
+                $dataFormat['userName'] = $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
+                unset($dataFormat[0]);
+
+                array_push($dataConvert, $dataFormat);
+            }
         }
 
         $jsonData = [];
-        if (!empty($dataFormat)) {
-            $data = [
-                'id' => $dataFormat['userName'],
-                "externalId" => $dataFormat['userName'],
-                "userName" => str_replace("\"", "", $filterValue),
-                "active" => true,
-                "displayName" => $dataFormat['displayName'],
-                "meta" => [
-                    "resourceType" => "User",
-                ],
-                "name" => [
-                    "formatted" => "",
-                    "familyName" => "",
-                    "givenName" => "",
-                ],
-                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                    "department" => $dataFormat['department']
-                ],
-            ];
-            array_push($jsonData, $data);
+        if (!empty($dataConvert)) {
+            foreach ($dataConvert as $data) {
+                $dataTmp = [
+                    'id' => $data['id'],
+                    "externalId" => $data['externalId'],
+                    "userName" => str_replace("\"", "", $data['userName']),
+                    "active" => true,
+                    "displayName" => $data['displayName'],
+                    "meta" => [
+                        "resourceType" => "User",
+                    ],
+                    "name" => [
+                        "formatted" => "",
+                        "familyName" => "",
+                        "givenName" => "",
+                    ],
+                    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
+                        "department" => $data['department']
+                    ],
+                ];
+
+                array_push($jsonData, $dataTmp);
+            }
         }
 
         return $this->response($this->toSCIMArray($jsonData), $code = 200);
@@ -114,6 +135,7 @@ class UserController extends LaravelController
     /**
      * @param $id
      * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @throws SCIMException
      */
     public function detail($id)
     {
@@ -123,7 +145,14 @@ class UserController extends LaravelController
 
         $fileIni = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
 
-        $dataQuery = $this->userModel->where('001', $id)->first();
+        $dataQuery = $this->userModel->where([
+            '001' => $id,
+            '015' => '0',
+        ])->first();
+
+        if (!$dataQuery) {
+            throw (new SCIMException('User Not Found'))->setCode(404);
+        }
 
         $dataFormat = [];
         if ($dataQuery) {
@@ -139,7 +168,7 @@ class UserController extends LaravelController
                 "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
                 'id' => $dataFormat['userName'],
                 "externalId" => $dataFormat['userName'],
-                "userName" => "{$id}@keyspider.onmicrosoft.com",
+                "userName" => "{$id}@keyspiderjp.onmicrosoft.com",
                 "active" => $dataQuery->{'015'} === '0' ? true : false,
                 "displayName" => $dataFormat['displayName'],
                 "meta" => [
@@ -226,7 +255,7 @@ class UserController extends LaravelController
         $processReplace = [];
         foreach ($input['Operations'] as $operation) {
             // process Operations Replace
-            if (strtolower($operation['op']) === 'replace') {
+            if (strtolower($operation['op']) === 'replace' && $operation['path'] !== 'userName') {
                 array_push($processReplace, $operation);
             }
         }
