@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,6 @@ class DBExtractor
                 if (!empty($results->toArray())) {
                     $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                     $settingOutput = $this->getContentOutputCSV($pathOutput);
-
                     $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
                 }
             }
@@ -184,10 +184,14 @@ class DBExtractor
      * @param $settingOutput
      * @param $results
      * @param $formatConvention
+     * @param $table
      */
     public function processOutputDataExtract($settingOutput, $results, $formatConvention, $table)
     {
         $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
 
         $tempPath = $settingOutput['TempPath'];
         $fileName = $settingOutput['FileName'];
@@ -204,6 +208,15 @@ class DBExtractor
         foreach ($results as $data) {
             $dataTmp = [];
             foreach ($data as $column => $line) {
+                if ($table === 'AAA') {
+                    if (in_array($column, $getEncryptedFields)) {
+                        $line = $settingManagement->passwordDecrypt($line);
+                    }
+                } else {
+                    if (in_array($table . '.' . $column, $getEncryptedFields)) {
+                        $line = $settingManagement->passwordDecrypt($line);
+                    }
+                }
                 foreach ($formatConvention as $format) {
                     $isPattern = preg_match($pattern, $format, $item);
 
