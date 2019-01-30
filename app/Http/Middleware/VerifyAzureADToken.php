@@ -21,6 +21,7 @@
 namespace App\Http\Middleware;
 
 use App\Exceptions\SCIMException;
+use App\Ldaplibs\SettingsManager;
 use Closure;
 
 class VerifyAzureADToken
@@ -35,9 +36,12 @@ class VerifyAzureADToken
      */
     public function handle($request, Closure $next)
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $authorization = $request->header('authorization');
 
-        if ($authorization !== "Bearer ".config('app.azure_token')) {
+        if ($authorization !== "Bearer ".$token) {
             throw (new SCIMException('The Authorization token header not found'))->setCode(401);
         }
 
