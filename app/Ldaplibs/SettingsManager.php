@@ -92,7 +92,6 @@ class SettingsManager
         } catch (\Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
-            dd($exception->getMessage());
         }
         return true;
     }
@@ -111,7 +110,6 @@ class SettingsManager
             }
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            dd($exception->getMessage());
         }
         return true;
     }
