@@ -30,31 +30,24 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = 'CSV Import Process Format Conversion';
     public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = 'Extraction Process Basic Configuration';
     public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
-
+    const GENERAL_SETTINGS_INI_PATH = '/Applications/MAMP/htdocs/LDAP_ID/storage/ini_configs/GeneralSettings.ini';
+    const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
     public $iniMasterDBFile;
     public $masterDBConfigData;
+    public $generalKeys;
     protected $keySpider;
 
     public function __construct($ini_settings_files = null)
     {
         if (!$this->validateKeySpider()) {
             $this->keySpider = null;
-        } else {
+        } elseif ($this->isGeneralSettingsFileValid()) {
             $this->iniMasterDBFile = $this->keySpider['Master DB Configurtion']['master_db_config'];
             $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
+
+            $this->isGeneralSettingsFileValid();
         }
     }
-
-    protected function removeExt($file_name)
-    {
-        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-    }
-
-    protected function contains($needle, $haystack): bool
-    {
-        return strpos($haystack, $needle) !== false;
-    }
-    /** @noinspection MultipleReturnStatementsInspection */
 
     /**
      * @return bool|null
@@ -104,8 +97,87 @@ class SettingsManager
         return true;
     }
 
+    private function isGeneralSettingsFileValid(): bool
+    {
+        try {
+            $this->generalKeys = parse_ini_file(self::GENERAL_SETTINGS_INI_PATH, true);
+            $validate = Validator::make($this->generalKeys, [
+                'KeySettings' => 'required',
+                'KeySettings.Azure_key' => 'required',
+                'KeySettings.Encryption_key' => 'required',
+            ]);
+            if ($validate->fails()) {
+                throw new \Exception($validate->getMessageBag());
+            }
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
+            dd($exception->getMessage());
+        }
+        return true;
+    }
+
+    /** @noinspection MultipleReturnStatementsInspection */
+
     public function isFolderExisted($folderPath): bool
     {
         return is_dir($folderPath);
     }
+
+    /**
+     * @return Bearer token
+     */
+    public function getAzureADAPItoken()
+    {
+        return $this->generalKeys['KeySettings']['Azure_key'];
+    }
+
+    /**
+     *
+     * @param $data
+     * @param $key
+     * @return string encrypted already
+     */
+    public function passwordEncrypt($data, $key = null)
+    {
+        $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
+        // Generate an initialization vector
+        $initializationVector = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPT_STANDARD_METHOD));
+        // Encrypt the data using AES 256 encryption in CBC mode using our encryption key and initialization vector.
+        $encrypted = openssl_encrypt($data, self::ENCRYPT_STANDARD_METHOD,
+            $encryptionKey,
+            0,
+            $initializationVector);
+
+        // The $iv is just as important as the key for decrypting, so save it with our encrypted data using a unique separator (::)
+        return base64_encode($encrypted . '::' . $initializationVector);
+    }
+
+    /**
+     * @param $data
+     * * @param $key
+     * @return string decrypted
+     */
+    public function passwordDecrypt($data, $key = null)
+    {
+        $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
+        // To decrypt, split the encrypted data from our IV - our unique separator used was "::"
+        list($encryptedData, $initializationVector) = explode('::', base64_decode($data), 2);
+        return openssl_decrypt($encryptedData,
+            self::ENCRYPT_STANDARD_METHOD,
+            $encryptionKey,
+            0,
+            $initializationVector);
+    }
+
+    protected function removeExt($file_name)
+    {
+        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+    }
+
+    protected function contains($needle, $haystack): bool
+    {
+        return strpos($haystack, $needle) !== false;
+    }
+
+
 }
