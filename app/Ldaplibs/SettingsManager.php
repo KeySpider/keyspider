@@ -180,6 +180,32 @@ class SettingsManager
         }
     }
 
+    public function getFlags()
+    {
+        $deleteFlags = [];
+        $updateFlags = [];
+        foreach ($this->masterDBConfigData as $table) {
+            $deleteFlags[] = array_filter($table,
+                function ($k) {
+                    print $k;
+                    return strpos($k, '.DeleteFlag') !== false;
+                },
+                ARRAY_FILTER_USE_KEY);
+
+            $updateFlags[] = array_filter($table,
+                function ($k) {
+                    print $k;
+                    return strpos($k, '.UpdateFlags') !== false;
+                },
+                ARRAY_FILTER_USE_KEY);
+
+        }
+        return [
+            'deleteFlags' => $deleteFlags,
+            'updateFlags' => $updateFlags
+        ];
+    }
+
     protected function removeExt($file_name)
     {
         return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
