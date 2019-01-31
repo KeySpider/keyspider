@@ -25,7 +25,6 @@ class UpdateFlagsFunctionTest extends TestCase
     {
         $settings = new SettingsManager();
         $SCIMUpdateFlag = $settings->getUpdateFlags('scim', 'toni18', 'AAA');
-        var_dump($SCIMUpdateFlag);
         self::assertTrue(0 === $SCIMUpdateFlag);
     }
 
@@ -33,22 +32,20 @@ class UpdateFlagsFunctionTest extends TestCase
     {
         $settings = new SettingsManager();
         $CSVUpdateFlag = $settings->getUpdateFlags('csv', 'toni18', 'AAA');
-        var_dump($CSVUpdateFlag);
         self::assertTrue(0 === $CSVUpdateFlag);
     }
 
     public function testSetSCIMUpdateFlags(): void
     {
         $settings = new SettingsManager();
-        $SCIMUpdateFlag = $settings->setUpdateFlags('scim', 'sadye16', 'AAA', 1);
+        $settings->setUpdateFlags('scim', 'sadye16', 'AAA', 1);
         self::assertTrue(1 === $settings->getUpdateFlags('csv', 'sadye16', 'AAA'));
     }
 
     public function testSetCSVUpdateFlags()
     {
         $settings = new SettingsManager();
-        $SCIMUpdateFlag = $settings->setUpdateFlags('csv', 'sadye16', 'AAA', 1);
+        $settings->setUpdateFlags('csv', 'sadye16', 'AAA', 1);
         self::assertTrue(1 === $settings->getUpdateFlags('csv', 'sadye16', 'AAA'));
     }
-
 }
