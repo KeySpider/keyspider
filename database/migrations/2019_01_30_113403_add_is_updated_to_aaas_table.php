@@ -8,7 +8,7 @@ class AddIsUpdatedToAaasTable extends Migration
 {
     const DATA_UPDATED_DEFAULT = [
         "scim" => [
-            "isUpdated" => 1
+            "isUpdated" => 0
         ],
         "csv" => [
             "isUpdated" => 1
@@ -25,7 +25,7 @@ class AddIsUpdatedToAaasTable extends Migration
         $settingManagement = new \App\Ldaplibs\SettingsManager();
         $getFlags = $settingManagement->getFlags();
         $getUpdateFlag = $getFlags['updateFlags'];
-        $column = $getUpdateFlag[0]["User.UpdateFlags"];
+        $column = $getUpdateFlag[0];
         $column = explode('.', $column);
 
         Schema::table('AAA', function (Blueprint $table) use ($column) {

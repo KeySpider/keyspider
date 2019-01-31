@@ -8,7 +8,7 @@ class AddIsUpdatedToBbbTable extends Migration
 {
     const DATA_UPDATED_DEFAULT = [
         "scim" => [
-            "isUpdated" => 1
+            "isUpdated" => 0
         ],
         "csv" => [
             "isUpdated" => 1
@@ -25,7 +25,7 @@ class AddIsUpdatedToBbbTable extends Migration
         $settingManagement = new \App\Ldaplibs\SettingsManager();
         $getFlags = $settingManagement->getFlags();
         $getUpdateFlag = $getFlags['updateFlags'];
-        $column = $getUpdateFlag[0]["User.UpdateFlags"];
+        $column = $getUpdateFlag[1];
         $column = explode('.', $column);
 
         Schema::table('BBB', function (Blueprint $table) use ($column) {

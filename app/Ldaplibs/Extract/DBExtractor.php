@@ -53,8 +53,6 @@ class DBExtractor
         try {
             DB::beginTransaction();
 
-            $this->getFlagsUpdated();
-
             $setting = $this->setting;
             $extractTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $table = $this->switchTable($extractTable);
@@ -70,23 +68,39 @@ class DBExtractor
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
+            $nameColumnUpdate = $this->getFlagsUpdated($table);
+
             $results = null;
             if ($table === "AAA") {
                 // join
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
                     $results = DB::table($table)
                         ->where($whereData)
+                        ->where("{$table}.{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->select($selectColumns)
                         ->leftJoin('BBB', 'AAA.004', 'BBB.001')
                         ->leftJoin('CCC', 'AAA.005', 'CCC.001')
                         ->get();
+                }
+
+                foreach ($results as $key => $item) {
+                    DB::table($table)
+                        ->where('001', $item->{"{$table}.001"})
+                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
                 }
             } else {
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
                     $results = DB::table($table)
                         ->select($selectColumns)
                         ->where($whereData)
+                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->get();
+                }
+
+                foreach ($results as $key => $item) {
+                    DB::table($table)
+                        ->where('001', $item->{'001'})
+                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
                 }
             }
 
@@ -285,18 +299,22 @@ class DBExtractor
         return $file;
     }
 
-    protected function getFlagsUpdated()
+    protected function getFlagsUpdated($table)
     {
+        $nameColumnUpdate = null;
+
         $settingManagement = new SettingsManager();
         $getFlags = $settingManagement->getFlags();
 
         $updatedFlags = $getFlags['updateFlags'];
-
-        $arrayDataColumns = [];
-        foreach ($updatedFlags as $key => $data) {
-            array_push($arrayDataColumns, $data);
+        foreach ($updatedFlags as $data) {
+            $arrayColumn = explode('.', $data);
+            if (in_array($table, $arrayColumn)) {
+                $nameColumnUpdate = $arrayColumn[1];
+                break;
+            }
         }
 
-        return [];
+        return $nameColumnUpdate;
     }
 }
