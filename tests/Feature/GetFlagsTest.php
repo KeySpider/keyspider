@@ -32,9 +32,9 @@ class GetFlagsTest extends TestCase
     public function testGetCSVUpdateFlags()
     {
         $settings = new SettingsManager();
-        $SCIMUpdateFlag = $settings->getCSVUpdateFlags('toni18', 'AAA');
-        var_dump($SCIMUpdateFlag);
-        self::assertTrue(0 === $SCIMUpdateFlag);
+        $CSVUpdateFlag = $settings->getCSVUpdateFlags('toni18', 'AAA');
+        var_dump($CSVUpdateFlag);
+        self::assertTrue(0 === $CSVUpdateFlag);
     }
 
 }
