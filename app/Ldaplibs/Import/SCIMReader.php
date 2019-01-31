@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -132,6 +133,14 @@ class SCIMReader
 
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
+
+        $settingManagement = new SettingsManager();
+        $nameColumnUpdate = $settingManagement->getFlagsUpdated($nameTable);
+
+        if ($nameColumnUpdate) {
+            array_push($columns, "\"{$nameColumnUpdate}\"");
+        }
+
         $columns = implode(',', $columns);
 
         foreach ($scimInputFormat as $key => $item) {
@@ -146,6 +155,17 @@ class SCIMReader
             $newsKey = substr($key, -3);
             $data[$newsKey] = "\$\${$item}\$\$";
         }
+
+        $dataJsonUpdatedFlag = json_encode([
+            "scim" => [
+                "isUpdated" => 1
+            ],
+            "csv" => [
+                "isUpdated" => 0
+            ]
+        ]);
+
+        array_push($data, "'{$dataJsonUpdatedFlag}'");
 
         if (!empty($data)) {
             $condition = clean($data['001']);
@@ -267,6 +287,8 @@ class SCIMReader
         $importSetting = new ImportSettingsManager();
         $setting = $importSetting->getSCIMImportSettings($path);
 
+        $nameTable = $this->getTableName($setting);
+
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
 
@@ -303,23 +325,41 @@ class SCIMReader
             }
         }
 
-        $nameTable = $this->getTableName($setting);
+        $settingManagement = new SettingsManager();
+        $nameColumnUpdate = $settingManagement->getFlagsUpdated($nameTable);
 
-        $condition = "\$\${$externalId}\$\$";
-        $firstColumn = '001';
-
-        $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
-        $isExit = DB::select($query);
-
-        $stringValue = implode(',', $dataUpdate);
-        $columns = implode(',', $columns);
-
-        if (!empty($columns) && !empty($dataUpdate) && $isExit[0]->exists) {
-            $query = "update \"{$nameTable}\" set ({$columns}) = 
-                    ({$stringValue}) where \"{$firstColumn}\" = {$condition}";
-            DB::update($query);
+        if ($nameColumnUpdate) {
+            array_push($columns, "\"{$nameColumnUpdate}\"");
         }
 
-        return true;
+        $dataJsonUpdatedFlag = json_encode([
+            "scim" => [
+                "isUpdated" => 1
+            ],
+            "csv" => [
+                "isUpdated" => 0
+            ]
+        ]);
+
+        array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
+
+        $conditionString = "\$\${$externalId}\$\$";
+        $data = DB::table($nameTable)->where('001', $externalId)->first();
+
+        if ($data) {
+            $stringValue = implode(',', $dataUpdate);
+            $columns = implode(',', $columns);
+
+            if (!empty($columns) && !empty($dataUpdate)) {
+                $key = "\"001\"";
+                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where {$key} = {$conditionString}";
+                Log::debug($query);
+                DB::update($query);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

@@ -59,7 +59,7 @@ class DBImporter
      *
      * @return void
      */
-    public function import(): void
+    public function import()
     {
         try {
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
@@ -67,6 +67,15 @@ class DBImporter
 
             $nameTable = $this->csvReader->getNameTableFromSetting($this->setting);
             $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
+
+            // update column updatedFlag
+            $settingManagement = new SettingsManager();
+            $table = $this->setting[self::CONFIGURATION]['TableNameInDB'];
+            $nameColumnUpdated = $settingManagement->getFlagsUpdated($table);
+
+            if ($nameColumnUpdated) {
+                array_push($columns, "\"{$nameColumnUpdated}\"");
+            }
 
             $this->csvReader->createTable($nameTable, $columns);
 

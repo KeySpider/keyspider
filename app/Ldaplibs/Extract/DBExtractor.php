@@ -68,7 +68,8 @@ class DBExtractor
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
-            $nameColumnUpdate = $this->getFlagsUpdated($table);
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getFlagsUpdated($table);
 
             $results = null;
             if ($table === "AAA") {
@@ -297,24 +298,5 @@ class DBExtractor
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
-    }
-
-    protected function getFlagsUpdated($table)
-    {
-        $nameColumnUpdate = null;
-
-        $settingManagement = new SettingsManager();
-        $getFlags = $settingManagement->getFlags();
-
-        $updatedFlags = $getFlags['updateFlags'];
-        foreach ($updatedFlags as $data) {
-            $arrayColumn = explode('.', $data);
-            if (in_array($table, $arrayColumn)) {
-                $nameColumnUpdate = $arrayColumn[1];
-                break;
-            }
-        }
-
-        return $nameColumnUpdate;
     }
 }

@@ -155,6 +155,17 @@ class CSVReader implements DataInputReader
                     }
                 }
 
+                $dataJsonUpdatedFlag = json_encode([
+                    "scim" => [
+                        "isUpdated" => 0
+                    ],
+                    "csv" => [
+                        "isUpdated" => 1
+                    ]
+                ]);
+
+                array_push($dataTmp, "'{$dataJsonUpdatedFlag}'");
+
                 if (!empty($dataTmp)) {
                     $condition = clean($dataTmp[0]);
                     $condition = "\$\${$condition}\$\$";

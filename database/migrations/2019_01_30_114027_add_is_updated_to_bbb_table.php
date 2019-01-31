@@ -6,15 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class AddIsUpdatedToBbbTable extends Migration
 {
-    const DATA_UPDATED_DEFAULT = [
-        "scim" => [
-            "isUpdated" => 0
-        ],
-        "csv" => [
-            "isUpdated" => 1
-        ]
-    ];
-
     /**
      * Run the migrations.
      *
@@ -29,7 +20,7 @@ class AddIsUpdatedToBbbTable extends Migration
         $column = explode('.', $column);
 
         Schema::table('BBB', function (Blueprint $table) use ($column) {
-            $table->json("{$column[1]}")->default(json_encode(self::DATA_UPDATED_DEFAULT));
+            $table->json("{$column[1]}")->default(json_encode(config('const.updated_flag_default')));
         });
     }
 

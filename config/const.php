@@ -18,9 +18,16 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 
-
 return [
     'scim_input' => "SCIM Input Bacic Configuration",
     'scim_format' => "SCIM Input Format Conversion",
     'scim_schema' => "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+    'updated_flag_default' => [
+        'scim' => [
+            'isUpdated' => 0,
+        ],
+        'csv' => [
+            'isUpdated' => 1,
+        ]
+    ]
 ];

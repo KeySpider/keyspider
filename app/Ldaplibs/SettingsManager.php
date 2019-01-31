@@ -214,4 +214,21 @@ class SettingsManager
     {
         return strpos($haystack, $needle) !== false;
     }
+
+    public function getFlagsUpdated($table)
+    {
+        $nameColumnUpdate = null;
+        $getFlags = $this->getFlags();
+
+        $updatedFlags = $getFlags['updateFlags'];
+        foreach ($updatedFlags as $data) {
+            $arrayColumn = explode('.', $data);
+            if (in_array($table, $arrayColumn)) {
+                $nameColumnUpdate = $arrayColumn[1];
+                break;
+            }
+        }
+
+        return $nameColumnUpdate;
+    }
 }
