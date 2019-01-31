@@ -21,4 +21,20 @@ class GetFlagsTest extends TestCase
         $this->assertEquals(["AAA.016", "BBB.013", "CCC.012"], $updateFlags);
     }
 
+    public function testGetSCIMUpdateFlags()
+    {
+        $settings = new SettingsManager();
+        $SCIMUpdateFlag = $settings->getSCIMUpdateFlags('toni18', 'AAA');
+        var_dump($SCIMUpdateFlag);
+        self::assertTrue(0 === $SCIMUpdateFlag);
+    }
+
+    public function testGetCSVUpdateFlags()
+    {
+        $settings = new SettingsManager();
+        $SCIMUpdateFlag = $settings->getCSVUpdateFlags('toni18', 'AAA');
+        var_dump($SCIMUpdateFlag);
+        self::assertTrue(0 === $SCIMUpdateFlag);
+    }
+
 }

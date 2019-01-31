@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -180,6 +181,18 @@ class SettingsManager
         }
     }
 
+    public function getSCIMUpdateFlags($keyString, $tableQuery)
+    {
+        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
+        return isset($results['scim']['isUpdated']) ? $results['scim']['isUpdated'] : null;
+    }
+
+    public function getCSVUpdateFlags($keyString, $tableQuery)
+    {
+        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
+        return isset($results['csv']['isUpdated']) ? $results['csv']['isUpdated'] : null;
+    }
+
     public function getFlags()
     {
         $deleteFlags = [];
@@ -212,5 +225,45 @@ class SettingsManager
     protected function contains($needle, $haystack): bool
     {
         return strpos($haystack, $needle) !== false;
+    }
+
+    private function getTableKey($tableName)
+    {
+        $keyDefine = [
+            "AAA" => "001",
+            "BBB" => "001",
+            "CCC" => "001",
+        ];
+        return $keyDefine[$tableName] ? $keyDefine[$tableName] : null;
+    }
+
+    /**
+     * @param $keyString
+     * @param $tableQuery
+     * @return array
+     */
+    private function getUpdateFlagsField($keyString, $tableQuery)
+    {
+        $updateFlags = $this->getFlags()['updateFlags'];
+//        $results = [];
+        foreach ($updateFlags as $updateFlag) {
+            $tableAndColumn = explode('.', $updateFlag);
+            $tableName = $tableAndColumn[0];
+            if ($tableName == $tableQuery) {
+                $columnName = $tableAndColumn[1];
+                $tableKey = $this->getTableKey($tableName);
+                $flags = DB::table($tableName)->select($columnName)
+                    ->where($tableKey, $keyString)
+                    ->first();
+                $results = (array)$flags;
+                try {
+                    return json_decode($results[$columnName], true);
+                } catch (\Exception $exception) {
+                    Log::error("Data [$results] is not correct!");
+                    Log::error($exception->getMessage());
+                    return null;
+                }
+            }
+        }
     }
 }
