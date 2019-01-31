@@ -181,16 +181,45 @@ class SettingsManager
         }
     }
 
-    public function getSCIMUpdateFlags($keyString, $tableQuery)
+    /**
+     * @param $dataType : 'scim' or 'csv'
+     * @param $keyString : string to search
+     * @param $tableQuery : table to search
+     * @return Array of key values of [Update Flags]
+     */
+    public function getUpdateFlags($dataType, $keyString, $tableQuery)
     {
         $results = $this->getUpdateFlagsField($keyString, $tableQuery);
-        return isset($results['scim']['isUpdated']) ? $results['scim']['isUpdated'] : null;
+        return isset($results[1][$dataType]['isUpdated']) ? $results[1][$dataType]['isUpdated'] : null;
     }
 
-    public function getCSVUpdateFlags($keyString, $tableQuery)
+    /**
+     * @param $keyString
+     * @param $tableQuery
+     * @return array
+     */
+    private function getUpdateFlagsField($keyString, $tableQuery)
     {
-        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
-        return isset($results['csv']['isUpdated']) ? $results['csv']['isUpdated'] : null;
+        $updateFlags = $this->getFlags()['updateFlags'];
+        foreach ($updateFlags as $updateFlag) {
+            $tableAndColumn = explode('.', $updateFlag);
+            $tableName = $tableAndColumn[0];
+            if ($tableName == $tableQuery) {
+                $columnName = $tableAndColumn[1];
+                $tableKey = $this->getTableKey($tableName);
+                $flags = DB::table($tableName)->select($columnName)
+                    ->where($tableKey, $keyString)
+                    ->first();
+                $results = (array)$flags;
+                try {
+                    return [$columnName, json_decode($results[$columnName], true)];
+                } catch (\Exception $exception) {
+                    Log::error("Data [$results] is not correct!");
+                    Log::error($exception->getMessage());
+                    return null;
+                }
+            }
+        }
     }
 
     public function getFlags()
@@ -217,16 +246,6 @@ class SettingsManager
         ];
     }
 
-    protected function removeExt($file_name)
-    {
-        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-    }
-
-    protected function contains($needle, $haystack): bool
-    {
-        return strpos($haystack, $needle) !== false;
-    }
-
     private function getTableKey($tableName)
     {
         $keyDefine = [
@@ -238,32 +257,29 @@ class SettingsManager
     }
 
     /**
-     * @param $keyString
-     * @param $tableQuery
-     * @return array
+     * @param $dataType : 'scim' or 'csv'
+     * @param $keyString : data to search
+     * @param $tableQuery : table to search
+     * @param $value : 0 or 1
+     * @return int
      */
-    private function getUpdateFlagsField($keyString, $tableQuery)
+    public function setUpdateFlags($dataType, $keyString, $tableQuery, $value)
     {
-        $updateFlags = $this->getFlags()['updateFlags'];
-//        $results = [];
-        foreach ($updateFlags as $updateFlag) {
-            $tableAndColumn = explode('.', $updateFlag);
-            $tableName = $tableAndColumn[0];
-            if ($tableName == $tableQuery) {
-                $columnName = $tableAndColumn[1];
-                $tableKey = $this->getTableKey($tableName);
-                $flags = DB::table($tableName)->select($columnName)
-                    ->where($tableKey, $keyString)
-                    ->first();
-                $results = (array)$flags;
-                try {
-                    return json_decode($results[$columnName], true);
-                } catch (\Exception $exception) {
-                    Log::error("Data [$results] is not correct!");
-                    Log::error($exception->getMessage());
-                    return null;
-                }
-            }
-        }
+        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
+        $columnName = $results[0];
+        $updateFlagsValue = $results[1];
+        $updateFlagsValue[$dataType]['isUpdated'] = $value;
+        return DB::table($tableQuery)->where($this->getTableKey($tableQuery), $keyString)
+            ->update([$columnName => json_encode($updateFlagsValue)]);
+    }
+
+    protected function removeExt($file_name)
+    {
+        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+    }
+
+    protected function contains($needle, $haystack): bool
+    {
+        return strpos($haystack, $needle) !== false;
     }
 }

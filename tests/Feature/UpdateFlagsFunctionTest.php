@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Ldaplibs\SettingsManager;
 use Tests\TestCase;
 
-class GetFlagsTest extends TestCase
+class UpdateFlagsFunctionTest extends TestCase
 {
     public function testGetDeleteFlags()
     {
@@ -24,7 +24,7 @@ class GetFlagsTest extends TestCase
     public function testGetSCIMUpdateFlags()
     {
         $settings = new SettingsManager();
-        $SCIMUpdateFlag = $settings->getSCIMUpdateFlags('toni18', 'AAA');
+        $SCIMUpdateFlag = $settings->getUpdateFlags('scim', 'toni18', 'AAA');
         var_dump($SCIMUpdateFlag);
         self::assertTrue(0 === $SCIMUpdateFlag);
     }
@@ -32,9 +32,23 @@ class GetFlagsTest extends TestCase
     public function testGetCSVUpdateFlags()
     {
         $settings = new SettingsManager();
-        $CSVUpdateFlag = $settings->getCSVUpdateFlags('toni18', 'AAA');
+        $CSVUpdateFlag = $settings->getUpdateFlags('csv', 'toni18', 'AAA');
         var_dump($CSVUpdateFlag);
         self::assertTrue(0 === $CSVUpdateFlag);
+    }
+
+    public function testSetSCIMUpdateFlags(): void
+    {
+        $settings = new SettingsManager();
+        $SCIMUpdateFlag = $settings->setUpdateFlags('scim', 'sadye16', 'AAA', 1);
+        self::assertTrue(1 === $settings->getUpdateFlags('csv', 'sadye16', 'AAA'));
+    }
+
+    public function testSetCSVUpdateFlags()
+    {
+        $settings = new SettingsManager();
+        $SCIMUpdateFlag = $settings->setUpdateFlags('csv', 'sadye16', 'AAA', 1);
+        self::assertTrue(1 === $settings->getUpdateFlags('csv', 'sadye16', 'AAA'));
     }
 
 }
