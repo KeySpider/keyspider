@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -180,6 +181,47 @@ class SettingsManager
         }
     }
 
+    /**
+     * @param $dataType : 'scim' or 'csv'
+     * @param $keyString : string to search
+     * @param $tableQuery : table to search
+     * @return Array of key values of [Update Flags]
+     */
+    public function getUpdateFlags($dataType, $keyString, $tableQuery)
+    {
+        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
+        return isset($results[1][$dataType]['isUpdated']) ? $results[1][$dataType]['isUpdated'] : null;
+    }
+
+    /**
+     * @param $keyString
+     * @param $tableQuery
+     * @return array
+     */
+    private function getUpdateFlagsField($keyString, $tableQuery)
+    {
+        $updateFlags = $this->getFlags()['updateFlags'];
+        foreach ($updateFlags as $updateFlag) {
+            $tableAndColumn = explode('.', $updateFlag);
+            $tableName = $tableAndColumn[0];
+            if ($tableName == $tableQuery) {
+                $columnName = $tableAndColumn[1];
+                $tableKey = $this->getTableKey($tableName);
+                $flags = DB::table($tableName)->select($columnName)
+                    ->where($tableKey, $keyString)
+                    ->first();
+                $results = (array)$flags;
+                try {
+                    return [$columnName, json_decode($results[$columnName], true)];
+                } catch (\Exception $exception) {
+                    Log::error("Data [$results] is not correct!");
+                    Log::error($exception->getMessage());
+                    return null;
+                }
+            }
+        }
+    }
+
     public function getFlags()
     {
         $deleteFlags = [];
@@ -193,7 +235,6 @@ class SettingsManager
 
             $updateFlags = array_merge($updateFlags, array_filter($table,
                 function ($k) {
-                    print $k;
                     return strpos($k, '.UpdateFlags') !== false;
                 },
                 ARRAY_FILTER_USE_KEY));
@@ -203,6 +244,33 @@ class SettingsManager
             'deleteFlags' => array_values($deleteFlags),
             'updateFlags' => array_values($updateFlags)
         ];
+    }
+
+    private function getTableKey($tableName)
+    {
+        $keyDefine = [
+            "AAA" => "001",
+            "BBB" => "001",
+            "CCC" => "001",
+        ];
+        return $keyDefine[$tableName] ? $keyDefine[$tableName] : null;
+    }
+
+    /**
+     * @param $dataType : 'scim' or 'csv'
+     * @param $keyString : data to search
+     * @param $tableQuery : table to search
+     * @param $value : 0 or 1
+     * @return int
+     */
+    public function setUpdateFlags($dataType, $keyString, $tableQuery, $value)
+    {
+        $results = $this->getUpdateFlagsField($keyString, $tableQuery);
+        $columnName = $results[0];
+        $updateFlagsValue = $results[1];
+        $updateFlagsValue[$dataType]['isUpdated'] = $value;
+        return DB::table($tableQuery)->where($this->getTableKey($tableQuery), $keyString)
+            ->update([$columnName => json_encode($updateFlagsValue)]);
     }
 
     protected function removeExt($file_name)
