@@ -135,7 +135,7 @@ class SCIMReader
         $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
 
         $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getFlagsUpdated($nameTable);
+        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
 
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");
@@ -326,7 +326,7 @@ class SCIMReader
         }
 
         $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getFlagsUpdated($nameTable);
+        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
 
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");

@@ -71,7 +71,7 @@ class DBImporter
             // update column updatedFlag
             $settingManagement = new SettingsManager();
             $table = $this->setting[self::CONFIGURATION]['TableNameInDB'];
-            $nameColumnUpdated = $settingManagement->getFlagsUpdated($table);
+            $nameColumnUpdated = $settingManagement->getNameColumnUpdated($table);
 
             if ($nameColumnUpdated) {
                 array_push($columns, "\"{$nameColumnUpdated}\"");

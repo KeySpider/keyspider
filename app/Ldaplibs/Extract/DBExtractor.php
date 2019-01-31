@@ -69,7 +69,7 @@ class DBExtractor
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
             $settingManagement = new SettingsManager();
-            $nameColumnUpdate = $settingManagement->getFlagsUpdated($table);
+            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
 
             $results = null;
             if ($table === "AAA") {

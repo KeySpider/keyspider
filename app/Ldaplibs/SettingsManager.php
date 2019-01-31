@@ -246,7 +246,7 @@ class SettingsManager
         ];
     }
 
-    private function getTableKey($tableName)
+    public function getTableKey($tableName)
     {
         $keyDefine = [
             "AAA" => "001",
@@ -283,7 +283,7 @@ class SettingsManager
         return strpos($haystack, $needle) !== false;
     }
 
-    public function getFlagsUpdated($table)
+    public function getNameColumnUpdated($table)
     {
         $nameColumnUpdate = null;
         $getFlags = $this->getFlags();
@@ -298,5 +298,22 @@ class SettingsManager
         }
 
         return $nameColumnUpdate;
+    }
+
+    public function getNameColumnDeleted($table)
+    {
+        $column = null;
+        $getFlags = $this->getFlags();
+
+        $deleteFlags = $getFlags['deleteFlags'];
+        foreach ($deleteFlags as $data) {
+            $arrayColumn = explode('.', $data);
+            if (in_array($table, $arrayColumn)) {
+                $column = $arrayColumn[1];
+                break;
+            }
+        }
+
+        return $column;
     }
 }

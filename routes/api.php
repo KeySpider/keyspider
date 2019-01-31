@@ -24,7 +24,6 @@ Route::middleware('azure')->group(function () {
     Route::get('Users', 'UserController@index');
     Route::post('Users', 'UserController@store');
     Route::patch('Users/{id}', 'UserController@update');
-    Route::delete('Users/{id}', 'UserController@destroy');
     Route::get('Users/{id}', 'UserController@detail');
 
 
