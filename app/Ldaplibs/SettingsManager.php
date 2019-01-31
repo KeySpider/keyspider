@@ -185,9 +185,8 @@ class SettingsManager
         $deleteFlags = [];
         $updateFlags = [];
         foreach ($this->masterDBConfigData as $table) {
-            $deleteFlags = array_merge(array_filter($table,
+            $deleteFlags = array_merge($deleteFlags, array_filter($table,
                 function ($k) {
-                    print $k;
                     return strpos($k, '.DeleteFlag') !== false;
                 },
                 ARRAY_FILTER_USE_KEY));
