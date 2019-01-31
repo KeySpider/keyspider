@@ -51,8 +51,11 @@ class DBExtractor
     public function processExtract()
     {
         try {
-            $setting = $this->setting;
+            DB::beginTransaction();
 
+            $this->getFlagsUpdated();
+
+            $setting = $this->setting;
             $extractTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $table = $this->switchTable($extractTable);
 
@@ -94,6 +97,8 @@ class DBExtractor
                     $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
                 }
             }
+
+            DB::commit();
         } catch (Exception $exception) {
             Log::error($exception);
         }
@@ -278,5 +283,20 @@ class DBExtractor
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
+    }
+
+    protected function getFlagsUpdated()
+    {
+        $settingManagement = new SettingsManager();
+        $getFlags = $settingManagement->getFlags();
+
+        $updatedFlags = $getFlags['updateFlags'];
+
+        $arrayDataColumns = [];
+        foreach ($updatedFlags as $key => $data) {
+            array_push($arrayDataColumns, $data);
+        }
+
+        return [];
     }
 }

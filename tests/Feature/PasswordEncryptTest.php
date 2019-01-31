@@ -30,7 +30,6 @@ class PasswordEncryptTest extends TestCase
     {
         $settings = new SettingsManager();
         print "getEncryptedFields: \n";
-        var_dump($settings->getEncryptedFields());
         $this->assertEquals(['AAA.003'], $settings->getEncryptedFields());
     }
 }

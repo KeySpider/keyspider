@@ -8,10 +8,10 @@ class AddIsUpdatedToAaasTable extends Migration
 {
     const DATA_UPDATED_DEFAULT = [
         "scim" => [
-            "isUpdated" => 0
+            "isUpdated" => 1
         ],
         "csv" => [
-            "isUpdated" => 0
+            "isUpdated" => 1
         ]
      ];
 
@@ -22,8 +22,14 @@ class AddIsUpdatedToAaasTable extends Migration
      */
     public function up()
     {
-        Schema::table('AAA', function (Blueprint $table) {
-            $table->json('016')->default(json_encode(self::DATA_UPDATED_DEFAULT));
+        $settingManagement = new \App\Ldaplibs\SettingsManager();
+        $getFlags = $settingManagement->getFlags();
+        $getUpdateFlag = $getFlags['updateFlags'];
+        $column = $getUpdateFlag[0]["User.UpdateFlags"];
+        $column = explode('.', $column);
+
+        Schema::table('AAA', function (Blueprint $table) use ($column) {
+            $table->json("{$column[1]}")->default(json_encode(self::DATA_UPDATED_DEFAULT));
         });
     }
 

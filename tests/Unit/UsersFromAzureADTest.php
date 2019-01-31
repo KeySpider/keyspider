@@ -21,6 +21,7 @@
 namespace Tests\Unit;
 
 use App\Ldaplibs\Import\SCIMReader;
+use App\Ldaplibs\SettingsManager;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -68,10 +69,13 @@ class UsersFromAzureADTest extends TestCase
      */
     public function testApiGetUsers()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
         $this->testImportDataUserIntoMasterDB();
+
         $response = $this
             ->withHeaders([
-                'Authorization' => 'Bearer '.config('app.azure_token'),
+                'Authorization' => 'Bearer '.$token,
             ])
             ->get('api/Users?filter=userName eq "test@gmail.com"');
 
@@ -83,10 +87,13 @@ class UsersFromAzureADTest extends TestCase
      */
     public function testApiCreateUser()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataPostUser.json')), true);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.config('app.azure_token'),
+            'Authorization' => 'Bearer '.$token,
         ])->json('POST', 'api/Users', $inputUserData);
 
         $response->assertStatus(201);
@@ -103,12 +110,15 @@ class UsersFromAzureADTest extends TestCase
 
     public function testApiUpdateUser()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $this->testImportDataUserIntoMasterDB();
         $userName = 'montes.nascetur.ridiculus';
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataUpdateUser.json')), true);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.config('app.azure_token'),
+            'Authorization' => 'Bearer '.$token,
         ])->json('PATCH', "api/Users/{$userName}", $inputUserData);
 
         $response->assertStatus(200);

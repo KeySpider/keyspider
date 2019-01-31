@@ -21,6 +21,7 @@
 namespace Tests\Unit;
 
 use App\Ldaplibs\Import\SCIMReader;
+use App\Ldaplibs\SettingsManager;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -63,11 +64,14 @@ class GroupsFromAzureADTest extends TestCase
      */
     public function testApiGetGroups()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $this->testImportDataRoleIntoMasterDB();
 
         $response = $this
             ->withHeaders([
-                'Authorization' => 'Bearer '.config('app.azure_token'),
+                'Authorization' => 'Bearer '.$token,
             ])
             ->get('api/Groups?excludedAttributes=members&filter=displayName eq "KS 9"');
 
@@ -79,10 +83,13 @@ class GroupsFromAzureADTest extends TestCase
      */
     public function testApiCreateGroup()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataPostRole.json')), true);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.config('app.azure_token'),
+            'Authorization' => 'Bearer '.$token,
         ])->json('POST', 'api/Groups', $inputUserData);
 
         $response->assertStatus(201);
@@ -99,12 +106,15 @@ class GroupsFromAzureADTest extends TestCase
 
     public function testApiUpdateUser()
     {
+        $settingManagement = new SettingsManager();
+        $token = $settingManagement->getAzureADAPItoken();
+
         $this->testImportDataRoleIntoMasterDB();
         $externalID = 'ea7ef37b-4cf2-45e8-8016-8178e4f7898f';
         $inputUserData = json_decode(file_get_contents(storage_path('data_test/dataUpdateGroup.json')), true);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.config('app.azure_token'),
+            'Authorization' => 'Bearer '.$token,
         ])->json('PATCH', "api/Groups/{$externalID}", $inputUserData);
 
         $response->assertStatus(200);

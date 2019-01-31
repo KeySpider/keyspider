@@ -76,7 +76,13 @@ class DBImporter
 
             // get name table base
             $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
-            $this->csvReader->getDataFromOneFile($this->fileName, $params, $columns, $nameTableBase, $processedFilePath);
+            $this->csvReader->getDataFromOneFile(
+                $this->fileName,
+                $params,
+                $columns,
+                $nameTableBase,
+                $processedFilePath
+            );
         } catch (Exception $e) {
             Log::error($e);
         }

@@ -14,7 +14,7 @@
             <directory suffix="ApplyingSCIMImporting.php">./tests/Unit</directory>
             <directory suffix="UsersFromAzureADTest.php">./tests/Unit</directory>
             <directory suffix="GroupsFromAzureADTest.php">./tests/Unit</directory>
-            <directory suffix="ExtractQueueTest.php">./tests/Unit</directory>
+            <!--<directory suffix="ExtractQueueTest.php">./tests/Unit</directory>-->
             <directory suffix="ImportQueueTest.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>

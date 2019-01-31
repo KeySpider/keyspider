@@ -29,6 +29,7 @@ use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
+use App\Ldaplibs\SettingsManager;
 use Exception;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
