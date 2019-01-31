@@ -72,13 +72,21 @@ class DBExtractor
             $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
 
             $results = null;
+            $dataUpdate = json_encode([
+                'scim' => [ 'isUpdated' => 0],
+                'csv' => [ 'isUpdated' => 0]
+            ]);
+
             if ($table === "AAA") {
                 // join
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
                     $results = DB::table($table)
-                        ->where($whereData)
-                        ->where("{$table}.{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->select($selectColumns)
+                        ->where($whereData)
+                        ->where(function ($query) use ($nameColumnUpdate) {
+                            $query->where("{$nameColumnUpdate}->csv->isUpdated", 1)
+                                ->orWhere("{$nameColumnUpdate}->scim->isUpdated", 1);
+                        })
                         ->leftJoin('BBB', 'AAA.004', 'BBB.001')
                         ->leftJoin('CCC', 'AAA.005', 'CCC.001')
                         ->get();
@@ -87,21 +95,24 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     DB::table($table)
                         ->where('001', $item->{"{$table}.001"})
-                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                        ->update(["{$nameColumnUpdate}" => $dataUpdate]);
                 }
             } else {
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
                     $results = DB::table($table)
                         ->select($selectColumns)
                         ->where($whereData)
-                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
+                        ->where(function ($query) use ($nameColumnUpdate) {
+                            $query->where("{$nameColumnUpdate}->csv->isUpdated", 1)
+                                ->orWhere("{$nameColumnUpdate}->scim->isUpdated", 1);
+                        })
                         ->get();
                 }
 
                 foreach ($results as $key => $item) {
                     DB::table($table)
                         ->where('001', $item->{'001'})
-                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                        ->update(["{$nameColumnUpdate}" => $dataUpdate]);
                 }
             }
 
