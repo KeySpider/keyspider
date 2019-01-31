@@ -193,7 +193,6 @@ class SettingsManager
 
             $updateFlags = array_merge($updateFlags, array_filter($table,
                 function ($k) {
-                    print $k;
                     return strpos($k, '.UpdateFlags') !== false;
                 },
                 ARRAY_FILTER_USE_KEY));
