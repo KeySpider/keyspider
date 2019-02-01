@@ -29,7 +29,6 @@ use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
 use Tmilos\ScimFilterParser\Mode;
@@ -77,18 +76,21 @@ class GroupController extends LaravelController
             $where['003'] = $filterValue;
         }
 
-        $dataQuery = $this->roleModel->where($where)->get();
         $dataConvert = [];
 
-        if (!empty($dataQuery->toArray())) {
-            $importSetting = new ImportSettingsManager();
+        if (is_exits_columns($this->masterDB, $where)) {
+            $dataQuery = $this->roleModel->where($where)->get();
 
-            foreach ($dataQuery as $data) {
-                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
-                unset($dataFormat[0]);
-                unset($dataFormat[""]);
+            if (!empty($dataQuery->toArray())) {
+                $importSetting = new ImportSettingsManager();
 
-                array_push($dataConvert, $dataFormat);
+                foreach ($dataQuery as $data) {
+                    $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                    unset($dataFormat[0]);
+                    unset($dataFormat[""]);
+
+                    array_push($dataConvert, $dataFormat);
+                }
             }
         }
 

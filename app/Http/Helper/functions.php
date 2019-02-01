@@ -19,6 +19,7 @@
  ******************************************************************************/
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 if (!function_exists('removeExt')) {
     /**
@@ -125,5 +126,20 @@ if (!function_exists('array_diff_assoc_recursive')) {
             }
         }
         return !isset($difference) ? 0 : $difference;
+    }
+}
+
+if (!function_exists('is_exits_columns')) {
+    function is_exits_columns($table, $data)
+    {
+        $flag = true;
+
+        foreach ($data as $key => $item) {
+            if (!Schema::hasColumn($table, $key)) {
+                $flag = false;
+            }
+        }
+
+        return $flag;
     }
 }

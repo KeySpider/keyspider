@@ -84,12 +84,12 @@ class DBExtractor
                         ->leftJoin('BBB', 'AAA.004', 'BBB.001')
                         ->leftJoin('CCC', 'AAA.005', 'CCC.001')
                         ->get();
-                }
 
-                foreach ($results as $key => $item) {
-                    DB::table($table)
-                        ->where("{$keyTable}", $item->{"{$table}.001"})
-                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                    foreach ($results as $key => $item) {
+                        DB::table($table)
+                            ->where("{$keyTable}", $item->{"{$table}.001"})
+                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                    }
                 }
             } else {
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
@@ -98,12 +98,12 @@ class DBExtractor
                         ->where($whereData)
                         ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->get();
-                }
 
-                foreach ($results as $key => $item) {
-                    DB::table($table)
-                        ->where("{$keyTable}", $item->{'001'})
-                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                    foreach ($results as $key => $item) {
+                        DB::table($table)
+                            ->where("{$keyTable}", $item->{'001'})
+                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                    }
                 }
             }
 
