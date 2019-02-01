@@ -136,6 +136,7 @@ class SCIMReader
 
         $settingManagement = new SettingsManager();
         $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
+        $keyTable = $settingManagement->getTableKey($nameTable);
 
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");
@@ -156,36 +157,38 @@ class SCIMReader
             $data[$newsKey] = "\$\${$item}\$\$";
         }
 
-        $dataJsonUpdatedFlag = json_encode([
-            "scim" => [
-                "isUpdated" => 1
-            ],
-            "csv" => [
-                "isUpdated" => 0
-            ]
-        ]);
 
-        array_push($data, "'{$dataJsonUpdatedFlag}'");
 
         if (!empty($data)) {
             $condition = clean($data['001']);
-            $condition = "\$\${$condition}\$\$";
-            $firstColumn = '001';
+            $conditionInjection = "\$\${$condition}\$\$";
+            $query = DB::table($nameTable)->where('001', $condition)->first();
 
-            $query = "select exists(select 1 from \"{$nameTable}\" where \"{$firstColumn}\" = {$condition})";
-            Log::debug($query);
-            $isExit = DB::select($query);
+            if (!$query) {
+                $dataJsonUpdatedFlag = json_encode([
+                    "scim" => [
+                        "isUpdated" => 1
+                    ],
+                    "csv" => [
+                        "isUpdated" => 0
+                    ]
+                ]);
+                array_push($data, "'{$dataJsonUpdatedFlag}'");
+                $stringValue = implode(',', $data);
 
-            $stringValue = implode(',', $data);
+                $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
+                return DB::insert($sql);
+            } else {
+                DB::table($nameTable)
+                    ->where("{$keyTable}", $condition)
+                    ->update(["{$nameColumnUpdate}->scim->isUpdated" => 1]);
 
-            if ($isExit[0]->exists === false) {
-                $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
-                return DB::insert($query);
+                $stringValue = implode(',', $data);
+                $columnsTmp = str_replace(",\"{$nameColumnUpdate}\"",'', $columns);
+                $query = "update \"{$nameTable}\" set ({$columnsTmp}) =
+                    ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
+                return DB::update($query);
             }
-
-            $query = "update \"{$nameTable}\" set ({$columns}) =
-                    ({$stringValue}) where \"{$firstColumn}\" = {$condition};";
-            return DB::update($query);
         }
     }
 
