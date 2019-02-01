@@ -135,6 +135,8 @@ class CSVReader implements DataInputReader
 
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
+            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
+            $keyTable = $settingManagement->getTableKey($nameTable);
 
             $csv = Reader::createFromPath($fileCSV);
             $columns = implode(',', $columns);
@@ -155,33 +157,35 @@ class CSVReader implements DataInputReader
                     }
                 }
 
-                $dataJsonUpdatedFlag = json_encode([
-                    "scim" => [
-                        "isUpdated" => 0
-                    ],
-                    "csv" => [
-                        "isUpdated" => 1
-                    ]
-                ]);
-
-                array_push($dataTmp, "'{$dataJsonUpdatedFlag}'");
-
                 if (!empty($dataTmp)) {
                     $condition = clean($dataTmp[0]);
-                    $condition = "\$\${$condition}\$\$";
-                    $cl = '001';
+                    $conditionInjection = "\$\${$condition}\$\$";
 
-                    $query = "select exists(select 1 from \"{$nameTable}\" where \"{$cl}\" = {$condition})";
-                    $isExit = DB::select($query);
+                    $query = DB::table($nameTable)->where("{$keyTable}", $condition)->first();
 
-                    $stringValue = implode(',', $dataTmp);
-
-                    if ($isExit[0]->exists === false) {
-                        $query = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
-                        DB::insert($query);
+                    if (!$query) {
+                        $dataJsonUpdatedFlag = json_encode([
+                            "scim" => [
+                                "isUpdated" => 0
+                            ],
+                            "csv" => [
+                                "isUpdated" => 1
+                            ]
+                        ]);
+                        array_push($dataTmp, "'{$dataJsonUpdatedFlag}'");
+                        $stringValue = implode(',', $dataTmp);
+                        $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
+                        DB::insert($sql);
                     } else {
-                        $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$cl}\" = {$condition};";
-                        DB::update($query);
+                        DB::table($nameTable)
+                            ->where("{$keyTable}", $condition)
+                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 1]);
+
+                        $stringValue = implode(',', $dataTmp);
+                        $columnsTmp = str_replace(",\"{$nameColumnUpdate}\"",'', $columns);
+
+                        $sql = "update \"{$nameTable}\" set ({$columnsTmp}) = ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
+                        DB::update($sql);
                     }
                 }
             }
