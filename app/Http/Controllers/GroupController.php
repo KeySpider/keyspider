@@ -153,13 +153,19 @@ class GroupController extends LaravelController
         Log::info('--------------------------------------------------');
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted('CCC');
+        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $group = $this->roleModel->where([
+        $where = [
             "{$keyTable}" => $id,
             "{$columnDeleted}" => '0'
-        ])->first();
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $group = $this->roleModel->where($where)->first();
+        } else {
+            $group = null;
+        }
 
         if (!$group) {
             throw (new SCIMException('Group Not Found'))->setCode(404);
@@ -201,13 +207,19 @@ class GroupController extends LaravelController
         Log::info('--------------------------------------------------');
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted('CCC');
+        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $dataQuery = $this->roleModel->where([
+        $where = [
             "{$keyTable}" => $id,
             "{$columnDeleted}" => '0'
-        ])->first();
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $dataQuery = $this->roleModel->where($where)->first();
+        } else {
+            $dataQuery = null;
+        }
 
         $dataFormat = [];
         if ($dataQuery) {

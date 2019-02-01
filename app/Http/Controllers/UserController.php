@@ -162,10 +162,16 @@ class UserController extends LaravelController
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $dataQuery = $this->userModel->where([
+        $where = [
             "{$keyTable}" => $id,
             "{$columnDeleted}" => '0',
-        ])->first();
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $dataQuery = $this->userModel->where($where)->first();
+        } else {
+            $dataQuery = null;
+        }
 
         if (!$dataQuery) {
             throw (new SCIMException('User Not Found'))->setCode(404);
@@ -252,10 +258,16 @@ class UserController extends LaravelController
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $user = $this->userModel->where([
+        $where = [
             "{$keyTable}" => $id,
             "{$columnDeleted}" => '0'
-        ])->first();
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $user = $this->userModel->where($where)->first();
+        } else {
+            $user = null;
+        }
 
         if (!$user) {
             throw (new SCIMException('User Not Found'))->setCode(404);
