@@ -176,8 +176,7 @@ class SettingsManager
                 0,
                 $initializationVector);
         } catch (\Exception $exception) {
-            Log::error("Decrypt exception: $exception->getMessage()");
-            return null;
+            Log::error($exception);
         }
     }
 

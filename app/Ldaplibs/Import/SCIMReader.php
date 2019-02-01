@@ -138,10 +138,6 @@ class SCIMReader
         $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
         $keyTable = $settingManagement->getTableKey($nameTable);
 
-        if ($nameColumnUpdate) {
-            array_push($columns, "\"{$nameColumnUpdate}\"");
-        }
-
         $columns = implode(',', $columns);
 
         foreach ($scimInputFormat as $key => $item) {
@@ -157,35 +153,22 @@ class SCIMReader
             $data[$newsKey] = "\$\${$item}\$\$";
         }
 
-
-
         if (!empty($data)) {
             $condition = clean($data['001']);
             $conditionInjection = "\$\${$condition}\$\$";
-            $query = DB::table($nameTable)->where('001', $condition)->first();
+            $query = DB::table($nameTable)->where("{$keyTable}", $condition)->first();
+
+            $stringValue = implode(',', $data);
 
             if (!$query) {
-                $dataJsonUpdatedFlag = json_encode([
-                    "scim" => [
-                        "isUpdated" => 1
-                    ],
-                    "csv" => [
-                        "isUpdated" => 0
-                    ]
-                ]);
-                array_push($data, "'{$dataJsonUpdatedFlag}'");
-                $stringValue = implode(',', $data);
-
                 $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
                 return DB::insert($sql);
             } else {
                 DB::table($nameTable)
                     ->where("{$keyTable}", $condition)
-                    ->update(["{$nameColumnUpdate}->scim->isUpdated" => 1]);
+                    ->update(["{$nameColumnUpdate}" => json_encode(config('const.updated_flag_default'))]);
 
-                $stringValue = implode(',', $data);
-                $columnsTmp = str_replace(",\"{$nameColumnUpdate}\"",'', $columns);
-                $query = "update \"{$nameTable}\" set ({$columnsTmp}) =
+                $query = "update \"{$nameTable}\" set ({$columns}) =
                     ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
                 return DB::update($query);
             }
@@ -292,6 +275,10 @@ class SCIMReader
 
         $nameTable = $this->getTableName($setting);
 
+        $settingManagement = new SettingsManager();
+        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
+        $keyTable = $settingManagement->getTableKey($nameTable);
+
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
 
@@ -328,35 +315,23 @@ class SCIMReader
             }
         }
 
-        $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
-
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");
         }
 
-        $dataJsonUpdatedFlag = json_encode([
-            "scim" => [
-                "isUpdated" => 1
-            ],
-            "csv" => [
-                "isUpdated" => 0
-            ]
-        ]);
-
+        $dataJsonUpdatedFlag = json_encode(config('const.updated_flag_default'));
         array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
 
         $conditionString = "\$\${$externalId}\$\$";
-        $data = DB::table($nameTable)->where('001', $externalId)->first();
+        $data = DB::table($nameTable)->where("{$keyTable}", $externalId)->first();
 
         if ($data) {
             $stringValue = implode(',', $dataUpdate);
             $columns = implode(',', $columns);
 
             if (!empty($columns) && !empty($dataUpdate)) {
-                $key = "\"001\"";
+                $key = "\"{$keyTable}\"";
                 $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where {$key} = {$conditionString}";
-                Log::debug($query);
                 DB::update($query);
             }
 

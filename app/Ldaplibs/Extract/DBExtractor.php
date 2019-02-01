@@ -70,12 +70,9 @@ class DBExtractor
 
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
+            $keyTable = $settingManagement->getTableKey($table);
 
             $results = null;
-            $dataUpdate = json_encode([
-                'scim' => [ 'isUpdated' => 0],
-                'csv' => [ 'isUpdated' => 0]
-            ]);
 
             if ($table === "AAA") {
                 // join
@@ -83,10 +80,7 @@ class DBExtractor
                     $results = DB::table($table)
                         ->select($selectColumns)
                         ->where($whereData)
-                        ->where(function ($query) use ($nameColumnUpdate) {
-                            $query->where("{$nameColumnUpdate}->csv->isUpdated", 1)
-                                ->orWhere("{$nameColumnUpdate}->scim->isUpdated", 1);
-                        })
+                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->leftJoin('BBB', 'AAA.004', 'BBB.001')
                         ->leftJoin('CCC', 'AAA.005', 'CCC.001')
                         ->get();
@@ -94,25 +88,22 @@ class DBExtractor
 
                 foreach ($results as $key => $item) {
                     DB::table($table)
-                        ->where('001', $item->{"{$table}.001"})
-                        ->update(["{$nameColumnUpdate}" => $dataUpdate]);
+                        ->where("{$keyTable}", $item->{"{$table}.001"})
+                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
                 }
             } else {
                 if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
                     $results = DB::table($table)
                         ->select($selectColumns)
                         ->where($whereData)
-                        ->where(function ($query) use ($nameColumnUpdate) {
-                            $query->where("{$nameColumnUpdate}->csv->isUpdated", 1)
-                                ->orWhere("{$nameColumnUpdate}->scim->isUpdated", 1);
-                        })
+                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
                         ->get();
                 }
 
                 foreach ($results as $key => $item) {
                     DB::table($table)
-                        ->where('001', $item->{'001'})
-                        ->update(["{$nameColumnUpdate}" => $dataUpdate]);
+                        ->where("{$keyTable}", $item->{'001'})
+                        ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
                 }
             }
 
@@ -219,63 +210,67 @@ class DBExtractor
      */
     public function processOutputDataExtract($settingOutput, $results, $formatConvention, $table)
     {
-        $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+        try {
+            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
 
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
+            $settingManagement = new SettingsManager();
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
 
-        $tempPath = $settingOutput['TempPath'];
-        $fileName = $settingOutput['FileName'];
+            $tempPath = $settingOutput['TempPath'];
+            $fileName = $settingOutput['FileName'];
 
-        mkDirectory($tempPath);
+            mkDirectory($tempPath);
 
-        if (is_file("{$tempPath}/$fileName")) {
-            $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
-        }
-        Log::info("Export to file: $fileName into $tempPath");
-        $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
-
-        // create csv file
-        foreach ($results as $data) {
-            $dataTmp = [];
-            foreach ($data as $column => $line) {
-                if ($table === 'AAA') {
-                    if (in_array($column, $getEncryptedFields)) {
-                        $line = $settingManagement->passwordDecrypt($line);
-                    }
-                } else {
-                    if (in_array($table . '.' . $column, $getEncryptedFields)) {
-                        $line = $settingManagement->passwordDecrypt($line);
-                    }
-                }
-                foreach ($formatConvention as $format) {
-                    $isPattern = preg_match($pattern, $format, $item);
-
-                    if ($isPattern) {
-                        $columnTmp = null;
-
-                        if (isset($item['exp3'])) {
-                            $columnTmp = $item['exp3'];
-                        } else {
-                            $columnTmp = $item['exp1'];
-                        }
-
-                        if ($table === 'AAA') {
-                            if ($columnTmp === $column) {
-                                array_push($dataTmp, $line);
-                            }
-                        } else {
-                            $arrayColumn = explode('.', $columnTmp);
-                            if ($arrayColumn[1] === $column) {
-                                array_push($dataTmp, $line);
-                            }
-                        }
-                    }
-                }
+            if (is_file("{$tempPath}/$fileName")) {
+                $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
             }
-            fputcsv($file, $dataTmp, ',');
+            Log::info("Export to file: $fileName into $tempPath");
+            $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
+
+            // create csv file
+            foreach ($results as $data) {
+                $dataTmp = [];
+                foreach ($data as $column => $line) {
+                    if ($table === 'AAA') {
+                        if (in_array($column, $getEncryptedFields)) {
+                            $line = $settingManagement->passwordDecrypt($line);
+                        }
+                    } else {
+                        if (in_array($table . '.' . $column, $getEncryptedFields)) {
+                            $line = $settingManagement->passwordDecrypt($line);
+                        }
+                    }
+                    foreach ($formatConvention as $format) {
+                        $isPattern = preg_match($pattern, $format, $item);
+
+                        if ($isPattern) {
+                            $columnTmp = null;
+
+                            if (isset($item['exp3'])) {
+                                $columnTmp = $item['exp3'];
+                            } else {
+                                $columnTmp = $item['exp1'];
+                            }
+
+                            if ($table === 'AAA') {
+                                if ($columnTmp === $column) {
+                                    array_push($dataTmp, $line);
+                                }
+                            } else {
+                                $arrayColumn = explode('.', $columnTmp);
+                                if ($arrayColumn[1] === $column) {
+                                    array_push($dataTmp, $line);
+                                }
+                            }
+                        }
+                    }
+                }
+                fputcsv($file, $dataTmp, ',');
+            }
+            fclose($file);
+        } catch (Exception $e) {
+            Log::error($e);
         }
-        fclose($file);
     }
 
     /**

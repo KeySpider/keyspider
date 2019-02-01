@@ -68,15 +68,6 @@ class DBImporter
             $nameTable = $this->csvReader->getNameTableFromSetting($this->setting);
             $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
 
-            // update column updatedFlag
-            $settingManagement = new SettingsManager();
-            $table = $this->setting[self::CONFIGURATION]['TableNameInDB'];
-            $nameColumnUpdated = $settingManagement->getNameColumnUpdated($table);
-
-            if ($nameColumnUpdated) {
-                array_push($columns, "\"{$nameColumnUpdated}\"");
-            }
-
             $this->csvReader->createTable($nameTable, $columns);
 
             $params = [

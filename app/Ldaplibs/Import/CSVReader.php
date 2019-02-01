@@ -162,29 +162,17 @@ class CSVReader implements DataInputReader
                     $conditionInjection = "\$\${$condition}\$\$";
 
                     $query = DB::table($nameTable)->where("{$keyTable}", $condition)->first();
+                    $stringValue = implode(',', $dataTmp);
 
                     if (!$query) {
-                        $dataJsonUpdatedFlag = json_encode([
-                            "scim" => [
-                                "isUpdated" => 0
-                            ],
-                            "csv" => [
-                                "isUpdated" => 1
-                            ]
-                        ]);
-                        array_push($dataTmp, "'{$dataJsonUpdatedFlag}'");
-                        $stringValue = implode(',', $dataTmp);
                         $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
                         DB::insert($sql);
                     } else {
                         DB::table($nameTable)
                             ->where("{$keyTable}", $condition)
-                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 1]);
+                            ->update(["{$nameColumnUpdate}" => json_encode(config('const.updated_flag_default'))]);
 
-                        $stringValue = implode(',', $dataTmp);
-                        $columnsTmp = str_replace(",\"{$nameColumnUpdate}\"",'', $columns);
-
-                        $sql = "update \"{$nameTable}\" set ({$columnsTmp}) = ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
+                        $sql = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
                         DB::update($sql);
                     }
                 }

@@ -24,7 +24,7 @@ return [
     'scim_schema' => "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
     'updated_flag_default' => [
         'scim' => [
-            'isUpdated' => 0,
+            'isUpdated' => 1,
         ],
         'csv' => [
             'isUpdated' => 1,
