@@ -53,6 +53,10 @@ class DBExtractor
         try {
             DB::beginTransaction();
 
+            $checkColumns = [];
+            $results = null;
+            $dataType = 'csv';
+
             $setting = $this->setting;
             $extractTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $table = $this->switchTable($extractTable);
@@ -60,7 +64,6 @@ class DBExtractor
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $whereData = $this->extractCondition($extractCondition);
 
-            $checkColumns = [];
             foreach ($whereData as $item) {
                 array_push($checkColumns, substr($item[0], -3));
             }
@@ -70,9 +73,7 @@ class DBExtractor
 
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
-            $keyTable = $settingManagement->getTableKey($table);
-
-            $results = null;
+            $primaryKey = $settingManagement->getTableKey($table);
 
             if ($table === "AAA") {
                 // join
@@ -86,9 +87,9 @@ class DBExtractor
                         ->get();
 
                     foreach ($results as $key => $item) {
-                        DB::table($table)
-                            ->where("{$keyTable}", $item->{"{$table}.001"})
-                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                        // update flag
+                        $keyString = $item->{"{$table}.$primaryKey"};
+                        $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
                     }
                 }
             } else {
@@ -100,9 +101,9 @@ class DBExtractor
                         ->get();
 
                     foreach ($results as $key => $item) {
-                        DB::table($table)
-                            ->where("{$keyTable}", $item->{'001'})
-                            ->update(["{$nameColumnUpdate}->csv->isUpdated" => 0]);
+                        // update flag
+                        $keyString = $item->{"$primaryKey"};
+                        $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
                     }
                 }
             }
