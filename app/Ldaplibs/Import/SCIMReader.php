@@ -129,14 +129,15 @@ class SCIMReader
     public function getFormatData($dataPost, $setting)
     {
         try {
+            $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
+            $settingManagement = new SettingsManager();
+
             $nameTable = $this->getTableName($setting);
             $scimInputFormat = $setting[config('const.scim_format')];
 
-            $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
-
-            $settingManagement = new SettingsManager();
             $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             foreach ($scimInputFormat as $key => $item) {
                 if ($key === '' || preg_match($pattern, $key) === 1) {
@@ -149,6 +150,14 @@ class SCIMReader
                 $item = $this->processGroup($value, $dataPost);
                 $newsKey = substr($key, -3);
                 $dataCreate[$newsKey] = $item;
+            }
+
+            foreach ($dataCreate as $cl => $item) {
+                $tableColumn = $nameTable.'.'.$cl;
+
+                if (in_array($tableColumn, $getEncryptedFields)) {
+                    $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
+                }
             }
 
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
