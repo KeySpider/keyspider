@@ -20,7 +20,7 @@ class AddIsUpdatedToAaasTable extends Migration
         $column = explode('.', $column);
 
         Schema::table('AAA', function (Blueprint $table) use ($column) {
-            $table->json("{$column[1]}")->default(json_encode(config('const.updated_flag_default')));
+            $table->json("{$column[1]}");
         });
     }
 

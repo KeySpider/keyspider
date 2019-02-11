@@ -22,8 +22,10 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SCIMReader
 {
@@ -84,7 +86,7 @@ class SCIMReader
         foreach ($dataFormat as $key => $item) {
             if ($key !== '' && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
-                $columns[] = "\"{$newstring}\"";
+                $columns[] = "{$newstring}";
             }
         }
         return $columns;
@@ -96,29 +98,18 @@ class SCIMReader
      * @param $setting
      * @return bool
      */
-    public function addColumns($setting): bool
+    public function addColumns($setting)
     {
-        $sql = null;
         $nameTable = $this->getTableName($setting);
         $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
 
         foreach ($columns as $key => $col) {
-            if ($key < count($columns) - 1) {
-                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL,";
-            } else {
-                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL";
+            if (!Schema::hasColumn($nameTable, $col)) {
+                Schema::table($nameTable, function (Blueprint $table) use ($col) {
+                    $table->string($col)->nullable();
+                });
             }
         }
-
-        if ($sql) {
-            $query = "ALTER TABLE \"{$nameTable}\" {$sql};";
-
-            if (DB::statement($query)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public function verifyData($data): void
@@ -151,6 +142,7 @@ class SCIMReader
                 $newsKey = substr($key, -3);
                 $dataCreate[$newsKey] = $item;
             }
+            $dataCreate[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
 
             foreach ($dataCreate as $cl => $item) {
                 $tableColumn = $nameTable.'.'.$cl;
@@ -163,11 +155,12 @@ class SCIMReader
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
 
             if ($data) {
-                $dataCreate[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
                 DB::table($nameTable)->insert($dataCreate);
             }
+
+            return true;
         } catch (\Exception $e) {
             Log::error($e);
         }

@@ -65,17 +65,15 @@ class DBImporter
             $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
             mkDirectory($processedFilePath);
 
-            $nameTable = $this->csvReader->getNameTableFromSetting($this->setting);
-            $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
+            // get name table base
+            $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
 
-            $this->csvReader->createTable($nameTable, $columns);
+            $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
+            $this->csvReader->createTable($nameTableBase, $columns);
 
             $params = [
                 'CONVERSATION' => $this->setting[self::CONVERSION],
             ];
-
-            // get name table base
-            $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
 
             // process import
             $this->csvReader->getDataFromOneFile(

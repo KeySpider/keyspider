@@ -21,9 +21,11 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use League\Csv\Reader;
 use League\Csv\Statement;
 
@@ -87,7 +89,7 @@ class CSVReader implements DataInputReader
         foreach ($setting[self::CONVERSION] as $key => $item) {
             if ($key !== '' && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
-                $fields[] = "\"{$newstring}\"";
+                $fields[] = "{$newstring}";
             }
         }
         return $fields;
@@ -103,18 +105,13 @@ class CSVReader implements DataInputReader
      */
     public function createTable($nameTable, $columns = [])
     {
-        $sql = '';
-
         foreach ($columns as $key => $col) {
-            if ($key < count($columns) - 1) {
-                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL,";
-            } else {
-                $sql .= "ADD COLUMN if not exists {$col} VARCHAR (250) NULL";
+            if (!Schema::hasColumn($nameTable, $col)) {
+                Schema::table($nameTable, function (Blueprint $table) use ($col) {
+                    $table->string($col)->nullable();
+                });
             }
         }
-
-        $query = "ALTER TABLE {$nameTable} {$sql};";
-        DB::statement($query);
     }
 
     /**
@@ -146,6 +143,7 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+                $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
 
                 if (!empty($getEncryptedFields)) {
                     foreach ($getDataAfterConvert as $cl => $item) {
@@ -159,7 +157,6 @@ class CSVReader implements DataInputReader
                 $data = DB::table($nameTable)->where("{$primaryKey}", $getDataAfterConvert[$primaryKey])->first();
 
                 if ($data) {
-                    $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
                 } else {
