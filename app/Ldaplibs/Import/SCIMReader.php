@@ -128,50 +128,39 @@ class SCIMReader
 
     public function getFormatData($dataPost, $setting)
     {
-        $nameTable = $this->getTableName($setting);
-        $scimInputFormat = $setting[config('const.scim_format')];
+        try {
+            $nameTable = $this->getTableName($setting);
+            $scimInputFormat = $setting[config('const.scim_format')];
 
-        $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
-        $columns = $this->getAllColumnFromSetting($setting[config('const.scim_format')]);
+            $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
 
-        $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
-        $keyTable = $settingManagement->getTableKey($nameTable);
+            $settingManagement = new SettingsManager();
+            $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
+            $primaryKey = $settingManagement->getTableKey($nameTable);
 
-        $columns = implode(',', $columns);
-
-        foreach ($scimInputFormat as $key => $item) {
-            if ($key === '' || preg_match($pattern, $key) === 1) {
-                unset($scimInputFormat[$key]);
+            foreach ($scimInputFormat as $key => $item) {
+                if ($key === '' || preg_match($pattern, $key) === 1) {
+                    unset($scimInputFormat[$key]);
+                }
             }
-        }
 
-        $data = [];
-        foreach ($scimInputFormat as $key => $value) {
-            $item = $this->processGroup($value, $dataPost);
-            $newsKey = substr($key, -3);
-            $data[$newsKey] = "\$\${$item}\$\$";
-        }
+            $dataCreate = [];
+            foreach ($scimInputFormat as $key => $value) {
+                $item = $this->processGroup($value, $dataPost);
+                $newsKey = substr($key, -3);
+                $dataCreate[$newsKey] = $item;
+            }
 
-        if (!empty($data)) {
-            $condition = clean($data['001']);
-            $conditionInjection = "\$\${$condition}\$\$";
-            $query = DB::table($nameTable)->where("{$keyTable}", $condition)->first();
+            $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
 
-            $stringValue = implode(',', $data);
-
-            if (!$query) {
-                $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
-                return DB::insert($sql);
+            if ($data) {
+                $dataCreate[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
+                DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
-                DB::table($nameTable)
-                    ->where("{$keyTable}", $condition)
-                    ->update(["{$nameColumnUpdate}" => json_encode(config('const.updated_flag_default'))]);
-
-                $query = "update \"{$nameTable}\" set ({$columns}) =
-                    ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
-                return DB::update($query);
+                DB::table($nameTable)->insert($dataCreate);
             }
+        } catch (\Exception $e) {
+            Log::error($e);
         }
     }
 
