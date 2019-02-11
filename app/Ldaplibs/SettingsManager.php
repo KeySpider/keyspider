@@ -31,8 +31,8 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = 'CSV Import Process Format Conversion';
     public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = 'Extraction Process Basic Configuration';
     public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
-    const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
-    const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
+    public const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
+    public const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
     public $iniMasterDBFile;
     public $masterDBConfigData;
     public $generalKeys;
@@ -135,7 +135,24 @@ class SettingsManager
      */
     public function getEncryptedFields()
     {
-        return $this->generalKeys['KeySettings']['Encrypted_fields'];
+        $result = [];
+        $encryptedFields = $this->generalKeys['KeySettings']['Encrypted_fields'];
+//        Compare for each encrypt key
+        foreach ($encryptedFields as $encryptedField) {
+//            Master DB Config has Tags, so traverse each tag
+            foreach ($this->masterDBConfigData as $masterWithTag) {
+                $filterdArray = array_filter($masterWithTag,
+                    function ($v, $k) use ($encryptedField) {
+                        return $k === $encryptedField;
+                    },
+                    ARRAY_FILTER_USE_BOTH);
+                if ($filterdArray) {
+                    $result = array_merge($result, $filterdArray);
+                }
+
+            }
+        }
+        return array_values($result);
     }
 
     /**
@@ -214,6 +231,7 @@ class SettingsManager
                 try {
                     return [$columnName, json_decode($results[$columnName], true)];
                 } catch (\Exception $exception) {
+//                    TODO: $result is array, so this is a bug
                     Log::error("Data [$results] is not correct!");
                     Log::error($exception->getMessage());
                     return null;
@@ -249,9 +267,9 @@ class SettingsManager
     private function getTableKey($tableName)
     {
         $keyDefine = [
-            "AAA" => "001",
-            "BBB" => "001",
-            "CCC" => "001",
+            'AAA' => '001',
+            'BBB' => '001',
+            'CCC' => '001',
         ];
         return $keyDefine[$tableName] ? $keyDefine[$tableName] : null;
     }
@@ -273,16 +291,6 @@ class SettingsManager
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }
 
-    protected function removeExt($file_name)
-    {
-        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
-    }
-
-    protected function contains($needle, $haystack): bool
-    {
-        return strpos($haystack, $needle) !== false;
-    }
-
     public function getFlagsUpdated($table)
     {
         $nameColumnUpdate = null;
@@ -298,5 +306,15 @@ class SettingsManager
         }
 
         return $nameColumnUpdate;
+    }
+
+    protected function removeExt($file_name)
+    {
+        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+    }
+
+    protected function contains($needle, $haystack): bool
+    {
+        return strpos($haystack, $needle) !== false;
     }
 }
