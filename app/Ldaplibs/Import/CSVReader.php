@@ -139,15 +139,27 @@ class CSVReader implements DataInputReader
             $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
 
+            // get data from csv file
             $csv = Reader::createFromPath($fileCSV);
             $stmt = new Statement();
             $records = $stmt->process($csv);
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+
+                if (!empty($getEncryptedFields)) {
+                    foreach ($getDataAfterConvert as $cl => $item) {
+                        $tableColumn = $nameTable.'.'.$cl;
+
+                        if (in_array($tableColumn, $getEncryptedFields)) {
+                            $getDataAfterConvert[$cl] = $settingManagement->passwordEncrypt($item);
+                        }
+                    }
+                }
                 $data = DB::table($nameTable)->where("{$primaryKey}", $getDataAfterConvert[$primaryKey])->first();
 
                 if ($data) {
+                    $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
                 } else {

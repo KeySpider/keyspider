@@ -316,4 +316,38 @@ class SettingsManager
     {
         return strpos($haystack, $needle) !== false;
     }
+
+    public function getNameColumnUpdated($table)
+    {
+        $nameColumnUpdate = null;
+        $getFlags = $this->getFlags();
+
+        $updatedFlags = $getFlags['updateFlags'];
+        foreach ($updatedFlags as $data) {
+            $arrayColumn = explode('.', $data);
+            if (in_array($table, $arrayColumn)) {
+                $nameColumnUpdate = $arrayColumn[1];
+                break;
+            }
+        }
+
+        return $nameColumnUpdate;
+    }
+
+    public function getNameColumnDeleted($table)
+    {
+        $column = null;
+        $getFlags = $this->getFlags();
+
+        $deleteFlags = $getFlags['deleteFlags'];
+        foreach ($deleteFlags as $data) {
+            $arrayColumn = explode('.', $data);
+            if (in_array($table, $arrayColumn)) {
+                $column = $arrayColumn[1];
+                break;
+            }
+        }
+
+        return $column;
+    }
 }
