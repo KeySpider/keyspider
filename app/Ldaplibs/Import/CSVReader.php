@@ -135,57 +135,34 @@ class CSVReader implements DataInputReader
 
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
-            $keyTable = $settingManagement->getTableKey($nameTable);
+
+            $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
+            $primaryKey = $settingManagement->getTableKey($nameTable);
 
             $csv = Reader::createFromPath($fileCSV);
-            $columns = implode(',', $columns);
-
             $stmt = new Statement();
             $records = $stmt->process($csv);
 
             foreach ($records as $key => $record) {
-                $dataTmp = [];
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+                $data = DB::table($nameTable)->where("{$primaryKey}", $getDataAfterConvert[$primaryKey])->first();
 
-                foreach ($getDataAfterConvert as $key => $dataColumn) {
-                    if (in_array($key, $getEncryptedFields)) {
-                        $dataColumn = $settingManagement->passwordEncrypt($dataColumn);
-                        $dataTmp[] = "\$\${$dataColumn}\$\$";
-                    } else {
-                        $dataTmp[] = "\$\${$dataColumn}\$\$";
-                    }
-                }
-
-                if (!empty($dataTmp)) {
-                    $condition = clean($dataTmp[0]);
-                    $conditionInjection = "\$\${$condition}\$\$";
-
-                    $query = DB::table($nameTable)->where("{$keyTable}", $condition)->first();
-                    $stringValue = implode(',', $dataTmp);
-
-                    if (!$query) {
-                        $sql = "INSERT INTO \"{$nameTable}\"({$columns}) values ({$stringValue});";
-                        DB::insert($sql);
-                    } else {
-                        DB::table($nameTable)
-                            ->where("{$keyTable}", $condition)
-                            ->update(["{$nameColumnUpdate}" => json_encode(config('const.updated_flag_default'))]);
-
-                        $sql = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where \"{$keyTable}\" = {$conditionInjection};";
-                        DB::update($sql);
-                    }
+                if ($data) {
+                    DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
+                        ->update($getDataAfterConvert);
+                } else {
+                    DB::table($nameTable)->insert($getDataAfterConvert);
                 }
             }
 
+            // move file
             $now = Carbon::now()->format('Ymdhis') . random_int(1000, 9999);
             $fileName = "hogehoge_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
             DB::commit();
         } catch (\Exception $e) {
-            Log::debug($e);
-            DB::rollBack();
+            Log::error($e);
         }
     }
 
@@ -199,6 +176,7 @@ class CSVReader implements DataInputReader
      */
     protected function getDataAfterProcess($dataLine, $options = []): array
     {
+        $fields = [];
         $data = [];
         $conversions = $options['CONVERSATION'];
 
@@ -206,9 +184,15 @@ class CSVReader implements DataInputReader
             if ($key === '' || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
                 unset($conversions[$key]);
             }
+
+            if (isset($conversions[$key])) {
+                $explodeKey = explode('.', $key);
+                $key = $explodeKey[1];
+                $fields[$key] = $item;
+            }
         }
 
-        foreach ($conversions as $col => $pattern) {
+        foreach ($fields as $col => $pattern) {
             if ($pattern === 'admin') {
                 $data[$col] = 'admin';
             } elseif ($pattern === 'TODAY()') {

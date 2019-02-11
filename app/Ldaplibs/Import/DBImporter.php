@@ -76,6 +76,8 @@ class DBImporter
 
             // get name table base
             $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
+
+            // process import
             $this->csvReader->getDataFromOneFile(
                 $this->fileName,
                 $params,
