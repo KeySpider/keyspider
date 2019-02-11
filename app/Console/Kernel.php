@@ -109,7 +109,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param $dataSchedule
      */
-    private function importDataForTimeExecution($dataSchedule): void
+    public function importDataForTimeExecution($dataSchedule)
     {
         try {
             foreach ($dataSchedule as $data) {
@@ -131,7 +131,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param array $settings
      */
-    public function exportDataForTimeExecution($settings): void
+    public function exportDataForTimeExecution($settings)
     {
         try {
             $queue = new ExtractQueueManager();
@@ -148,7 +148,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param array $settings
      */
-    public function deliveryDataForTimeExecution($settings): void
+    public function deliveryDataForTimeExecution($settings)
     {
         try {
             $queue = new DeliveryQueueManager();

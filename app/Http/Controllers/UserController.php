@@ -33,7 +33,6 @@ use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
 use Tmilos\ScimFilterParser\Mode;
 use Tmilos\ScimFilterParser\Parser;
-use Illuminate\Support\Facades\Schema;
 
 class UserController extends LaravelController
 {
@@ -110,7 +109,8 @@ class UserController extends LaravelController
                     $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
                     $dataFormat['id'] = $dataFormat['userName'];
                     $dataFormat['externalId'] = $dataFormat['userName'];
-                    $dataFormat['userName'] = $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
+                    $dataFormat['userName'] =
+                        $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
                     unset($dataFormat[0]);
 
                     array_push($dataConvert, $dataFormat);
