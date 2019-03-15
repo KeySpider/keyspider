@@ -7,6 +7,6 @@ required Laravel Framework 5.7 over.
 
 * Setting for laravel Config Files.
 * Add Schecule Job To cron.
-  [code]
-  * * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-  [/code]
+  ```* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1```
+
+
