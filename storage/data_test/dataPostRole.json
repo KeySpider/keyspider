@@ -1,0 +1,11 @@
+{
+    "schemas": [
+        "urn:ietf:params:scim:schemas:core:2.0:Group"
+    ],
+    "externalId": "ea7ef37b-4cf2-45e8-8016-8178e4f7898f",
+    "displayName": "KS 10",
+    "members": [],
+    "meta": {
+        "resourceType": "Group"
+    }
+}
