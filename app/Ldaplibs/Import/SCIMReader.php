@@ -257,26 +257,109 @@ class SCIMReader
      */
     public function updateReplaceSCIM($id, $options)
     {
-        $externalId = $id;
         $path = $options['path'];
-        $operation = $options['operation'];
 
         $importSetting = new ImportSettingsManager();
         $setting = $importSetting->getSCIMImportSettings($path);
 
-        $nameTable = $this->getTableName($setting);
+        $this->setColumnAndDataForUpdate($columns, $dataUpdate, $match, $options, $setting);
 
+        $this->setDataForUpdateAndDeleteColumn($options['operation'], $setting, $columns, $dataUpdate);
+
+        $columnsMerged = $this->buildSetQueryFromColumnsAndValues($columns, $dataUpdate);
+
+        $updateResult = $this->updateDataToDB($id, $setting, $columnsMerged);
+
+        return $updateResult;
+    }
+
+    /**
+     * @param array $columns
+     * @param array $dataUpdate
+     * @return bool|string
+     */
+    private function buildSetQueryFromColumnsAndValues(array $columns, array $dataUpdate)
+    {
+        $columnsMerged = "";
+        for ($i = 0; $i < count($columns); $i++) {
+            $keyColumn = str_replace('"', '', $columns[$i]);
+            $columnsMerged = "{$columnsMerged} `{$keyColumn}`=$dataUpdate[$i],";
+        }
+        $columnsMerged = substr($columnsMerged, 0, -1);
+        return $columnsMerged;
+    }
+
+    /**
+     * @param $id
+     * @param array $setting
+     * @param $columnsMerged
+     * @return bool
+     */
+    private function updateDataToDB($id, array $setting, $columnsMerged): bool
+    {
+        $updateResult = false;
+        $externalId = $id;
+        $nameTable = $this->getTableName($setting);
+        $keyTable = (new SettingsManager())->getTableKey($nameTable);
+        $data = DB::table($nameTable)->where("{$keyTable}", $externalId)->first();
+        if ($data) {
+            if ($columnsMerged) {
+                $key = "`{$keyTable}`";
+                $query = "update `{$nameTable}` set $columnsMerged where {$key} = '$externalId'";
+                DB::update($query);
+            }
+
+            $updateResult = true;
+        }
+        return $updateResult;
+    }
+
+    /**
+     * @param $operation
+     * @param array $setting
+     * @param $columns
+     * @param $dataUpdate
+     */
+    private function setDataForUpdateAndDeleteColumn($operation, array $setting, &$columns, &$dataUpdate): void
+    {
+        if ($operation['path'] === 'active') {
+            array_push($columns, "\"015\"");
+            if ($operation['value'] === 'False') {
+                array_push($dataUpdate, '1');
+            } else {
+                array_push($dataUpdate, '1');
+            }
+        }
+
+        $nameTable = $this->getTableName($setting);
         $settingManagement = new SettingsManager();
         $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
-        $keyTable = $settingManagement->getTableKey($nameTable);
 
+        if ($nameColumnUpdate) {
+            array_push($columns, "\"{$nameColumnUpdate}\"");
+        }
+
+
+        $dataJsonUpdatedFlag = json_encode(config('const.updated_flag_default'));
+        array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
+    }
+
+    /**
+     * @param $columns
+     * @param $dataUpdate
+     * @param $match
+     * @param $options
+     * @param array $setting
+     */
+    private function setColumnAndDataForUpdate(&$columns, &$dataUpdate, &$match, $options, array $setting): void
+    {
         $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
         $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
 
         $attributeValue = null;
         $columns = [];
         $dataUpdate = [];
-
+        $operation = $options['operation'];
         foreach ($setting[config('const.scim_format')] as $key => $valueSetting) {
             if ($key !== '' && preg_match($pattern2, $key) !== 1) {
                 $isCheck = preg_match($pattern, $valueSetting, $match);
@@ -296,43 +379,5 @@ class SCIMReader
                 }
             }
         }
-
-        if ($operation['path'] === 'active') {
-            array_push($columns, "\"015\"");
-            if ($operation['value'] === 'False') {
-                array_push($dataUpdate, '1');
-            } else {
-                array_push($dataUpdate, '1');
-            }
-        }
-
-        if ($nameColumnUpdate) {
-            array_push($columns, "\"{$nameColumnUpdate}\"");
-        }
-
-        $dataJsonUpdatedFlag = json_encode(config('const.updated_flag_default'));
-        array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
-
-//        $conditionString = "\$\${$externalId}\$\$";
-        $conditionString = "$externalId";
-        $data = DB::table($nameTable)->where("{$keyTable}", $externalId)->first();
-        $columns_merged = "";
-        for ($i = 0; $i < count($columns); $i++) {
-            $keyColumn = str_replace('"', '', $columns[$i]);
-            $columns_merged = "{$columns_merged} `{$keyColumn}`=$dataUpdate[$i],";
-        }
-        $columns_merged = substr($columns_merged,0, -1);
-
-        if ($data) {
-            if (!empty($columns) && !empty($dataUpdate)) {
-                $key = "`{$keyTable}`";
-                $query = "update `{$nameTable}` set $columns_merged where {$key} = '$conditionString'";
-                DB::update($query);
-            }
-
-            return true;
-        }
-
-        return false;
     }
 }
