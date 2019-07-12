@@ -145,7 +145,7 @@ class SCIMReader
             $dataCreate[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
 
             foreach ($dataCreate as $cl => $item) {
-                $tableColumn = $nameTable.'.'.$cl;
+                $tableColumn = $nameTable . '.' . $cl;
 
                 if (in_array($tableColumn, $getEncryptedFields)) {
                     $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
@@ -283,7 +283,7 @@ class SCIMReader
 
                 if ($isCheck) {
                     $attributeValue = $match['exp1'];
-                    $departmentField = config('const.scim_schema').":{$attributeValue}";
+                    $departmentField = config('const.scim_schema') . ":{$attributeValue}";
 
                     if ($attributeValue === $operation['path'] || $departmentField === $operation['path']) {
                         $newsKey = substr($key, -3);
@@ -313,16 +313,20 @@ class SCIMReader
         $dataJsonUpdatedFlag = json_encode(config('const.updated_flag_default'));
         array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
 
-        $conditionString = "\$\${$externalId}\$\$";
+//        $conditionString = "\$\${$externalId}\$\$";
+        $conditionString = "$externalId";
         $data = DB::table($nameTable)->where("{$keyTable}", $externalId)->first();
+        $columns_merged = "";
+        for ($i = 0; $i < count($columns); $i++) {
+            $keyColumn = str_replace('"', '', $columns[$i]);
+            $columns_merged = "{$columns_merged} `{$keyColumn}`=$dataUpdate[$i],";
+        }
+        $columns_merged = substr($columns_merged,0, -1);
 
         if ($data) {
-            $stringValue = implode(',', $dataUpdate);
-            $columns = implode(',', $columns);
-
             if (!empty($columns) && !empty($dataUpdate)) {
-                $key = "\"{$keyTable}\"";
-                $query = "update \"{$nameTable}\" set ({$columns}) = ({$stringValue}) where {$key} = {$conditionString}";
+                $key = "`{$keyTable}`";
+                $query = "update `{$nameTable}` set $columns_merged where {$key} = '$conditionString'";
                 DB::update($query);
             }
 
