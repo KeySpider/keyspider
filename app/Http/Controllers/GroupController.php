@@ -186,17 +186,27 @@ class GroupController extends LaravelController
         }
 
         foreach ($input['Operations'] as $operation) {
-            if (strtolower($operation['op']) === 'replace') {
-                $scimReader = new SCIMReader();
-                $options = [
-                    "path" => $this->path,
-                    'operation' => $operation,
-                ];
-                $scimReader->updateReplaceSCIM($id, $options);
+
+            $opTask = strtolower(array_get($operation,'op', null));
+            $scimReader = new SCIMReader();
+            $options = [
+                "path" => $this->path,
+                'operation' => $operation,
+            ];
+
+            if ($opTask === 'replace') {
+                $result = $scimReader->updateReplaceSCIM($id, $options);
+                if($result) return $this->response([$input['schemas'], 'detail'=>'Update Group success'], $code = 200);
+            }
+            elseif($opTask==='add'){
+                Log::info('Add member');
+                $response = $input;
+                $response['id'] = $id;
+                return $this->response($response, $code = 200);
             }
         }
 
-        throw (new SCIMException('Update success'))->setCode(200);
+//        throw (new SCIMException('Update success'))->setCode(200);
     }
 
     public function detail($id)
