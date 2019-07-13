@@ -136,7 +136,7 @@ class UserController extends LaravelController
                         "givenName" => "",
                     ],
                     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                        "department" => $data['department']
+                        "department" => array_get($data, 'department', "")
                     ],
                 ];
 
@@ -203,7 +203,7 @@ class UserController extends LaravelController
                     "givenName" => "",
                 ],
                 "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                    "department" => $dataFormat['department']
+                    "department" => array_get($dataFormat, 'department', "")
                 ],
             ];
         }
