@@ -204,6 +204,12 @@ class GroupController extends LaravelController
                 $response['id'] = $id;
                 return $this->response($response, $code = 200);
             }
+            elseif($opTask==='remove'){
+                Log::info('Remove member');
+                $response = $input;
+                $response['id'] = $id;
+                return $this->response($response, $code = 200);
+            }
         }
 
 //        throw (new SCIMException('Update success'))->setCode(200);
