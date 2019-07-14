@@ -268,7 +268,7 @@ class SettingsManager
         $keyDefine = [
             'AAA' => '001',
             'BBB' => '001',
-            'CCC' => '003',//user group name to be the key
+            'CCC' => '001',//user id to be the key
         ];
         return $keyDefine[$tableName] ? $keyDefine[$tableName] : null;
     }

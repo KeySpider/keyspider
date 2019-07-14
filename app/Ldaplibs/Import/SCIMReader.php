@@ -249,6 +249,36 @@ class SCIMReader
         }
     }
 
+    public function updateMembersOfGroup($groupId, $inputRequest){
+        $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $operations = $inputRequest['Operations'];
+        $importSetting = new ImportSettingsManager();
+        $setting = $importSetting->getSCIMImportSettings($path);
+        $tableName = $this->getTableName($setting);
+        $tableKey = (new SettingsManager())->getTableKey($tableName);
+        $returnFlag = true;
+        foreach ($operations as $operation){
+            if(array_get($operation, 'op')==='Add' and array_get($operation, 'path')==='members') {
+                $members = $operation['value'];
+                foreach ($members as $member){
+                    $memberId = $member['value'];
+                    $query = "update `{$tableName}` set `005`='$groupId' where `{$tableKey}` = '$memberId'";
+                    $returnFlag = $returnFlag and DB::update($query);
+                }
+            }
+            if(array_get($operation, 'op')==='Remove' and array_get($operation, 'path')==='members') {
+                $members = $operation['value'];
+                foreach ($members as $member){
+                    $memberId = $member['value'];
+                    $query = "update `{$tableName}` set `005`=null where `{$tableKey}` = '$memberId'";
+                    $returnFlag = $returnFlag and DB::update($query);
+                }
+            }
+        }
+
+        return $returnFlag;
+    }
+
     /**
      * @param $id
      * @param $options

@@ -21,6 +21,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\SCIMException;
+use App\Http\Models\AAA;
 use App\Http\Models\CCC;
 use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
@@ -28,6 +29,7 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
@@ -134,7 +136,9 @@ class GroupController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
 
-        return $this->response($dataPost, 201);
+        $dataResponse = $dataPost;
+        $dataResponse['id'] = $dataPost['externalId'];
+        return $this->response($dataResponse, 201);
     }
 
     /**
@@ -200,14 +204,18 @@ class GroupController extends LaravelController
             }
             elseif($opTask==='add'){
                 Log::info('Add member');
+                $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
                 $response['id'] = $id;
+                $response['add members successfully'] = $result;
                 return $this->response($response, $code = 200);
             }
             elseif($opTask==='remove'){
                 Log::info('Remove member');
+                $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
                 $response['id'] = $id;
+                $response['remove members successfully'] = $result;
                 return $this->response($response, $code = 200);
             }
         }
@@ -247,6 +255,11 @@ class GroupController extends LaravelController
 
         $jsonData = [];
         if (!empty($dataFormat)) {
+            $membersInDB = AAA::where('005', $id)->get()->toArray();
+            $members = [];
+            foreach ($membersInDB as $member){
+                $members[] = ["display"=>$member['001'],"value"=>$member['001']];
+            }
             $jsonData = [
                 "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                 "id" => $dataFormat['externalId'],
@@ -255,7 +268,7 @@ class GroupController extends LaravelController
                 "meta" => [
                     "resourceType" => "Group",
                 ],
-                "members" => [],
+                "members" => $members,
             ];
         }
 
