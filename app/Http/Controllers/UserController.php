@@ -86,15 +86,15 @@ class UserController extends LaravelController
                 $filterValue = null;
             }
 
-            $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
-            $isPattern = preg_match($pattern, $filterValue, $result);
+//            $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
+//            $isPattern = preg_match($pattern, $filterValue, $result);
+//
+//            $valueQuery = null;
+//            if ($isPattern) {
+//                $valueQuery = $result[1];
+//            }
 
-            $valueQuery = null;
-            if ($isPattern) {
-                $valueQuery = $result[1];
-            }
-
-            $where[$keyTable] = $valueQuery;
+            $where[$keyTable] = $filterValue;
         }
 
         $dataConvert = [];
@@ -224,6 +224,7 @@ class UserController extends LaravelController
         $importSetting = new ImportSettingsManager();
 
         Log::info('-----------------creating user...-----------------');
+        Log::alert("[".$request->method()."]");
         Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
