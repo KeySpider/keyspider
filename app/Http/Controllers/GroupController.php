@@ -138,7 +138,7 @@ class GroupController extends LaravelController
 
         $dataResponse = $dataPost;
         $dataResponse['id'] = $dataPost['externalId'];
-        $dataResponse['meta']['location'] = $request->fullUrl();
+        $dataResponse['meta']['location'] = $request->fullUrl().'/'.$dataResponse['id'];
         return $this->response($dataResponse, 201);
     }
 
