@@ -138,6 +138,7 @@ class GroupController extends LaravelController
 
         $dataResponse = $dataPost;
         $dataResponse['id'] = $dataPost['externalId'];
+        $dataResponse['meta']['location'] = $request->fullUrl();
         return $this->response($dataResponse, 201);
     }
 
@@ -223,7 +224,7 @@ class GroupController extends LaravelController
 //        throw (new SCIMException('Update success'))->setCode(200);
     }
 
-    public function detail($id)
+    public function detail($id, Request $request)
     {
         // do something
         Log::info('-----------------DETAIL GROUP...-----------------');
@@ -267,6 +268,7 @@ class GroupController extends LaravelController
                 "displayName" => $dataFormat['displayName'],
                 "meta" => [
                     "resourceType" => "Group",
+                    "location"=>$request->fullUrl()
                 ],
                 "members" => $members,
             ];
