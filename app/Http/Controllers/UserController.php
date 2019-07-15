@@ -233,8 +233,10 @@ class UserController extends LaravelController
         // save user resources model
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
-
-        return $this->response($dataPost, $code = 201);
+        $dataResponse = $dataPost;
+        $dataResponse['id'] = array_get($dataPost, 'userName', null);
+        $dataResponse['meta']['location'] = $request->fullUrl().'/'.$dataPost['userName'];
+        return $this->response($dataResponse, $code = 201);
     }
 
     /**
