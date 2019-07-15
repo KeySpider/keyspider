@@ -267,7 +267,7 @@ class GroupController extends LaravelController
                 "externalId" => $dataFormat['externalId'],
                 "displayName" => $dataFormat['displayName'],
                 "meta" => [
-                    "resourceType" => "Group",
+//                    "resourceType" => "Group",
                     "location"=>$request->fullUrl()
                 ],
                 "members" => $members,
