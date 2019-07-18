@@ -58,7 +58,7 @@ class ImportCSV extends Command
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             }
         } else {
-            echo("Nothing to import!\n");
+            echo("\e[0;31;47mNothing to import!\e[0m\n");
             Log::error('Can not run import schedule, getting error from config ini files');
         }
         return null;
