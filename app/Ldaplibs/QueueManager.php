@@ -44,7 +44,7 @@ class QueueManager
         Log::alert('---------------Job logger---------------');
         Log::info('Job type: ' . $job->getJobName());
         Log::info('Job details:');
-        Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
+//        Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 
     /**
