@@ -52,21 +52,21 @@ class TablesBuilder
         $columnsInString = implode("|",$columns);
 
         if (Schema::hasTable($tableName)) {
-            echo "- Update table: <<<$tableName>>>: [$columnsInString]\n";
+            echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
             Schema::table($tableName, function ($table) use ($tableName, $columns) {
                 foreach ($columns as $column) {
                     if (!Schema::hasColumn($tableName, $column)) {
                         echo "    + add Column: [$column]\n";
-                        $table->string($column);
+                        $table->string($column)->nullable();
                     }
                 }
             });
 
         } else {
-            echo "- Build table: <<<$tableName>>>: [$columnsInString]\n";
+            echo "- Build table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
             Schema::create($tableName, function ($table) use ($columns) {
                 foreach ($columns as $column) {
-                    $table->string($column);
+                    $table->string($column)->nullable();
                 }
             });
         }

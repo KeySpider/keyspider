@@ -112,6 +112,7 @@ class DBExtractor
                 if (!empty($results->toArray())) {
                     $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                     $settingOutput = $this->getContentOutputCSV($pathOutput);
+                    echo("\e[0;31;46m- Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
                     $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
                 }
             }
@@ -226,6 +227,7 @@ class DBExtractor
                 $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
             }
             Log::info("Export to file: $fileName into $tempPath");
+            echo("  Extract to file: \e[0;31;46m[$tempPath/$fileName]\e[0m\n");
             $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
             // create csv file

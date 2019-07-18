@@ -53,10 +53,12 @@ class ImportCSV extends Command
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
         if ($timeExecutionList) {
+            (new \TablesBuilder($importSettingsManager->iniMasterDBFile))->buildTables();
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             }
         } else {
+            echo("Nothing to import!\n");
             Log::error('Can not run import schedule, getting error from config ini files');
         }
         return null;
@@ -77,15 +79,18 @@ class ImportCSV extends Command
             }
 
             if (empty($files)) {
+                echo("Nothing to import");
                 $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
                 Log::info($infoSetting . ' WITH FILES EMPTY');
             } else {
                 $queue = new ImportQueueManager();
                 foreach ($files as $file) {
+                    echo ("- Import file: \e[0;31;42m$file\e[0m\n");
                     $dbImporter = new DBImporterJob($setting, $file);
                     $queue->push($dbImporter);
                 }
             }
         }
+
     }
 }
