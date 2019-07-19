@@ -194,7 +194,7 @@ class ExtractSettingsManager extends SettingsManager
             $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
+//            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM'],
             'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'

@@ -32,9 +32,9 @@ class DBExtractor
     /**
      * define const
      */
-    const EXTRACTION_CONDITION                 = 'Extraction Condition';
-    const EXTRACTION_CONFIGURATION             = "Extraction Process Basic Configuration";
-    const OUTPUT_PROCESS_CONVERSION            = "Output Process Conversion";
+    const EXTRACTION_CONDITION = 'Extraction Condition';
+    const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
+    const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
 
     protected $setting;
@@ -58,8 +58,8 @@ class DBExtractor
             $dataType = 'csv';
 
             $setting = $this->setting;
-            $extractTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $table = $this->switchTable($extractTable);
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+//            $table = $this->switchTable($extractTable);
 
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $whereData = $this->extractCondition($extractCondition);
@@ -72,49 +72,39 @@ class DBExtractor
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
             $settingManagement = new SettingsManager();
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
             $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
             $primaryKey = $settingManagement->getTableKey($table);
 
-            if ($table === "AAA") {
-                // join
-                if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
-                    $results = DB::table($table)
-                        ->select($selectColumns)
-                        ->where($whereData)
-                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
-                        ->leftJoin('BBB', 'AAA.004', 'BBB.001')
-                        ->leftJoin('CCC', 'AAA.005', 'CCC.001')
-                        ->get();
-
-                    foreach ($results as $key => $item) {
-                        // update flag
-                        $keyString = $item->{"{$table}.$primaryKey"};
-                        $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
-                    }
+            // join
+            if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
+                $query = DB::table($table);
+                $query = $query->select($selectColumns)
+                    ->where($whereData)
+                    ->where("{$nameColumnUpdate}->csv->isUpdated", 1);
+                foreach ($joins as $left => $right) {
+                    $rightJoinColumn = explode('.', $right);
+                    $query->leftJoin($rightJoinColumn[0], $left, $rightJoinColumn[0].'.001');
                 }
-            } else {
-                if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
-                    $results = DB::table($table)
-                        ->select($selectColumns)
-                        ->where($whereData)
-                        ->where("{$nameColumnUpdate}->csv->isUpdated", 1)
-                        ->get();
+                echo($query->toSql());
+                $results = $query->get()->toArray();
 
-                    foreach ($results as $key => $item) {
-                        // update flag
-                        $keyString = $item->{"$primaryKey"};
-                        $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
-                    }
+                foreach ($results as $key => $item) {
+                    // update flag
+                    $keyString = $item->{"$primaryKey"};
+                    $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
                 }
             }
 
             if ($results) {
-                if (!empty($results->toArray())) {
-                    $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-                    $settingOutput = $this->getContentOutputCSV($pathOutput);
-                    echo("\e[0;31;46m- Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
-                    $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
-                }
+                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+                $settingOutput = $this->getContentOutputCSV($pathOutput);
+                echo("\e[0;31;46m- Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
+                $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
             }
 
             DB::commit();
@@ -136,7 +126,7 @@ class DBExtractor
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');
                 array_push($whereData, [$key, '<=', $condition]);
             } else {
-                array_push($whereData, [$key,'=', $condition]);
+                array_push($whereData, [$key, '=', $condition]);
             }
         }
         return $whereData;
@@ -179,6 +169,30 @@ class DBExtractor
         }
 
         return $selectColumns;
+    }
+
+    public function getJoinCondition($settingConvention, SettingsManager $settingManager = null)
+    {
+        $joinConditions = [];
+        $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
+
+        $allTablesColumns = parse_ini_file($settingManager->iniMasterDBFile, false);
+        $allDestinationColumns = array_values($allTablesColumns);
+
+        foreach ($settingConvention as $key => $value) {
+            $isFormat = preg_match($pattern, $value, $data);
+            if ($isFormat) {
+                if (isset($data['exp3'])) {
+                    if (in_array($data['exp1'], $allDestinationColumns)
+                        and in_array($data['exp3'], $allDestinationColumns)) {
+                        $joinConditions[$data['exp1']] = $data['exp3'];
+                    }
+                }
+
+            }
+        }
+
+        return $joinConditions;
     }
 
     /**
