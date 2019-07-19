@@ -90,7 +90,7 @@ class DBExtractor
                     $rightJoinColumn = explode('.', $right);
                     $query->leftJoin($rightJoinColumn[0], $left, $rightJoinColumn[0].'.001');
                 }
-                echo($query->toSql());
+//                echo($query->toSql());
                 $results = $query->get()->toArray();
 
                 foreach ($results as $key => $item) {
