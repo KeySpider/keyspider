@@ -123,9 +123,11 @@ class ImportSettingsManager extends SettingsManager
             // Column conversion
             $columnNameConversion = $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
             foreach ($columnNameConversion as $key => $value) {
-                if (isset($masterDBConversion[$key])) {
-                    $columnNameConversion[$masterDBConversion[$key]] = $value;
-                    unset($columnNameConversion[$key]);
+                $newKey = array_get($masterDBConversion,$key, null);
+                if (isset($newKey)) {
+                    $columnNameConversion[$newKey] = $value;
+                    if($key!==$newKey)
+                        unset($columnNameConversion[$key]);
                 }
             }
             $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;

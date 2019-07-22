@@ -69,7 +69,7 @@ class DBImporter
             $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
 
             $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
-            $this->csvReader->createTable($nameTableBase, $columns);
+//            $this->csvReader->createTable($nameTableBase, $columns);
 
             $params = [
                 'CONVERSATION' => $this->setting[self::CONVERSION],
@@ -85,6 +85,7 @@ class DBImporter
             );
         } catch (Exception $e) {
             Log::error($e);
+            echo("\e[0;31;47m$e \e[0m \n");
         }
     }
 }

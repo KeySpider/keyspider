@@ -265,13 +265,7 @@ class SettingsManager
 
     public function getTableKey($tableName)
     {
-        $keyDefine = [
-            'AAA' => '001',
-            'BBB' => '001',
-            'CCC' => '001',//user id to be the key
-        ];
-        return array_get($tableName, $keyDefine, '001');
-//        return arra$keyDefine[$tableName] ? $keyDefine[$tableName] : '001';
+        return 'ID';
     }
 
     /**

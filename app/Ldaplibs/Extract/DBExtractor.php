@@ -110,6 +110,7 @@ class DBExtractor
             DB::commit();
         } catch (Exception $exception) {
             Log::error($exception);
+            echo("\e[0;31;47m$exception \e[0m \n");
         }
     }
 
@@ -248,7 +249,7 @@ class DBExtractor
             foreach ($results as $data) {
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
-                    if ($table === 'AAA') {
+                    if ($table === 'A AA') {
                         if (in_array($column, $getEncryptedFields)) {
                             $line = $settingManagement->passwordDecrypt($line);
                         }
