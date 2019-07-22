@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
+use http\Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -154,8 +155,13 @@ class CSVReader implements DataInputReader
                         }
                     }
                 }
-                $data = DB::table($nameTable)->where("{$primaryKey}", $getDataAfterConvert[$primaryKey])->first();
-
+                $primaryKeyValue = array_get($getDataAfterConvert, $primaryKey, null);
+                if($primaryKeyValue)
+                    $data = DB::table($nameTable)->where("{$primaryKey}", $primaryKeyValue)->first();
+                else{
+                    echo(new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
+                    throw (new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
+                }
                 if ($data) {
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
