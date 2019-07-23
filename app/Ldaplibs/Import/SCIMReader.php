@@ -22,6 +22,7 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
+use Flow\JSONPath\JSONPath;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -59,16 +60,16 @@ class SCIMReader
         if (is_array($setting) && isset($setting[config('const.scim_input')])) {
             $importTable = $setting[config('const.scim_input')];
 
-            switch ($importTable['ImportTable']) {
-                case 'User':
-                    $name = 'AAA';
-                    break;
-                case 'Role':
-                    $name = 'CCC';
-                    break;
-            }
+//            switch ($importTable['ImportTable']) {
+//                case 'User':
+//                    $name = 'AAA';
+//                    break;
+//                case 'Role':
+//                    $name = 'CCC';
+//                    break;
+//            }
 
-            return $name;
+            return $importTable['ImportTable'];
         }
     }
 
@@ -120,7 +121,7 @@ class SCIMReader
     public function getFormatData($dataPost, $setting)
     {
         try {
-            $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
+            $pattern = '/#/';
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
@@ -136,18 +137,24 @@ class SCIMReader
                 }
             }
 
-            $dataCreate = [];
             foreach ($scimInputFormat as $key => $value) {
-                $item = $this->processGroup($value, $dataPost);
-                $newsKey = substr($key, -3);
-                $dataCreate[$newsKey] = $item;
+                $item = $this->getValueFromScimFormat($value, $dataPost)[0];
+                explode('.', $key);
+                if(isset(explode('.', $key)[1])) {
+                    //Create keys for postgres
+                    $keyWithoutTableName = explode('.', $key)[1];
+                    $dataCreate[$keyWithoutTableName] = "'$item'";
+                    //Remove old Key (it's only suitable for Mysql)
+                    unset($key);
+
+                }
             }
-            $dataCreate[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
+//            $dataCreate[$colUpdateFlag] = (config('const.updated_flag_default'));
+            $dataCreate[$colUpdateFlag] = "flags";
 
             foreach ($dataCreate as $cl => $item) {
                 $tableColumn = $nameTable . '.' . $cl;
-
-                if (in_array($tableColumn, $getEncryptedFields)) {
+                if (in_array($item, $getEncryptedFields)) {
                     $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
                 }
             }
@@ -157,11 +164,15 @@ class SCIMReader
             if ($data) {
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
-                DB::table($nameTable)->insert($dataCreate);
+                Log::info($dataCreate);
+                $query = DB::table($nameTable);
+                $query->insert($dataCreate);
+                Log::info($query->toSql());
             }
 
             return true;
         } catch (\Exception $e) {
+            echo("Import from SCIM failed: $e");
             Log::error($e);
         }
     }
@@ -189,6 +200,21 @@ class SCIMReader
         }
     }
 
+    private function getValueFromScimFormat($value, $dataPost){
+        if($value=='TODAY()'){
+            return Carbon::now()->format('Y/m/d');
+        }
+        $pattern = "/\((.*?)\)/";
+
+        $isMatched = preg_match($pattern, $value, $matchedValue);
+        if($isMatched){
+            $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
+            return $findData;
+        }
+
+        return $value;
+    }
+
     /**
      * Covert data follow from setting
      *
@@ -199,7 +225,9 @@ class SCIMReader
     public function convertDataFollowSetting($value, $dataPost)
     {
         $str = null;
-        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+//        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+//        $pattern = '\((?<exp1>(urn[\w\:\.]+|\w+))(\[(?<exp2>\d+)\])?(\.(?<exp3>\w+))?\)';
+        $pattern = "/\((.*?)\)/";
 
         $isCheck = preg_match($pattern, $value, $match);
 

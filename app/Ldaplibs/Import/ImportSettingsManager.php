@@ -92,6 +92,7 @@ class ImportSettingsManager extends SettingsManager
      */
     private function getRuleOfImport(): array
     {
+        (new \TablesBuilder($this->iniMasterDBFile))->buildTables();
 
         if ($this->allTableSettingsContent) {
             return $this->allTableSettingsContent;
@@ -388,7 +389,8 @@ class ImportSettingsManager extends SettingsManager
         foreach ($columnNameConversion as $key => $value) {
             if (isset($masterDBConversion[$key])) {
                 $columnNameConversion[$masterDBConversion[$key]] = $value;
-                unset($columnNameConversion[$key]);
+                if($masterDBConversion[$key]!==$key)
+                    unset($columnNameConversion[$key]);
             }
         }
         $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
