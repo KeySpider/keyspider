@@ -47,7 +47,7 @@ class UserController extends LaravelController
     public function __construct(AAA $userModel)
     {
         $this->userModel = $userModel;
-        $this->masterDB = 'AAA';
+        $this->masterDB = 'User';
         $this->path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
     }
 
@@ -162,51 +162,22 @@ class UserController extends LaravelController
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $where = [
-            "{$keyTable}" => $id,
-            "{$columnDeleted}" => '0',
-        ];
-
-        if (is_exits_columns($this->masterDB, $where)) {
-            $dataQuery = $this->userModel->where($where)->first();
-        } else {
-            $dataQuery = null;
+        try{
+            $query = $this->userModel::query();
+            $query = $query->where(function ($query) use ($keyTable, $columnDeleted, $id) {
+                $query->where($keyTable, $id);
+                $query->where($columnDeleted, '!=', 1);
+            });
+            $userRecord = $query->first();
+        }catch (\Exception $exception){
+            throw (new SCIMException($query->toSql()))->setCode(404);
         }
 
-        if (!$dataQuery) {
-            throw (new SCIMException('User Not Found'))->setCode(404);
+        if (!$userRecord) {
+            throw (new SCIMException("Not Found User Id: $id"))->setCode(404);
         }
 
-        $dataFormat = [];
-        if ($dataQuery) {
-            $importSetting = new ImportSettingsManager();
-            $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $this->path);
-            $dataFormat['id'] = $dataFormat['userName'];
-            unset($dataFormat[0]);
-        }
-
-        $jsonData = [];
-        if (!empty($dataFormat)) {
-            $jsonData = [
-                "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                'id' => $dataFormat['userName'],
-                "externalId" => $dataFormat['userName'],
-                "userName" => "{$id}@keyspiderjp.onmicrosoft.com",
-                "active" => $dataQuery->{"{$columnDeleted}"} === '0' ? true : false,
-                "displayName" => $dataFormat['displayName'],
-                "meta" => [
-                    "resourceType" => "User",
-                ],
-                "name" => [
-                    "formatted" => "",
-                    "familyName" => "",
-                    "givenName" => "",
-                ],
-                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                    "department" => array_get($dataFormat, 'department', "")
-                ],
-            ];
-        }
+        $jsonData = $this->getResponseFromUserRecord($userRecord, $columnDeleted);
 
         return $this->response($jsonData, $code = 200);
     }
@@ -224,7 +195,7 @@ class UserController extends LaravelController
         $importSetting = new ImportSettingsManager();
 
         Log::info('-----------------creating user...-----------------');
-        Log::alert("[".$request->method()."]");
+        Log::alert("[" . $request->method() . "]");
         Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
@@ -234,8 +205,8 @@ class UserController extends LaravelController
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
         $dataResponse = $dataPost;
-        $dataResponse['id'] = array_get($dataPost, 'userName', null);
-        $dataResponse['meta']['location'] = $request->fullUrl().'/'.$dataPost['userName'];
+        $dataResponse['id'] = array_get($dataPost, 'externalId', null);
+        $dataResponse['meta']['location'] = $request->fullUrl() . '/' . $dataPost['externalId'];
         return $this->response($dataResponse, $code = 201);
     }
 
@@ -310,7 +281,7 @@ class UserController extends LaravelController
                 "urn:ietf:params:scim:api:messages:2.0:Success"
             ],
             "detail" => "Update User success",
-            "status"=> 200
+            "status" => 200
         ];
 
         return $this->response($jsonResponse);
@@ -332,5 +303,46 @@ class UserController extends LaravelController
             'Resources' => $dataArray,
         ];
         return $arr;
+    }
+
+    /**
+     * @param $userRecord
+     * @param $columnDeleted
+     * @return array
+     */
+    private function getResponseFromUserRecord($userRecord, $columnDeleted): array
+    {
+        $dataFormat = [];
+        if ($userRecord) {
+            $importSetting = new ImportSettingsManager();
+            $userResouce = $userRecord->toArray();
+            $dataFormat = $importSetting->formatDBToSCIMStandard($userResouce, $this->path);
+            $dataFormat['id'] = $dataFormat['userName'];
+            unset($dataFormat[0]);
+        }
+
+        $jsonData = [];
+        if (!empty($dataFormat)) {
+            $jsonData = [
+                "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                'id' => $dataFormat['externalId'],
+                "externalId" => $dataFormat['externalId'],
+                "userName" => $dataFormat['userName'],
+                "active" => $userRecord->{"{$columnDeleted}"} === '1' ? false : true,
+                "displayName" => $dataFormat['userName'],
+                "meta" => [
+                    "resourceType" => "User",
+                ],
+                "name" => [
+                    "formatted" => "",
+                    "familyName" => "",
+                    "givenName" => "",
+                ],
+                "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
+                    "department" => array_get($dataFormat, 'department', "")
+                ],
+            ];
+        }
+        return $jsonData;
     }
 }

@@ -24,6 +24,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class AAA extends Model
 {
-    protected $table = "AAA";
+    protected $table = "User";
     protected $guarded = [];
 }

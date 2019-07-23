@@ -143,7 +143,7 @@ class SCIMReader
                 if(isset(explode('.', $key)[1])) {
                     //Create keys for postgres
                     $keyWithoutTableName = explode('.', $key)[1];
-                    $dataCreate[$keyWithoutTableName] = "'$item'";
+                    $dataCreate[$keyWithoutTableName] = "$item";
                     //Remove old Key (it's only suitable for Mysql)
                     unset($key);
 
@@ -164,7 +164,7 @@ class SCIMReader
             if ($data) {
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
-                Log::info($dataCreate);
+//                Log::info($dataCreate);
                 $query = DB::table($nameTable);
                 $query->insert($dataCreate);
                 Log::info($query->toSql());
