@@ -57,7 +57,7 @@ class GroupController extends LaravelController
      */
     public function index(Request $request)
     {
-        $query = $request->input('filter', null);
+        $scimQuery = $request->input('filter', null);
 
         $settingManagement = new SettingsManager();
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
@@ -66,9 +66,9 @@ class GroupController extends LaravelController
         $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
-            if ($query) {
+            if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
-                $node = $parser->parse($query);
+                $node = $parser->parse($scimQuery);
                 $filterValue = $node->compareValue;
             } else {
                 $filterValue = null;
