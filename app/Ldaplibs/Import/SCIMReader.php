@@ -138,15 +138,15 @@ class SCIMReader
             }
 
             foreach ($scimInputFormat as $key => $value) {
-                $item = $this->getValueFromScimFormat($value, $dataPost)[0];
+                $item = $this->getValueFromScimFormat($value, $dataPost);
                 explode('.', $key);
                 if(isset(explode('.', $key)[1])) {
                     //Create keys for postgres
                     $keyWithoutTableName = explode('.', $key)[1];
                     $dataCreate[$keyWithoutTableName] = "$item";
                     //Remove old Key (it's only suitable for Mysql)
+                    //Mysql:[User.ID], Postgres:[ID] only
                     unset($key);
-
                 }
             }
 //            $dataCreate[$colUpdateFlag] = (config('const.updated_flag_default'));
@@ -202,14 +202,15 @@ class SCIMReader
 
     private function getValueFromScimFormat($value, $dataPost){
         if($value=='TODAY()'){
-            return Carbon::now()->format('Y/m/d');
+            $nowString = Carbon::now()->format('Y/m/d');
+            return $nowString;
         }
         $pattern = "/\((.*?)\)/";
 
         $isMatched = preg_match($pattern, $value, $matchedValue);
         if($isMatched){
             $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
-            return $findData;
+            return $findData[0];
         }
 
         return $value;
