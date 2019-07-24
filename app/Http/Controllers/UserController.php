@@ -86,21 +86,15 @@ class UserController extends LaravelController
                 $filterValue = null;
             }
 
-//            $pattern = '/([A-Za-z0-9\._+]+)@(.*)/';
-//            $isPattern = preg_match($pattern, $filterValue, $result);
-//
-//            $valueQuery = null;
-//            if ($isPattern) {
-//                $valueQuery = $result[1];
-//            }
-
             $where[$keyTable] = $filterValue;
         }
 
         $dataConvert = [];
 
         if (is_exits_columns($this->masterDB, $where)) {
-            $dataQuery = $this->userModel->where($where)->get();
+            $query = $this->userModel::query();
+            $query->where($columnDeleted, '!=', '1');
+            $dataQuery = $query->get();
 
             if (!empty($dataQuery->toArray())) {
                 $importSetting = new ImportSettingsManager();
@@ -126,7 +120,7 @@ class UserController extends LaravelController
                     "externalId" => $data['externalId'],
                     "userName" => str_replace("\"", "", $data['userName']),
                     "active" => true,
-                    "displayName" => $data['displayName'],
+                    "displayName" => $data['name'],
                     "meta" => [
                         "resourceType" => "User",
                     ],
