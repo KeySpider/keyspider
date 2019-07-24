@@ -67,48 +67,45 @@ class UserController extends LaravelController
     public function index(Request $request)
     {
         $result = null;
-        $query = $request->input('filter', null);
+        $scimQuery = $request->input('filter', null);
 
         $settingManagement = new SettingsManager();
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        $where = [
-            "{$columnDeleted}" => '0',
-        ];
+        $sqlQuery = $this->userModel::query();
+        $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
-            if ($query) {
+            if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
-                $node = $parser->parse($query);
+                $node = $parser->parse($scimQuery);
                 $filterValue = $node->compareValue;
             } else {
                 $filterValue = null;
             }
-
-            $where[$keyTable] = $filterValue;
+            $sqlQuery->where($keyTable, $filterValue);
+//            $where[$keyTable] = $filterValue;
         }
 
         $dataConvert = [];
 
-        if (is_exits_columns($this->masterDB, $where)) {
-            $query = $this->userModel::query();
-            $query->where($columnDeleted, '!=', '1');
-            $dataQuery = $query->get();
+        $scimQuery = $this->userModel::query();
+        $scimQuery->where($columnDeleted, '!=', '1');
+        $dataQuery = $scimQuery->get();
 
-            if (!empty($dataQuery->toArray())) {
-                $importSetting = new ImportSettingsManager();
+        if (!empty($dataQuery->toArray())) {
+            $importSetting = new ImportSettingsManager();
 
-                foreach ($dataQuery as $data) {
-                    $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
-                    $dataFormat['id'] = $dataFormat['userName'];
-                    $dataFormat['externalId'] = $dataFormat['userName'];
-                    $dataFormat['userName'] =
-                        $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
-                    unset($dataFormat[0]);
+            foreach ($dataQuery as $data) {
+                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                $dataFormat['id'] = $dataFormat['userName'];
+                $dataFormat['externalId'] = $dataFormat['userName'];
+                $dataFormat['userName'] =
+                    $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
+                unset($dataFormat[0]);
 
-                    array_push($dataConvert, $dataFormat);
-                }
+                array_push($dataConvert, $dataFormat);
             }
         }
 
@@ -156,14 +153,14 @@ class UserController extends LaravelController
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
-        try{
+        try {
             $query = $this->userModel::query();
             $query = $query->where(function ($query) use ($keyTable, $columnDeleted, $id) {
                 $query->where($keyTable, $id);
                 $query->where($columnDeleted, '!=', 1);
             });
             $userRecord = $query->first();
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
             throw (new SCIMException($query->toSql()))->setCode(404);
         }
 
