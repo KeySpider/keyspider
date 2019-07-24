@@ -47,7 +47,7 @@ class GroupController extends LaravelController
     public function __construct(CCC $roleModel)
     {
         $this->roleModel = $roleModel;
-        $this->masterDB = 'CCC';
+        $this->masterDB = 'Role';
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
     }
 
@@ -256,11 +256,7 @@ class GroupController extends LaravelController
 
         $jsonData = [];
         if (!empty($dataFormat)) {
-            $membersInDB = AAA::where('005', $id)->get()->toArray();
-            $members = [];
-            foreach ($membersInDB as $member){
-                $members[] = ["display"=>$member['001'],"value"=>$member['001']];
-            }
+            $members = $this->getAllMembersBelongedToGroupId($id);
             $jsonData = [
                 "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                 "id" => $dataFormat['externalId'],
@@ -293,5 +289,19 @@ class GroupController extends LaravelController
             'Resources' => $dataArray,
         ];
         return $arr;
+    }
+
+    /**
+     * @param $id
+     * @return array
+     */
+    private function getAllMembersBelongedToGroupId($id): array
+    {
+        $membersInDB = AAA::where('RoleID1', $id)->get()->toArray();
+        $members = [];
+        foreach ($membersInDB as $member) {
+            $members[] = ["display" => $member['ID'], "value" => $member['ID']];
+        }
+        return $members;
     }
 }

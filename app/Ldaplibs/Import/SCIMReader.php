@@ -140,7 +140,7 @@ class SCIMReader
             foreach ($scimInputFormat as $key => $value) {
                 $item = $this->getValueFromScimFormat($value, $dataPost);
                 explode('.', $key);
-                if(isset(explode('.', $key)[1])) {
+                if (isset(explode('.', $key)[1])) {
                     //Create keys for postgres
                     $keyWithoutTableName = explode('.', $key)[1];
                     $dataCreate[$keyWithoutTableName] = "$item";
@@ -200,15 +200,16 @@ class SCIMReader
         }
     }
 
-    private function getValueFromScimFormat($value, $dataPost){
-        if($value=='TODAY()'){
+    private function getValueFromScimFormat($value, $dataPost)
+    {
+        if ($value == 'TODAY()') {
             $nowString = Carbon::now()->format('Y/m/d');
             return $nowString;
         }
         $pattern = "/\((.*?)\)/";
 
         $isMatched = preg_match($pattern, $value, $matchedValue);
-        if($isMatched){
+        if ($isMatched) {
             $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
             return $findData[0];
         }
@@ -278,7 +279,8 @@ class SCIMReader
         }
     }
 
-    public function updateMembersOfGroup($groupId, $inputRequest){
+    public function updateMembersOfGroup($groupId, $inputRequest)
+    {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $importSetting = new ImportSettingsManager();
@@ -286,21 +288,33 @@ class SCIMReader
         $tableName = $this->getTableName($setting);
         $tableKey = (new SettingsManager())->getTableKey($tableName);
         $returnFlag = true;
-        foreach ($operations as $operation){
-            if(array_get($operation, 'op')==='Add' and array_get($operation, 'path')==='members') {
+        foreach ($operations as $operation) {
+            if (array_get($operation, 'op') === 'Add' and array_get($operation, 'path') === 'members') {
                 $members = $operation['value'];
-                foreach ($members as $member){
-                    $memberId = $member['value'];
-                    $query = "update `{$tableName}` set `005`='$groupId' where `{$tableKey}` = '$memberId'";
+                if (is_string($members)) {
+                    $memberId = $members;
+                    $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
                     $returnFlag = $returnFlag and DB::update($query);
+                } elseif (is_array($members)) {
+                    foreach ($members as $member) {
+                        $memberId = $member['value'];
+                        $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
+                        $returnFlag = $returnFlag and DB::update($query);
+                    }
                 }
             }
-            if(array_get($operation, 'op')==='Remove' and array_get($operation, 'path')==='members') {
+            if (array_get($operation, 'op') === 'Remove' and array_get($operation, 'path') === 'members') {
                 $members = $operation['value'];
-                foreach ($members as $member){
-                    $memberId = $member['value'];
-                    $query = "update `{$tableName}` set `005`=null where `{$tableKey}` = '$memberId'";
+                if (is_string($members)) {
+                    $memberId = $members;
+                    $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
                     $returnFlag = $returnFlag and DB::update($query);
+                } elseif (is_array($members)) {
+                    foreach ($members as $member) {
+                        $memberId = $member['value'];
+                        $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
+                        $returnFlag = $returnFlag and DB::update($query);
+                    }
                 }
             }
         }
