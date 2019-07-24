@@ -67,15 +67,16 @@ class UserController extends LaravelController
     public function index(Request $request)
     {
         $result = null;
-        $scimQuery = $request->input('filter', null);
+
 
         $settingManagement = new SettingsManager();
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
 
         $sqlQuery = $this->userModel::query();
         $sqlQuery->where($columnDeleted, '!=', '1');
 
+        $scimQuery = $request->input('filter', null);
+        $keyTable = $settingManagement->getTableKey($this->masterDB);
         if ($request->has('filter')) {
             if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
@@ -90,9 +91,8 @@ class UserController extends LaravelController
 
         $dataConvert = [];
 
-        $scimQuery = $this->userModel::query();
-        $scimQuery->where($columnDeleted, '!=', '1');
-        $dataQuery = $scimQuery->get();
+        $sqlQuery->where($columnDeleted, '!=', '1');
+        $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
             $importSetting = new ImportSettingsManager();
