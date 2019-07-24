@@ -60,11 +60,10 @@ class GroupController extends LaravelController
         $query = $request->input('filter', null);
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted('CCC');
+        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
 
-        $where = [
-            "{$columnDeleted}" => '0',
-        ];
+        $sqlQuery = $this->roleModel::query();
+        $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
             if ($query) {
@@ -74,27 +73,27 @@ class GroupController extends LaravelController
             } else {
                 $filterValue = null;
             }
-
-            $where['003'] = $filterValue;
+            $sqlQuery->where('ID', $filterValue);
+//            $where['003'] = $filterValue;
         }
 
         $dataConvert = [];
 
-        if (is_exits_columns($this->masterDB, $where)) {
-            $dataQuery = $this->roleModel->where($where)->get();
 
-            if (!empty($dataQuery->toArray())) {
-                $importSetting = new ImportSettingsManager();
+        $dataQuery = $sqlQuery->get();
 
-                foreach ($dataQuery as $data) {
-                    $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
-                    unset($dataFormat[0]);
-                    unset($dataFormat[""]);
+        if (!empty($dataQuery->toArray())) {
+            $importSetting = new ImportSettingsManager();
 
-                    array_push($dataConvert, $dataFormat);
-                }
+            foreach ($dataQuery as $data) {
+                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                unset($dataFormat[0]);
+                unset($dataFormat[""]);
+
+                array_push($dataConvert, $dataFormat);
             }
         }
+
 
         $jsonData = [];
         if (!empty($dataConvert)) {
@@ -138,7 +137,7 @@ class GroupController extends LaravelController
 
         $dataResponse = $dataPost;
         $dataResponse['id'] = $dataPost['externalId'];
-        $dataResponse['meta']['location'] = $request->fullUrl().'/'.$dataResponse['id'];
+        $dataResponse['meta']['location'] = $request->fullUrl() . '/' . $dataResponse['id'];
         return $this->response($dataResponse, 201);
     }
 
@@ -192,7 +191,7 @@ class GroupController extends LaravelController
 
         foreach ($input['Operations'] as $operation) {
 
-            $opTask = strtolower(array_get($operation,'op', null));
+            $opTask = strtolower(array_get($operation, 'op', null));
             $scimReader = new SCIMReader();
             $options = [
                 "path" => $this->path,
@@ -201,17 +200,15 @@ class GroupController extends LaravelController
 
             if ($opTask === 'replace') {
                 $result = $scimReader->updateReplaceSCIM($id, $options);
-                if($result) return $this->response([$input['schemas'], 'detail'=>'Update Group success'], $code = 200);
-            }
-            elseif($opTask==='add'){
+                if ($result) return $this->response([$input['schemas'], 'detail' => 'Update Group success'], $code = 200);
+            } elseif ($opTask === 'add') {
                 Log::info('Add member');
                 $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
                 $response['id'] = $id;
                 $response['add members successfully'] = $result;
                 return $this->response($response, $code = 200);
-            }
-            elseif($opTask==='remove'){
+            } elseif ($opTask === 'remove') {
                 Log::info('Remove member');
                 $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
@@ -264,7 +261,7 @@ class GroupController extends LaravelController
                 "displayName" => $dataFormat['displayName'],
                 "meta" => [
 //                    "resourceType" => "Group",
-                    "location"=>$request->fullUrl()
+                    "location" => $request->fullUrl()
                 ],
                 "members" => $members,
             ];
