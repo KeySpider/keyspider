@@ -149,8 +149,6 @@ class SCIMReader
                     unset($key);
                 }
             }
-//            $dataCreate[$colUpdateFlag] = (config('const.updated_flag_default'));
-            $dataCreate[$colUpdateFlag] = "flags";
 
             foreach ($dataCreate as $cl => $item) {
                 $tableColumn = $nameTable . '.' . $cl;

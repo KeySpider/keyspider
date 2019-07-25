@@ -53,7 +53,7 @@ class ImportCSV extends Command
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
         if ($timeExecutionList) {
-            (new \TablesBuilder($importSettingsManager->iniMasterDBFile))->buildTables();
+            (new \TablesBuilder($importSettingsManager))->buildTables();
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $this->importDataForTimeExecution($settingOfTimeExecution);
             }

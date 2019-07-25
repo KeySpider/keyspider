@@ -23,6 +23,7 @@ namespace App\Ldaplibs\Import;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use TablesBuilder;
 
 class ImportSettingsManager extends SettingsManager
 {
@@ -92,7 +93,7 @@ class ImportSettingsManager extends SettingsManager
      */
     private function getRuleOfImport(): array
     {
-        (new \TablesBuilder($this->iniMasterDBFile))->buildTables();
+        (new TablesBuilder($this))->buildTables();
 
         if ($this->allTableSettingsContent) {
             return $this->allTableSettingsContent;
