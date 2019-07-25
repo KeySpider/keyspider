@@ -63,7 +63,7 @@ class GroupController extends LaravelController
         $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
 
         $sqlQuery = $this->roleModel::query();
-        $sqlQuery->where($columnDeleted, '!=', '1');
+//        $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
             if ($scimQuery) {
@@ -162,7 +162,7 @@ class GroupController extends LaravelController
 
         $where = [
             "{$keyTable}" => $id,
-            "{$columnDeleted}" => '0'
+//            "{$columnDeleted}" => '0'
         ];
 
         if (is_exits_columns($this->masterDB, $where)) {
@@ -234,7 +234,7 @@ class GroupController extends LaravelController
 
         $where = [
             "{$keyTable}" => $id,
-            "{$columnDeleted}" => '0'
+//            "{$columnDeleted}" => '0'
         ];
 
         if (is_exits_columns($this->masterDB, $where)) {

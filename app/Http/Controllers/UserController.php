@@ -91,7 +91,7 @@ class UserController extends LaravelController
 
         $dataConvert = [];
 
-        $sqlQuery->where($columnDeleted, '!=', '1');
+//        $sqlQuery->where($columnDeleted, '!=', '1');
         $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
@@ -157,8 +157,10 @@ class UserController extends LaravelController
             $query = $this->userModel::query();
             $query = $query->where(function ($query) use ($keyTable, $columnDeleted, $id) {
                 $query->where($keyTable, $id);
-                $query->where($columnDeleted, '!=', 1);
+//                $query->where($columnDeleted, '!=', 1);
             });
+            $toSql = $query->toSql();
+            Log::info($toSql);
             $userRecord = $query->first();
         } catch (\Exception $exception) {
             throw (new SCIMException($query->toSql()))->setCode(404);
