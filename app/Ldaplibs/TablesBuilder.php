@@ -45,6 +45,21 @@ class TablesBuilder
     }
 
     /**
+     * @param $table
+     * @param $column
+     * @param $defaultUpdateFlagsData: for column 'UpdateFlags'
+     */
+    private function addColumnTotable($table, $column, $defaultUpdateFlagsData): void
+    {
+        if ($column === 'UpdateFlags') {
+            $table->json($column)->default($defaultUpdateFlagsData);
+        } else {
+            $table->string($column)->nullable();
+        }
+    }
+
+
+    /**
      * @param array $destinationTable
      */
     private function migrateTable(array $destinationTable): void
@@ -58,32 +73,21 @@ class TablesBuilder
         $this->buildColumnsWithMultiRoleFlag($columns);
         if (Schema::hasTable($tableName)) {
             echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
+//            Update table
             Schema::table($tableName, function ($table) use ($tableName, $columns, $defaultUpdateFlagsData) {
                 foreach ($columns as $column) {
                     if (!Schema::hasColumn($tableName, $column)) {
                         echo "    + add Column: [$column]\n";
-                        if ($column === 'UpdateFlags') {
-                            echo "set update flags for $column";
-                            $table->json($column)->default($defaultUpdateFlagsData);
-                        } else {
-                            $table->string($column)->nullable();
-                        }
+                        $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                     }
                 }
             });
-
+//          Create table
         } else {
             echo "- Build table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
             Schema::create($tableName, function ($table) use ($columns, $defaultUpdateFlagsData) {
                 foreach ($columns as $column) {
-//                    $table->string($column)->nullable();
-                    if ($column === 'UpdateFlags') {
-                        echo "set update flags for $column";
-                        $table->json($column)->default($defaultUpdateFlagsData);
-                    } else {
-                        $table->string($column)->nullable();
-                    }
-
+                    $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                 }
             });
         }
@@ -120,7 +124,7 @@ class TablesBuilder
                 $extractConfigContent = parse_ini_file($extractConfigFile);
                 $extractProcessID = $extractConfigContent['ExtractionProcessID'];
                 if ($tableName == $extractConfigContent['ExtractionTable']) {//check if table name is matched.
-                    $defaultUpdateFlagsData[] = [$extractProcessID => 0];
+                    $defaultUpdateFlagsData[] = [$extractProcessID => 1];
                 }
             } catch (Exception $exception) {
 
