@@ -152,9 +152,15 @@ class SCIMReader
 
             foreach ($dataCreate as $cl => $item) {
                 $tableColumn = $nameTable . '.' . $cl;
+//                Encrypt
                 if (in_array($item, $getEncryptedFields)) {
                     $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
                 }
+//                Bad word of deleteflag = active, wrong meaning, so flip it.
+                if ($cl=='DeleteFlag') {
+                    $dataCreate[$cl] = (string)((int)$dataCreate[$cl]+1)%2;
+                }
+
             }
 
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
