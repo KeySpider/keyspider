@@ -209,7 +209,7 @@ class SCIMReader
         $isMatched = preg_match($pattern, $value, $matchedValue);
         if ($isMatched) {
             $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
-            return $findData[0];
+            return isset($findData[0])?$findData[0]:null;
         }
 
         return $value;
