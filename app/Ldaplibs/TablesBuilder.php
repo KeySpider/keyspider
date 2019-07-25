@@ -107,6 +107,8 @@ class TablesBuilder
 
     /**
      * @return array|false|string
+     * Sample return of User table: [{"UserInfoExtraction4CSV":1},{"UserALLExtraction4CSV":1}]
+     * Content: Read all extract files defined in KeySpider.ini to get ExtractionProcessID and matched table name.
      */
     private function getDefaultUpdateFlagsJson($tableName)
     {
@@ -117,7 +119,7 @@ class TablesBuilder
             try {
                 $extractConfigContent = parse_ini_file($extractConfigFile);
                 $extractProcessID = $extractConfigContent['ExtractionProcessID'];
-                if ($tableName == $extractConfigContent['ExtractionTable']) {
+                if ($tableName == $extractConfigContent['ExtractionTable']) {//check if table name is matched.
                     $defaultUpdateFlagsData[] = [$extractProcessID => 0];
                 }
             } catch (Exception $exception) {
