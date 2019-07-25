@@ -9,7 +9,6 @@ class TablesBuilder
     public function __construct(SettingsManager $settingsManager)
     {
         $this->settingsManager = $settingsManager;
-        $this->keySpiderIniPath = "/Users/tuanleanh/PhpstormProjects/keyspider/storage/ini_configs/KeySpider.ini";
     }
 
     public function readIniFile()
@@ -19,6 +18,8 @@ class TablesBuilder
 
     public function buildTables()
     {
+        $this->settingsManager->getRoleMapInName();
+
         $tablesMap = $this->settingsManager->masterDBConfigData;
         foreach ($tablesMap as $tableDesc) {
             $tableName = null;
@@ -114,14 +115,14 @@ class TablesBuilder
     private function getDefaultUpdateFlagsJson($tableName)
     {
         $defaultUpdateFlagsData = [];
-        $keySpider = parse_ini_file($this->keySpiderIniPath);
-        $extractConfig = array_get($keySpider, 'extract_config', []);
+        $keySpider = $this->settingsManager->keySpider;
+        $extractConfig = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
         foreach ($extractConfig as $extractConfigFile) {
             try {
                 $extractConfigContent = parse_ini_file($extractConfigFile);
                 $extractProcessID = $extractConfigContent['ExtractionProcessID'];
                 if ($tableName == $extractConfigContent['ExtractionTable']) {//check if table name is matched.
-                    $defaultUpdateFlagsData[] = [$extractProcessID => 1];
+                    $defaultUpdateFlagsData[$extractProcessID] = 1;
                 }
             } catch (Exception $exception) {
 

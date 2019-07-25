@@ -284,34 +284,35 @@ class SCIMReader
         $importSetting = new ImportSettingsManager();
         $setting = $importSetting->getSCIMImportSettings($path);
         $tableName = $this->getTableName($setting);
-        $tableKey = (new SettingsManager())->getTableKey($tableName);
+        $roleMap = $importSetting->getRoleMapInName();
+        $tableKey = $importSetting->getTableKey($tableName);
+
         $returnFlag = true;
+        //TODO: So bad code, but keep it for testing, fix later.
         foreach ($operations as $operation) {
+            //Add member to group.
             if (array_get($operation, 'op') === 'Add' and array_get($operation, 'path') === 'members') {
                 $members = $operation['value'];
                 if (is_string($members)) {
                     $memberId = $members;
-                    $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
-                    $returnFlag = $returnFlag and DB::update($query);
+                    $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
                 } elseif (is_array($members)) {
                     foreach ($members as $member) {
                         $memberId = $member['value'];
-                        $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
-                        $returnFlag = $returnFlag and DB::update($query);
+                        $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
                     }
                 }
             }
+            //Remove member from group.
             if (array_get($operation, 'op') === 'Remove' and array_get($operation, 'path') === 'members') {
                 $members = $operation['value'];
                 if (is_string($members)) {
                     $memberId = $members;
-                    $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
-                    $returnFlag = $returnFlag and DB::update($query);
+                    $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
                 } elseif (is_array($members)) {
                     foreach ($members as $member) {
                         $memberId = $member['value'];
-                        $query = "update \"$tableName\" set \"RoleID1\"='$groupId' where (\"$tableKey\" = '$memberId')";
-                        $returnFlag = $returnFlag and DB::update($query);
+                        $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
                     }
                 }
             }
@@ -450,5 +451,32 @@ class SCIMReader
                 }
             }
         }
+    }
+
+    /**
+     * @param string $memberId
+     * @param string|null $tableName
+     * @param string $tableKey
+     * @param array|null $roleMap
+     * @param $groupId
+     * @return mixed
+     */
+    private function updateRoleForUser(string $memberId, ?string $tableName, string $tableKey, ?array $roleMap, $groupId, $isAdd=true)
+    {
+        $setValues = [];
+        $setValues["RoleID1"] = $groupId;
+        foreach ($roleMap as $index => $role) {
+            if ($role['ID'] == $groupId) {
+                $setValues["RoleFlag-$index"] = $isAdd?1:null;
+                break;
+            }
+        }
+        $userRecord = (array)DB::table($tableName)->where($tableKey, $memberId)->get(['UpdateFlags'])->toArray()[0];
+        $updateFlags = json_decode($userRecord['UpdateFlags'], true);
+        array_walk($updateFlags, function (&$value) {
+            $value = 1;
+        });
+        $setValues["UpdateFlags"] = json_encode($updateFlags);
+        DB::table($tableName)->where($tableKey, $memberId)->update($setValues);
     }
 }

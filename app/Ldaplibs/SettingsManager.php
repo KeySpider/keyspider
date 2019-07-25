@@ -36,7 +36,7 @@ class SettingsManager
     public $iniMasterDBFile;
     public $masterDBConfigData;
     public $generalKeys;
-    protected $keySpider;
+    public $keySpider;
 
     public function __construct($ini_settings_files = null)
     {
@@ -362,12 +362,13 @@ class SettingsManager
             $query = DB::table($tableName)->select('ID', 'Name');
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
-            array_walk($allRoleRecords, function ($record)use ($roleMap, &$arrayIdUserMap){
-                $record = (array) $record;
-                if(in_array($record['Name'],$roleMap )){
+
+            foreach ($allRoleRecords as $record) {
+                $record = (array)$record;
+                if (in_array($record['Name'], $roleMap)) {
                     $arrayIdUserMap[] = $record;
                 }
-            });
+            }
             return $arrayIdUserMap;
         }
         return null;
