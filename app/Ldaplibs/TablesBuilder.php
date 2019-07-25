@@ -9,18 +9,16 @@ class TablesBuilder
     public function __construct(SettingsManager $settingsManager)
     {
         $this->settingsManager = $settingsManager;
-        $this->masterDBConfigPath = $settingsManager->iniMasterDBFile;
         $this->keySpiderIniPath = "/Users/tuanleanh/PhpstormProjects/keyspider/storage/ini_configs/KeySpider.ini";
     }
 
     public function readIniFile()
     {
-        return parse_ini_file($this->masterDBConfigPath, true, INI_SCANNER_RAW);
+        return parse_ini_file($this->settingsManager->iniMasterDBFile, true, INI_SCANNER_RAW);
     }
 
     public function buildTables()
     {
-        $buildSucess = true;
         $tablesMap = $this->settingsManager->masterDBConfigData;
         foreach ($tablesMap as $tableDesc) {
             $tableName = null;
@@ -39,7 +37,6 @@ class TablesBuilder
                 $destinationTable = ['table_name' => $tableName, 'columns' => $columns];
                 $this->migrateTable($destinationTable);
             }
-//            return ($destinationTable);
         }
 
     }
