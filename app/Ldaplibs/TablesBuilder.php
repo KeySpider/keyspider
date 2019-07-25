@@ -50,11 +50,21 @@ class TablesBuilder
         $tableName = $destinationTable['table_name'];
         $columns = $destinationTable['columns'];
         $columnsInString = implode("|",$columns);
-
+//      Create many User.RoleFlag
+        $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID'])?count($this->readIniFile()['RoleMap']['RoleID']):0;
+        foreach ($columns as $column) {
+            if($column==="RoleFlag"){
+                for( $i= 0 ; $i < $roleMapCount ; $i++ ){
+                    $columns[] = "$column-$i";
+                }
+                unset($columns[$column]);
+            }
+        }
         if (Schema::hasTable($tableName)) {
             echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
             Schema::table($tableName, function ($table) use ($tableName, $columns) {
                 foreach ($columns as $column) {
+
                     if (!Schema::hasColumn($tableName, $column)) {
                         echo "    + add Column: [$column]\n";
                         $table->string($column)->nullable();
