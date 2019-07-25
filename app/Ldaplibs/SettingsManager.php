@@ -345,4 +345,31 @@ class SettingsManager
 
         return $column;
     }
+
+    /**
+     * @param null $tableName
+     * @return array|null
+     * The MasterDBConf is using Role Name in [RoleMap], so Name is the key
+     * But in the database, table User is using RoleId to indicate key of the Role
+     * So need to map ID, Name to update table User based on Key.
+     */
+    public function getRoleMapInName($tableName = null){
+        if($tableName==null){
+            $tableName = 'Role';
+        }
+        if(isset($this->masterDBConfigData['RoleMap'])) {
+            $roleMap = $this->masterDBConfigData['RoleMap']['RoleID'];
+            $query = DB::table($tableName)->select('ID', 'Name');
+            $allRoleRecords = $query->get()->toArray();
+            $arrayIdUserMap = [];
+            array_walk($allRoleRecords, function ($record)use ($roleMap, &$arrayIdUserMap){
+                $record = (array) $record;
+                if(in_array($record['Name'],$roleMap )){
+                    $arrayIdUserMap[] = $record;
+                }
+            });
+            return $arrayIdUserMap;
+        }
+        return null;
+    }
 }
