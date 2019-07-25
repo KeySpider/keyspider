@@ -18,7 +18,6 @@ class TablesBuilder
 
     public function buildTables()
     {
-        $this->settingsManager->getRoleMapInName();
 
         $tablesMap = $this->settingsManager->masterDBConfigData;
         foreach ($tablesMap as $tableDesc) {
@@ -37,8 +36,10 @@ class TablesBuilder
             if ($tableName and count($columns)) {
                 $destinationTable = ['table_name' => $tableName, 'columns' => $columns];
                 $this->migrateTable($destinationTable);
+
             }
         }
+        $this->settingsManager->getRoleMapInName();
 
     }
 
