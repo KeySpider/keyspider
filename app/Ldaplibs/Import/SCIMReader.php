@@ -285,13 +285,17 @@ class SCIMReader
     {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
-        $pathToColumn = ["active"=>"DeleteFlag", "userName"=>"Name"];
+        $pathToColumn = ["active"=>"DeleteFlag"];
         foreach ($operations as $operation) {
             //Add member to group.
             if (array_get($operation, 'op') === 'Replace')// and array_get($operation, 'path') === 'active')
             {
-                $columnNameInDB = isset($pathToColumn[array_get($operation, 'path')])?$pathToColumn[array_get($operation, 'path')]:array_get($operation, 'path');
-                $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+//                $columnNameInDB = isset($pathToColumn[array_get($operation, 'path')])?$pathToColumn[array_get($operation, 'path')]:array_get($operation, 'path');
+                if(isset($pathToColumn[array_get($operation, 'path')]))
+                {
+                    $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
+                    $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+                }
             }
         }
         return true;
