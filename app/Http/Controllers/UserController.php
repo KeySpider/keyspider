@@ -227,7 +227,7 @@ class UserController extends LaravelController
 
         $where = [
             "{$keyTable}" => $id,
-            "{$columnDeleted}" => '0'
+//            "{$columnDeleted}" => '0'
         ];
 
         if (is_exits_columns($this->masterDB, $where)) {
@@ -251,8 +251,9 @@ class UserController extends LaravelController
             $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
             unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
         }
-
-        $processReplace = [];
+        $scimReader = new SCIMReader();
+        $scimReader->updateUser($id, $input);
+/*        $processReplace = [];
         foreach ($input['Operations'] as $operation) {
             // process Operations Replace
             if (strtolower($operation['op']) === 'replace' && $operation['path'] !== 'userName') {
@@ -266,8 +267,9 @@ class UserController extends LaravelController
                 "path" => $this->path,
                 'operation' => $op,
             ];
-            $scimReader->updateReplaceSCIM($id, $options);
-        }
+//            $scimReader->updateReplaceSCIM($id, $options);
+            $scimReader->updateUser($id, $options);
+        }*/
 
         $jsonResponse = [
             "schemas" => [
