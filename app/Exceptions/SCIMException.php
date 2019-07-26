@@ -61,8 +61,8 @@ class SCIMException extends Exception
         Log::debug(sprintf(
             "Validation failed. Errors: %s\n\nMessage: %s\n\nBody: %s",
             json_encode($this->errors, JSON_PRETTY_PRINT),
-            $this->getMessage()
-//            request()->getContent()
+            $this->getMessage(),
+            request()->getContent()
         ));
     }
 
