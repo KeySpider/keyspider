@@ -231,9 +231,7 @@ class SCIMReader
     public function convertDataFollowSetting($value, $dataPost)
     {
         $str = null;
-//        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
-//        $pattern = '\((?<exp1>(urn[\w\:\.]+|\w+))(\[(?<exp2>\d+)\])?(\.(?<exp3>\w+))?\)';
-        $pattern = "/\((.*?)\)/";
+        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
 
         $isCheck = preg_match($pattern, $value, $match);
 
@@ -281,6 +279,22 @@ class SCIMReader
 
             return $str;
         }
+    }
+
+    public function updateUser($memberId, $inputRequest)
+    {
+        $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $operations = $inputRequest['Operations'];
+        $pathToColumn = ["active"=>"DeleteFlag", "userName"=>"Name"];
+        foreach ($operations as $operation) {
+            //Add member to group.
+            if (array_get($operation, 'op') === 'Replace')// and array_get($operation, 'path') === 'active')
+            {
+                $columnNameInDB = isset($pathToColumn[array_get($operation, 'path')])?$pathToColumn[array_get($operation, 'path')]:array_get($operation, 'path');
+                $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+            }
+        }
+        return true;
     }
 
     public function updateMembersOfGroup($groupId, $inputRequest)
@@ -485,4 +499,17 @@ class SCIMReader
         $setValues["UpdateFlags"] = json_encode($updateFlags);
         DB::table($tableName)->where($tableKey, $memberId)->update($setValues);
     }
+
+    private function updateSCIMUser(string $memberId, array $values)
+    {
+        $setValues = $values;
+        $userRecord = (array)DB::table("User")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
+        $updateFlags = json_decode($userRecord['UpdateFlags'], true);
+        array_walk($updateFlags, function (&$value) {
+            $value = 1;
+        });
+        $setValues["UpdateFlags"] = json_encode($updateFlags);
+        DB::table("User")->where("ID", $memberId)->update($setValues);
+    }
+
 }
