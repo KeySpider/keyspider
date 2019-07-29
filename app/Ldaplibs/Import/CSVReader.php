@@ -175,6 +175,8 @@ class CSVReader implements DataInputReader
             $fileName = "hogehoge_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
+            $deleteColumn = $settingManagement->getNameColumnDeleted($nameTable);
+            DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}"=>'0']);
             DB::commit();
         } catch (\Exception $e) {
             Log::error($e);
