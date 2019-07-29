@@ -53,7 +53,6 @@ class DBExtractor
         try {
             DB::beginTransaction();
 
-            $checkColumns = [];
             $results = null;
             $dataType = 'csv';
 
@@ -62,42 +61,35 @@ class DBExtractor
 //            $table = $this->switchTable($extractTable);
 
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
-            $whereData = $this->extractCondition($extractCondition);
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
 
-            foreach ($whereData as $item) {
-                array_push($checkColumns, substr($item[0], -3));
-            }
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
 
-            $settingManagement = new SettingsManager();
+
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
             }
 
-            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
+
             $primaryKey = $settingManagement->getTableKey($table);
 
-            // join
-            if (Schema::hasColumn($table, $checkColumns[0], $checkColumns[1])) {
-                $query = DB::table($table);
-                $query = $query->select($selectColumns)
-                    ->where($whereData)
-                    ->where("{$nameColumnUpdate}->csv->isUpdated", 1);
-                foreach ($joins as $left => $right) {
-                    $rightJoinColumn = explode('.', $right);
-                    $query->leftJoin($rightJoinColumn[0], $left, $rightJoinColumn[0].'.001');
-                }
-//                echo($query->toSql());
-                $results = $query->get()->toArray();
+            $query = DB::table($table);
+            $query = $query->select($selectColumns)
+                ->where($whereData)
+                ->where("{$nameColumnUpdate}->ALL", 1);
+            $extractedSql = $query->toSql();
+            Log::info($extractedSql);
+            $results = $query->get()->toArray();
 
-                foreach ($results as $key => $item) {
-                    // update flag
-                    $keyString = $item->{"$primaryKey"};
-                    $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
-                }
+            foreach ($results as $key => $item) {
+                // update flag
+                $keyString = $item->{"$primaryKey"};
+                $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
             }
 
             if ($results) {
@@ -118,7 +110,7 @@ class DBExtractor
      * @param $extractCondition
      * @return mixed
      */
-    public function extractCondition($extractCondition)
+    public function extractCondition($extractCondition, $nameColumnUpdate)
     {
         $whereData = [];
         foreach ($extractCondition as $key => &$condition) {
@@ -126,7 +118,13 @@ class DBExtractor
             if ($condition === 'TODAY() + 7') {
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');
                 array_push($whereData, [$key, '<=', $condition]);
-            } else {
+            }elseif(is_array($condition)){
+                foreach ($condition as $keyJson=>$valueJson){
+                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", '=', "{$valueJson}"]);
+                }
+                continue;
+            }
+            else {
                 array_push($whereData, [$key, '=', $condition]);
             }
         }
