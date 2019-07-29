@@ -144,7 +144,7 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
-                $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
+//                $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
 
                 if (!empty($getEncryptedFields)) {
                     foreach ($getDataAfterConvert as $cl => $item) {
