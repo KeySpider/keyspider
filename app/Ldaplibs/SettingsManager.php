@@ -280,7 +280,7 @@ class SettingsManager
         $results = $this->getUpdateFlagsField($keyString, $tableQuery);
         $columnName = $results[0];
         $updateFlagsValue = $results[1];
-        $updateFlagsValue[$dataType]['isUpdated'] = $value;
+        $updateFlagsValue[$dataType] = $value;
         return DB::table($tableQuery)->where($this->getTableKey($tableQuery), $keyString)
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }

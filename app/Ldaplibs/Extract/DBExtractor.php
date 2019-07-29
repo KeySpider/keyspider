@@ -58,6 +58,7 @@ class DBExtractor
 
             $setting = $this->setting;
             $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
 //            $table = $this->switchTable($extractTable);
 
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
@@ -80,8 +81,8 @@ class DBExtractor
 
             $query = DB::table($table);
             $query = $query->select($selectColumns)
-                ->where($whereData)
-                ->where("{$nameColumnUpdate}->ALL", 1);
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
             $extractedSql = $query->toSql();
             Log::info($extractedSql);
             $results = $query->get()->toArray();
@@ -89,20 +90,20 @@ class DBExtractor
             foreach ($results as $key => $item) {
                 // update flag
                 $keyString = $item->{"$primaryKey"};
-                $settingManagement->setUpdateFlags($dataType, $keyString, $table, $value = 0);
+                $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
             }
 
             if ($results) {
                 $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                 $settingOutput = $this->getContentOutputCSV($pathOutput);
-                echo("\e[0;31;46m- Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
+                echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
                 $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
             }
 
             DB::commit();
         } catch (Exception $exception) {
             Log::error($exception);
-            echo("\e[0;31;47m$exception \e[0m \n");
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
         }
     }
 
@@ -226,8 +227,6 @@ class DBExtractor
     public function processOutputDataExtract($settingOutput, $results, $formatConvention, $table)
     {
         try {
-            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
-
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
@@ -239,52 +238,26 @@ class DBExtractor
             if (is_file("{$tempPath}/$fileName")) {
                 $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
             }
-            Log::info("Export to file: $fileName into $tempPath");
-            echo("  Extract to file: \e[0;31;46m[$tempPath/$fileName]\e[0m\n");
             $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
 
             // create csv file
             foreach ($results as $data) {
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
-                    if ($table === 'A AA') {
+
                         if (in_array($column, $getEncryptedFields)) {
                             $line = $settingManagement->passwordDecrypt($line);
                         }
-                    } else {
-                        if (in_array($table . '.' . $column, $getEncryptedFields)) {
-                            $line = $settingManagement->passwordDecrypt($line);
-                        }
-                    }
-                    foreach ($formatConvention as $format) {
-                        $isPattern = preg_match($pattern, $format, $item);
-
-                        if ($isPattern) {
-                            $columnTmp = null;
-
-                            if (isset($item['exp3'])) {
-                                $columnTmp = $item['exp3'];
-                            } else {
-                                $columnTmp = $item['exp1'];
-                            }
-
-                            if ($table === 'AAA') {
-                                if ($columnTmp === $column) {
-                                    array_push($dataTmp, $line);
-                                }
-                            } else {
-                                $arrayColumn = explode('.', $columnTmp);
-                                if ($arrayColumn[1] === $column) {
-                                    array_push($dataTmp, $line);
-                                }
-                            }
-                        }
-                    }
+                    array_push($dataTmp, $line);
                 }
                 fputcsv($file, $dataTmp, ',');
             }
+            Log::info("Extracted to file: $fileName into $tempPath");
+            echo("  Extracted to file: \e[0;31;46m[$tempPath/$fileName]\e[0m\n");
+
             fclose($file);
         } catch (Exception $e) {
+            echo("Extract to failed: \e[0;31;46m[$e]\e[0m\n");
             Log::error($e);
         }
     }

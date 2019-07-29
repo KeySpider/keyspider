@@ -300,6 +300,25 @@ class SCIMReader
         }
         return true;
     }
+    public function updateRole($memberId, $inputRequest)
+    {
+        $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $operations = $inputRequest['Operations'];
+        $pathToColumn = ["active"=>"DeleteFlag"];
+        foreach ($operations as $operation) {
+            //Add member to group.
+            if (array_get($operation, 'op') === 'Replace')// and array_get($operation, 'path') === 'active')
+            {
+//                $columnNameInDB = isset($pathToColumn[array_get($operation, 'path')])?$pathToColumn[array_get($operation, 'path')]:array_get($operation, 'path');
+                if(isset($pathToColumn[array_get($operation, 'path')]))
+                {
+                    $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
+                    $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+                }
+            }
+        }
+        return true;
+    }
 
     public function updateMembersOfGroup($groupId, $inputRequest)
     {
@@ -508,6 +527,18 @@ class SCIMReader
     {
         $setValues = $values;
         $userRecord = (array)DB::table("User")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
+        $updateFlags = json_decode($userRecord['UpdateFlags'], true);
+        array_walk($updateFlags, function (&$value) {
+            $value = 1;
+        });
+        $setValues["UpdateFlags"] = json_encode($updateFlags);
+        DB::table("User")->where("ID", $memberId)->update($setValues);
+    }
+
+    private function updateSCIMRole(string $memberId, array $values)
+    {
+        $setValues = $values;
+        $userRecord = (array)DB::table("Role")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
         $updateFlags = json_decode($userRecord['UpdateFlags'], true);
         array_walk($updateFlags, function (&$value) {
             $value = 1;
