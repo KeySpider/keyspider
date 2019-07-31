@@ -68,36 +68,39 @@ class DBExtractor
 
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey($table);
             $selectColumns = $this->getColumnsSelect($table, $formatConvention);
-
+            //Append 'ID' to selected Columns to query and process later
+//            if (!in_array($primaryKey, $selectColumns))
+//                $selectColumns[] = $primaryKey;
+            $selectColumnsAndID = array_merge($selectColumns, [$primaryKey]);
 
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
             }
 
-
-            $primaryKey = $settingManagement->getTableKey($table);
-
             $query = DB::table($table);
-            $query = $query->select($selectColumns)
+            $query = $query->select($selectColumnsAndID)
                 ->where($whereData);
 //                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
             $extractedSql = $query->toSql();
             Log::info($extractedSql);
             $results = $query->get()->toArray();
 
-            foreach ($results as $key => $item) {
-                // update flag
-                $keyString = $item->{"$primaryKey"};
-                $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
-            }
-
             if ($results) {
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+                foreach ($results as $key => $item) {
+                    // update flag
+                    $keyString = $item->{"$primaryKey"};
+                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                }
+                //Start to extract
                 $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                 $settingOutput = $this->getContentOutputCSV($pathOutput);
                 echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
-                $this->processOutputDataExtract($settingOutput, $results, $formatConvention, $table);
+                $this->processOutputDataExtract($settingOutput, $results, $selectColumns, $table);
             }
 
             DB::commit();
@@ -139,12 +142,12 @@ class DBExtractor
     public function getColumnsSelect($nameTable, $settingConvention)
     {
 
-        $arraySelectColumns = ["ID"];
+        $arraySelectColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            if($n!==false){
-                $columnName = substr($value, strlen($nameTable)+1);
-            }elseif (strtolower($value)=="password"){
+            if ($n !== false) {
+                $columnName = substr($value, strlen($nameTable) + 1);
+            } elseif (strtolower($value) == "password") {
                 $columnName = "Password";
             }
             array_push($arraySelectColumns, $columnName);
@@ -208,7 +211,7 @@ class DBExtractor
      * @param $formatConvention
      * @param $table
      */
-    public function processOutputDataExtract($settingOutput, $results, $formatConvention, $table)
+    public function processOutputDataExtract($settingOutput, $results, $selectColumns, $table)
     {
         try {
             $settingManagement = new SettingsManager();
@@ -226,6 +229,7 @@ class DBExtractor
 
             // create csv file
             foreach ($results as $data) {
+                $data = array_only((array) $data, $selectColumns);
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
 
