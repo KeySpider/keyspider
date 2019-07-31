@@ -119,13 +119,12 @@ class DBExtractor
             if ($condition === 'TODAY() + 7') {
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');
                 array_push($whereData, [$key, '<=', $condition]);
-            }elseif(is_array($condition)){
-                foreach ($condition as $keyJson=>$valueJson){
+            } elseif (is_array($condition)) {
+                foreach ($condition as $keyJson => $valueJson) {
                     array_push($whereData, ["{$nameColumnUpdate}->$keyJson", '=', "{$valueJson}"]);
                 }
                 continue;
-            }
-            else {
+            } else {
                 array_push($whereData, [$key, '=', $condition]);
             }
         }
@@ -139,36 +138,21 @@ class DBExtractor
      */
     public function getColumnsSelect($nameTable, $settingConvention)
     {
-        $selectColumns = [
-            "{$nameTable}.*"
-        ];
 
-        $arraySelectColumns = [
-            "{$nameTable}.001"
-        ];
-
-        if ($nameTable === "AAA") {
-            $pattern = "/\(\s*(?<exp1>[\w\.]+)\s*((,\s*(?<exp2>[^\)]+))?|\s*\->\s*(?<exp3>[\w\.]+))\s*\)/";
-
-            foreach ($settingConvention as $key => $value) {
-                $isFormat = preg_match($pattern, $value, $data);
-                if ($isFormat) {
-                    if (!in_array($data['exp1'], $arraySelectColumns)) {
-                        array_push($arraySelectColumns, $data['exp1']);
-                    }
-
-                    if (isset($data['exp3'])) {
-                        if (!in_array($data['exp3'], $arraySelectColumns)) {
-                            array_push($arraySelectColumns, $data['exp3']);
-                        }
-                    }
-                }
+        $arraySelectColumns = ["ID"];
+        foreach ($settingConvention as $key => $value) {
+            $n = strpos($value, $nameTable);
+            if($n!==false){
+                $columnName = substr($value, strlen($nameTable)+1);
+            }elseif (strtolower($value)=="password"){
+                $columnName = "Password";
             }
-
-            $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
+            array_push($arraySelectColumns, $columnName);
         }
 
-        return $selectColumns;
+//        $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
+
+        return $arraySelectColumns;
     }
 
     public function getJoinCondition($settingConvention, SettingsManager $settingManager = null)
@@ -245,9 +229,9 @@ class DBExtractor
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
 
-                        if (in_array($column, $getEncryptedFields)) {
-                            $line = $settingManagement->passwordDecrypt($line);
-                        }
+                    if (in_array($column, $getEncryptedFields)) {
+                        $line = $settingManagement->passwordDecrypt($line);
+                    }
                     array_push($dataTmp, $line);
                 }
                 fputcsv($file, $dataTmp, ',');
