@@ -148,11 +148,11 @@ class DBExtractor
         $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            if ($n !== false) {
-                $columnName = substr($value, strlen($nameTable) + 1);
+            if ($n !== false and $value[0] == '(' and substr($value, -1) == ')') {//TODO: will be replaced by preg_match later
+                $columnName = substr($value, strlen($nameTable) + 2, -1);
                 $arrayAliasColumns[] = $columnName;
 
-            } elseif (strtolower($value) == "password") {
+            } else {
                 $defaultColumn = "default_$index";
                 $index++;
                 $columnName = DB::raw("'$value' as \"$defaultColumn\"");
@@ -237,7 +237,7 @@ class DBExtractor
 
             // create csv file
             foreach ($results as $data) {
-                $data = array_only((array) $data, $selectColumns);
+                $data = array_only((array)$data, $selectColumns);
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
                     if (in_array($column, $getEncryptedFields)) {
