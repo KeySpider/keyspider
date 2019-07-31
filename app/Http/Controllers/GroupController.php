@@ -36,6 +36,9 @@ use Optimus\Bruno\LaravelController;
 use Tmilos\ScimFilterParser\Mode;
 use Tmilos\ScimFilterParser\Parser;
 
+/**
+ * @property SettingsManager settingManagement
+ */
 class GroupController extends LaravelController
 {
     use EloquentBuilderTrait;
@@ -49,6 +52,7 @@ class GroupController extends LaravelController
         $this->roleModel = $roleModel;
         $this->masterDB = 'Role';
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
+        $this->settingManagement = new SettingsManager();
     }
 
     /**
@@ -59,8 +63,7 @@ class GroupController extends LaravelController
     {
         $scimQuery = $request->input('filter', null);
 
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
 
         $sqlQuery = $this->roleModel::query();
 //        $sqlQuery->where($columnDeleted, '!=', '1');
@@ -156,9 +159,9 @@ class GroupController extends LaravelController
         Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
+
+        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
+        $keyTable = $this->settingManagement->getTableKey($this->masterDB);
 
         $where = [
             "{$keyTable}" => $id,
@@ -228,9 +231,9 @@ class GroupController extends LaravelController
         Log::debug($id);
         Log::info('--------------------------------------------------');
 
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
+
+        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
+        $keyTable = $this->settingManagement->getTableKey($this->masterDB);
 
         $where = [
             "{$keyTable}" => $id,
@@ -239,8 +242,6 @@ class GroupController extends LaravelController
 
         if (is_exits_columns($this->masterDB, $where)) {
             $dataQuery = $this->roleModel->where($where)->first();
-        } else {
-            $dataQuery = null;
         }
 
         $dataFormat = [];
@@ -249,6 +250,8 @@ class GroupController extends LaravelController
             $dataFormat = $importSetting->formatDBToSCIMStandard($dataQuery->toArray(), $this->path);
             unset($dataFormat[0]);
             unset($dataFormat[""]);
+        } else {
+            return $this->response(["Group not found: $id"], $code = 404);
         }
 
         $jsonData = [];
@@ -291,14 +294,29 @@ class GroupController extends LaravelController
     /**
      * @param $id
      * @return array
+     * Step:
+     * Get Group Name from Group Id.
+     * Get Column name of RoleFlag in User table from group Name.
+     * Query all User has RoleFlag Column name equal '1'
      */
     private function getAllMembersBelongedToGroupId($id): array
     {
-        $membersInDB = AAA::where('RoleID1', $id)->get()->toArray();
         $members = [];
-        foreach ($membersInDB as $member) {
-            $members[] = ["display" => $member['ID'], "value" => $member['ID']];
+        $userTable = $this->settingManagement->getTableUser();
+        $roleColumnIndex = $this->settingManagement->getRoleFlagIDColumnNameFromGroupId($id);
+        if ($roleColumnIndex) {
+            $roleFlagColumnName = 'RoleFlag-' . (string)$roleColumnIndex;
+            //Find all User has RoleFlag Column name equal '1'
+            $query = DB::table($userTable);
+            $query->where($roleFlagColumnName, '1');
+            $membersInDB = $query->get()->toArray();
+//            Set response for each member
+            foreach ($membersInDB as $member) {
+                $members[] = ["display" => $member->ID, "value" => $member->ID];
+            }
+
         }
+
         return $members;
     }
 }

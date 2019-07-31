@@ -526,6 +526,12 @@ class SCIMReader
     private function updateSCIMUser(string $memberId, array $values)
     {
         $setValues = $values;
+        //Set DeleteFlag to 1 if active = false
+        foreach ($setValues as $column=>$value){
+            if($column==='DeleteFlag'){
+                $setValues[$column] = $value==="False"?1:0;
+            }
+        }
         $userRecord = (array)DB::table("User")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
         $updateFlags = json_decode($userRecord['UpdateFlags'], true);
         array_walk($updateFlags, function (&$value) {
