@@ -69,7 +69,9 @@ class DBExtractor
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey($table);
-            $selectColumns = $this->getColumnsSelect($table, $formatConvention);
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 //            if (!in_array($primaryKey, $selectColumns))
 //                $selectColumns[] = $primaryKey;
@@ -100,7 +102,7 @@ class DBExtractor
                 $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                 $settingOutput = $this->getContentOutputCSV($pathOutput);
                 echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
-                $this->processOutputDataExtract($settingOutput, $results, $selectColumns, $table);
+                $this->processOutputDataExtract($settingOutput, $results, $aliasColumns, $table);
             }
 
             DB::commit();
@@ -141,21 +143,27 @@ class DBExtractor
      */
     public function getColumnsSelect($nameTable, $settingConvention)
     {
-
+        $index = 0;
         $arraySelectColumns = [];
+        $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
             if ($n !== false) {
                 $columnName = substr($value, strlen($nameTable) + 1);
+                $arrayAliasColumns[] = $columnName;
+
             } elseif (strtolower($value) == "password") {
-                $columnName = "Password";
+                $defaultColumn = "default_$index";
+                $index++;
+                $columnName = DB::raw("'$value' as \"$defaultColumn\"");
+                $arrayAliasColumns[] = $defaultColumn;
             }
-            array_push($arraySelectColumns, $columnName);
+            $arraySelectColumns[] = $columnName;
         }
 
 //        $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
 
-        return $arraySelectColumns;
+        return [$arraySelectColumns, $arrayAliasColumns];
     }
 
     public function getJoinCondition($settingConvention, SettingsManager $settingManager = null)
@@ -232,10 +240,10 @@ class DBExtractor
                 $data = array_only((array) $data, $selectColumns);
                 $dataTmp = [];
                 foreach ($data as $column => $line) {
-
                     if (in_array($column, $getEncryptedFields)) {
                         $line = $settingManagement->passwordDecrypt($line);
                     }
+
                     array_push($dataTmp, $line);
                 }
                 fputcsv($file, $dataTmp, ',');
