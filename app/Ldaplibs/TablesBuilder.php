@@ -52,6 +52,8 @@ class TablesBuilder
     {
         if ($column === 'UpdateFlags') {
             $table->json($column)->default($defaultUpdateFlagsData);
+        } elseif ($column === 'DeleteFlag') {
+            $table->string($column)->default("0");
         } else {
             $table->string($column)->nullable();
         }
