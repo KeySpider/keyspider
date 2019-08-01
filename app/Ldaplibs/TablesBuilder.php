@@ -50,11 +50,14 @@ class TablesBuilder
      */
     private function addColumnTotable($table, $column, $defaultUpdateFlagsData): void
     {
-        if ($column === 'UpdateFlags') {
+        $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
+        $deleteFlagColumnName = $this->settingsManager->getDeleteFlagColumnName($table->getTable());
+        $roleFlagColumnName = $this->settingsManager->getBasicRoleFlagColumnName();
+        if ($column === $updateFlagColumnName) {
             $table->json($column)->default($defaultUpdateFlagsData);
-        } elseif ($column === 'DeleteFlag') {
+        } elseif ($column === $deleteFlagColumnName) {
             $table->string($column)->default("0");
-        } elseif ($column === "RoleFlag") {
+        } elseif ($column === $roleFlagColumnName) {
             $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
             for ($i = 0; $i < $roleMapCount; $i++) {
                 $table->string("$column-$i")->default("0");
@@ -100,22 +103,6 @@ class TablesBuilder
         }
     }
 
-    /**
-     * @param $columns
-     */
-    private function buildColumnsWithMultiRoleFlag(&$columns): void
-    {
-
-        $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
-        foreach ($columns as $column) {
-            if ($column === "RoleFlag") {
-                for ($i = 0; $i < $roleMapCount; $i++) {
-                    $columns[] = "$column-$i";
-                }
-                unset($columns[$column]);
-            }
-        }
-    }
 
     /**
      * @return array|false|string

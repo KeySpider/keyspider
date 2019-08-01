@@ -313,7 +313,7 @@ class SettingsManager
         return strpos($haystack, $needle) !== false;
     }
 
-    public function getNameColumnUpdated($table)
+    public function getUpdateFlagsColumnName($table)
     {
         $nameColumnUpdate = null;
         $getFlags = $this->getFlags();
@@ -330,7 +330,7 @@ class SettingsManager
         return $nameColumnUpdate;
     }
 
-    public function getNameColumnDeleted($table)
+    public function getDeleteFlagColumnName($table)
     {
         $column = null;
         $getFlags = $this->getFlags();
@@ -345,6 +345,16 @@ class SettingsManager
         }
 
         return $column;
+    }
+
+    public function getBasicRoleFlagColumnName()
+    {
+        $fullColummnName = $this->masterDBConfigData['User']['User.RoleFlag']??null;
+        if($fullColummnName ){
+            $arrayColumn = explode('.', $fullColummnName);
+            return isset($arrayColumn[1])?$arrayColumn[1]:null;
+        }
+        return null;
     }
 
     /**

@@ -126,8 +126,8 @@ class SCIMReader
             $nameTable = $this->getTableName($setting);
             $scimInputFormat = $setting[config('const.scim_format')];
 
-            $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
-            $DeleteFlagColumnName = $settingManagement->getNameColumnDeleted($nameTable);
+            $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
+            $DeleteFlagColumnName = $settingManagement->getDeleteFlagColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
@@ -445,7 +445,7 @@ class SCIMReader
 
         $nameTable = $this->getTableName($setting);
         $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
+        $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($nameTable);
 
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");
