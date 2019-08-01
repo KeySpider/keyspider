@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Exceptions\SCIMException;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
@@ -498,11 +499,14 @@ class SCIMReader
      */
     private function updateRoleForUser(string $memberId, ?string $tableName, string $tableKey, ?array $roleMap, $groupId, $isAdd=true)
     {
+        Log::info("<<<<<Add member>>>>");
+        Log::info(json_encode($roleMap, JSON_PRETTY_PRINT));
+        Log::info("Add [$memberId] to [$groupId]\n\n\n");
         $setValues = [];
         $setValues["RoleID1"] = $groupId;
         foreach ($roleMap as $index => $role) {
             if ($role['ID'] == $groupId) {
-                $setValues["RoleFlag-$index"] = $isAdd?1:null;
+                $setValues["RoleFlag-$index"] = $isAdd?1:0;
                 break;
             }
         }

@@ -39,7 +39,6 @@ class TablesBuilder
 
             }
         }
-        $this->settingsManager->getRoleMapInName();
 
     }
 

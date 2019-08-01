@@ -388,12 +388,18 @@ class SettingsManager
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
 
-            foreach ($allRoleRecords as $record) {
-                $record = (array)$record;
-                if (in_array($record['Name'], $roleMap)) {
-                    $arrayIdUserMap[] = $record;
+            foreach ($roleMap as $role){
+                $item['Name']= $role;
+                $item['ID']=null;
+                foreach ($allRoleRecords as $record) {
+                    $record = (array)$record;
+                    if($record['Name']==$role){
+                        $item['ID'] = $record['ID'];
+                    }
                 }
+                $arrayIdUserMap[] = $item;
             }
+
             return $arrayIdUserMap;
         }
         return null;
