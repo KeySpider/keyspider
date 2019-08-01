@@ -37,7 +37,7 @@ class SettingsManager
     public $masterDBConfigData;
     public $generalKeys;
     public $keySpider;
-
+    private $roleFlags;
 
     public function __construct($ini_settings_files = null)
     {
@@ -51,6 +51,19 @@ class SettingsManager
         }
     }
 
+    public function setRoleFlags($flags){
+        $this->roleFlags = $flags;
+    }
+    public function getRoleFlags(){
+        $allRoleFlags = [];
+        $roleMapCount = isset($this->masterDBConfigData['RoleMap']['RoleID']) ? count($this->masterDBConfigData['RoleMap']['RoleID']) : 0;
+        $roleBasicName = $this->getBasicRoleFlagColumnName();
+        for ($i = 0; $i < $roleMapCount; $i++) {
+            $allRoleFlags[] = "$roleBasicName-$i";
+        }
+
+        return $allRoleFlags;
+    }
     /**
      * @return bool|null
      */
@@ -313,7 +326,7 @@ class SettingsManager
         return strpos($haystack, $needle) !== false;
     }
 
-    public function getNameColumnUpdated($table)
+    public function getUpdateFlagsColumnName($table)
     {
         $nameColumnUpdate = null;
         $getFlags = $this->getFlags();
@@ -330,7 +343,7 @@ class SettingsManager
         return $nameColumnUpdate;
     }
 
-    public function getNameColumnDeleted($table)
+    public function getDeleteFlagColumnName($table)
     {
         $column = null;
         $getFlags = $this->getFlags();
@@ -345,6 +358,16 @@ class SettingsManager
         }
 
         return $column;
+    }
+
+    public function getBasicRoleFlagColumnName()
+    {
+        $fullColummnName = $this->masterDBConfigData['User']['User.RoleFlag']??null;
+        if($fullColummnName ){
+            $arrayColumn = explode('.', $fullColummnName);
+            return isset($arrayColumn[1])?$arrayColumn[1]:null;
+        }
+        return null;
     }
 
     /**
@@ -365,12 +388,18 @@ class SettingsManager
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
 
-            foreach ($allRoleRecords as $record) {
-                $record = (array)$record;
-                if (in_array($record['Name'], $roleMap)) {
-                    $arrayIdUserMap[] = $record;
+            foreach ($roleMap as $role){
+                $item['Name']= $role;
+                $item['ID']=null;
+                foreach ($allRoleRecords as $record) {
+                    $record = (array)$record;
+                    if($record['Name']==$role){
+                        $item['ID'] = $record['ID'];
+                    }
                 }
+                $arrayIdUserMap[] = $item;
             }
+
             return $arrayIdUserMap;
         }
         return null;

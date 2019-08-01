@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Exceptions\SCIMException;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
@@ -30,18 +31,23 @@ use Illuminate\Support\Facades\Schema;
 
 class SCIMReader
 {
+    public function __construct()
+    {
+        $this->settingImport = new ImportSettingsManager();
+    }
+
     /** Read file setting
      * @param $filePath
      * @return array
      * @throws \Exception
      */
+
     public function readData($filePath): array
     {
         $data = [];
 
         if (file_exists($filePath)) {
-            $settingImport = new ImportSettingsManager();
-            $data = $settingImport->getSCIMImportSettings($filePath);
+            $data = $this->settingImport->getSCIMImportSettings($filePath);
         }
 
         return $data;
@@ -59,16 +65,6 @@ class SCIMReader
 
         if (is_array($setting) && isset($setting[config('const.scim_input')])) {
             $importTable = $setting[config('const.scim_input')];
-
-//            switch ($importTable['ImportTable']) {
-//                case 'User':
-//                    $name = 'AAA';
-//                    break;
-//                case 'Role':
-//                    $name = 'CCC';
-//                    break;
-//            }
-
             return $importTable['ImportTable'];
         }
     }
@@ -118,51 +114,39 @@ class SCIMReader
         // TODO: Implement verifyData() method.
     }
 
-    public function getFormatData($dataPost, $setting)
+    public function importFromSCIMData($dataPost, $setting)
     {
         try {
-            $pattern = '/#/';
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
             $scimInputFormat = $setting[config('const.scim_format')];
 
-            $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
+            $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
+            $DeleteFlagColumnName = $settingManagement->getDeleteFlagColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
-            foreach ($scimInputFormat as $key => $item) {
-                if ($key === '' || preg_match($pattern, $key) === 1) {
-                    unset($scimInputFormat[$key]);
-                }
-            }
-
             foreach ($scimInputFormat as $key => $value) {
-                $item = $this->getValueFromScimFormat($value, $dataPost);
+                $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 explode('.', $key);
                 if (isset(explode('.', $key)[1])) {
-                    //Create keys for postgres
-                    $keyWithoutTableName = explode('.', $key)[1];
-                    $dataCreate[$keyWithoutTableName] = "$item";
+                    if(isset($scimValue)){
+                        //Create keys for postgres
+                        $keyWithoutTableName = explode('.', $key)[1];
+
+                        if (in_array($scimValue, $getEncryptedFields)) {
+                            $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
+                        }
+                        else{
+                            $dataCreate[$keyWithoutTableName] = "$scimValue";
+                        }
+                    }
                     //Remove old Key (it's only suitable for Mysql)
                     //Mysql:[User.ID], Postgres:[ID] only
                     unset($key);
                 }
             }
-
-            foreach ($dataCreate as $cl => $item) {
-                $tableColumn = $nameTable . '.' . $cl;
-//                Encrypt
-                if (in_array($item, $getEncryptedFields)) {
-                    $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
-                }
-//                Bad word of deleteflag = active, wrong meaning, so flip it.
-                if ($cl=='DeleteFlag') {
-                    $dataCreate[$cl] = (string)((int)$dataCreate[$cl]+1)%2;
-                }
-
-            }
-
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
 
             if ($data) {
@@ -213,9 +197,18 @@ class SCIMReader
         $pattern = "/\((.*?)\)/";
 
         $isMatched = preg_match($pattern, $value, $matchedValue);
-        if ($isMatched) {
-            $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
-            return isset($findData[0])?$findData[0]:null;
+        try{
+            if ($isMatched) {
+                $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
+                //If get data from SCIM: DeleteFlag = (active)
+                //active = false -> DeleteFlag =1
+                //So flip the value
+                if($value=="(active)")
+                    return isset($findData[0])?(string)(((int)$findData[0]+1)%2):null;
+                return isset($findData[0])?$findData[0]:null;
+            }
+        }catch (\Exception $exception){
+            Log::info($exception);
         }
 
         return $value;
@@ -448,7 +441,7 @@ class SCIMReader
 
         $nameTable = $this->getTableName($setting);
         $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getNameColumnUpdated($nameTable);
+        $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($nameTable);
 
         if ($nameColumnUpdate) {
             array_push($columns, "\"{$nameColumnUpdate}\"");
@@ -506,11 +499,14 @@ class SCIMReader
      */
     private function updateRoleForUser(string $memberId, ?string $tableName, string $tableKey, ?array $roleMap, $groupId, $isAdd=true)
     {
+        Log::info("<<<<<Add member>>>>");
+        Log::info(json_encode($roleMap, JSON_PRETTY_PRINT));
+        Log::info("Add [$memberId] to [$groupId]\n\n\n");
         $setValues = [];
         $setValues["RoleID1"] = $groupId;
         foreach ($roleMap as $index => $role) {
             if ($role['ID'] == $groupId) {
-                $setValues["RoleFlag-$index"] = $isAdd?1:null;
+                $setValues["RoleFlag-$index"] = $isAdd?1:0;
                 break;
             }
         }
@@ -528,8 +524,18 @@ class SCIMReader
         $setValues = $values;
         //Set DeleteFlag to 1 if active = false
         foreach ($setValues as $column=>$value){
-            if($column==='DeleteFlag'){
-                $setValues[$column] = $value==="False"?1:0;
+            if($column==='DeleteFlag'){//If this is patch of deleting user, reset all roleFlags to 0
+                $roleFlagColumns = $this->settingImport->getRoleFlags();
+                if($value==="False"){
+                    $setValues[$column] = 1;
+//                    $setValues[$column] = $value==="False"?1:0;
+                    foreach ($roleFlagColumns as $roleFlagColumn){
+                        $setValues[$roleFlagColumn] = 0;
+                    }
+                }
+                else{
+                    $setValues[$column] = 0;
+                }
             }
         }
         $userRecord = (array)DB::table("User")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];

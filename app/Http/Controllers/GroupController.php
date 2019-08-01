@@ -63,7 +63,7 @@ class GroupController extends LaravelController
     {
         $scimQuery = $request->input('filter', null);
 
-        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
 
         $sqlQuery = $this->roleModel::query();
 //        $sqlQuery->where($columnDeleted, '!=', '1');
@@ -160,7 +160,7 @@ class GroupController extends LaravelController
         Log::info('--------------------------------------------------');
 
 
-        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->settingManagement->getTableKey($this->masterDB);
 
         $where = [
@@ -232,7 +232,7 @@ class GroupController extends LaravelController
         Log::info('--------------------------------------------------');
 
 
-        $columnDeleted = $this->settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->settingManagement->getTableKey($this->masterDB);
 
         $where = [

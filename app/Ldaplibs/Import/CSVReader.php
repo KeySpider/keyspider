@@ -134,7 +134,7 @@ class CSVReader implements DataInputReader
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
-            $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
+            $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
 
             // get data from csv file
@@ -175,7 +175,7 @@ class CSVReader implements DataInputReader
             $fileName = "hogehoge_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
-            $deleteColumn = $settingManagement->getNameColumnDeleted($nameTable);
+            $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
             DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}"=>'0']);
             DB::commit();
         } catch (\Exception $e) {

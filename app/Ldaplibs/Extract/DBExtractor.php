@@ -63,7 +63,7 @@ class DBExtractor
 
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $settingManagement = new SettingsManager();
-            $nameColumnUpdate = $settingManagement->getNameColumnUpdated($table);
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
 
 

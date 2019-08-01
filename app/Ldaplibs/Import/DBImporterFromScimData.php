@@ -40,7 +40,7 @@ class DBImporterFromScimData
         $scimReader = new SCIMReader();
 
 //        $scimReader->addColumns($this->setting);
-        $isSave = $scimReader->getFormatData($this->dataPost, $this->setting);
+        $isSave = $scimReader->importFromSCIMData($this->dataPost, $this->setting);
 
         if ($isSave) {
             return true;

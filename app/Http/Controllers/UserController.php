@@ -70,7 +70,7 @@ class UserController extends LaravelController
 
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
 
         $sqlQuery = $this->userModel::query();
         $sqlQuery->where($columnDeleted, '!=', '1');
@@ -150,7 +150,7 @@ class UserController extends LaravelController
         Log::info('--------------------------------------------------');
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
         try {
@@ -222,7 +222,7 @@ class UserController extends LaravelController
         $input = $request->input();
 
         $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getNameColumnDeleted($this->masterDB);
+        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $settingManagement->getTableKey($this->masterDB);
 
         $where = [
