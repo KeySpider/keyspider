@@ -53,6 +53,7 @@ class TablesBuilder
         $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
         $deleteFlagColumnName = $this->settingsManager->getDeleteFlagColumnName($table->getTable());
         $roleFlagColumnName = $this->settingsManager->getBasicRoleFlagColumnName();
+        $allRoleFlags = [] ;
         if ($column === $updateFlagColumnName) {
             $table->json($column)->default($defaultUpdateFlagsData);
         } elseif ($column === $deleteFlagColumnName) {
@@ -61,8 +62,9 @@ class TablesBuilder
             $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
             for ($i = 0; $i < $roleMapCount; $i++) {
                 $table->string("$column-$i")->default("0");
+                $allRoleFlags[] = "$column-$i";
             }
-
+            $this->settingsManager->setRoleFlags($allRoleFlags);
         } else {
             $table->string($column)->nullable();
         }
@@ -79,14 +81,15 @@ class TablesBuilder
         $columns = $destinationTable['columns'];
         $defaultUpdateFlagsData = $this->getDefaultUpdateFlagsJson($tableName);
         $columnsInString = implode("|", $columns);
+        $roleFlagColumnName = $this->settingsManager->getBasicRoleFlagColumnName();
 //      Create many User.RoleFlag
 //        $this->buildColumnsWithMultiRoleFlag($columns);
         if (Schema::hasTable($tableName)) {
             echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
 //            Update table
-            Schema::table($tableName, function ($table) use ($tableName, $columns, $defaultUpdateFlagsData) {
+            Schema::table($tableName, function ($table) use ($tableName, $columns, $defaultUpdateFlagsData, $roleFlagColumnName) {
                 foreach ($columns as $column) {
-                    if (!Schema::hasColumn($tableName, $column)) {
+                    if (!Schema::hasColumn($tableName, $column) and $column!==$roleFlagColumnName) {
                         echo "    + add Column: [$column]\n";
                         $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                     }

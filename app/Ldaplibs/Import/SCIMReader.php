@@ -30,18 +30,23 @@ use Illuminate\Support\Facades\Schema;
 
 class SCIMReader
 {
+    public function __construct()
+    {
+        $this->settingImport = new ImportSettingsManager();
+    }
+
     /** Read file setting
      * @param $filePath
      * @return array
      * @throws \Exception
      */
+
     public function readData($filePath): array
     {
         $data = [];
 
         if (file_exists($filePath)) {
-            $settingImport = new ImportSettingsManager();
-            $data = $settingImport->getSCIMImportSettings($filePath);
+            $data = $this->settingImport->getSCIMImportSettings($filePath);
         }
 
         return $data;
@@ -59,16 +64,6 @@ class SCIMReader
 
         if (is_array($setting) && isset($setting[config('const.scim_input')])) {
             $importTable = $setting[config('const.scim_input')];
-
-//            switch ($importTable['ImportTable']) {
-//                case 'User':
-//                    $name = 'AAA';
-//                    break;
-//                case 'Role':
-//                    $name = 'CCC';
-//                    break;
-//            }
-
             return $importTable['ImportTable'];
         }
     }
@@ -525,8 +520,18 @@ class SCIMReader
         $setValues = $values;
         //Set DeleteFlag to 1 if active = false
         foreach ($setValues as $column=>$value){
-            if($column==='DeleteFlag'){
-                $setValues[$column] = $value==="False"?1:0;
+            if($column==='DeleteFlag'){//If this is patch of deleting user, reset all roleFlags to 0
+                $roleFlagColumns = $this->settingImport->getRoleFlags();
+                if($value==="False"){
+                    $setValues[$column] = 1;
+//                    $setValues[$column] = $value==="False"?1:0;
+                    foreach ($roleFlagColumns as $roleFlagColumn){
+                        $setValues[$roleFlagColumn] = 0;
+                    }
+                }
+                else{
+                    $setValues[$column] = 0;
+                }
             }
         }
         $userRecord = (array)DB::table("User")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];

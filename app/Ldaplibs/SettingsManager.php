@@ -37,7 +37,7 @@ class SettingsManager
     public $masterDBConfigData;
     public $generalKeys;
     public $keySpider;
-
+    private $roleFlags;
 
     public function __construct($ini_settings_files = null)
     {
@@ -51,6 +51,19 @@ class SettingsManager
         }
     }
 
+    public function setRoleFlags($flags){
+        $this->roleFlags = $flags;
+    }
+    public function getRoleFlags(){
+        $allRoleFlags = [];
+        $roleMapCount = isset($this->masterDBConfigData['RoleMap']['RoleID']) ? count($this->masterDBConfigData['RoleMap']['RoleID']) : 0;
+        $roleBasicName = $this->getBasicRoleFlagColumnName();
+        for ($i = 0; $i < $roleMapCount; $i++) {
+            $allRoleFlags[] = "$roleBasicName-$i";
+        }
+
+        return $allRoleFlags;
+    }
     /**
      * @return bool|null
      */
