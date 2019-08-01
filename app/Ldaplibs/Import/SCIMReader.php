@@ -118,24 +118,18 @@ class SCIMReader
         // TODO: Implement verifyData() method.
     }
 
-    public function getFormatData($dataPost, $setting)
+    public function importFromSCIMData($dataPost, $setting)
     {
         try {
-            $pattern = '/#/';
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
             $scimInputFormat = $setting[config('const.scim_format')];
 
             $colUpdateFlag = $settingManagement->getNameColumnUpdated($nameTable);
+            $DeleteFlagColumnName = $settingManagement->getNameColumnDeleted($nameTable);
             $primaryKey = $settingManagement->getTableKey($nameTable);
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-            foreach ($scimInputFormat as $key => $item) {
-                if ($key === '' || preg_match($pattern, $key) === 1) {
-                    unset($scimInputFormat[$key]);
-                }
-            }
 
             foreach ($scimInputFormat as $key => $value) {
                 $item = $this->getValueFromScimFormat($value, $dataPost);
@@ -143,24 +137,21 @@ class SCIMReader
                 if (isset(explode('.', $key)[1])) {
                     //Create keys for postgres
                     $keyWithoutTableName = explode('.', $key)[1];
-                    $dataCreate[$keyWithoutTableName] = "$item";
+
+                    if (in_array($item, $getEncryptedFields)) {
+                        $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($item);
+                    }
+                    else{
+                        $dataCreate[$keyWithoutTableName] = "$item";
+                    }
                     //Remove old Key (it's only suitable for Mysql)
                     //Mysql:[User.ID], Postgres:[ID] only
                     unset($key);
                 }
             }
-
-            foreach ($dataCreate as $cl => $item) {
-                $tableColumn = $nameTable . '.' . $cl;
-//                Encrypt
-                if (in_array($item, $getEncryptedFields)) {
-                    $dataCreate[$cl] = $settingManagement->passwordEncrypt($item);
-                }
-//                Bad word of deleteflag = active, wrong meaning, so flip it.
-                if ($cl=='DeleteFlag') {
-                    $dataCreate[$cl] = (string)((int)$dataCreate[$cl]+1)%2;
-                }
-
+            //If "active" is not set in SCIM json request, just create it with value is 0
+            if(!in_array($DeleteFlagColumnName, $dataCreate)){
+                $dataCreate[$DeleteFlagColumnName] = '0';
             }
 
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
@@ -213,9 +204,18 @@ class SCIMReader
         $pattern = "/\((.*?)\)/";
 
         $isMatched = preg_match($pattern, $value, $matchedValue);
-        if ($isMatched) {
-            $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
-            return isset($findData[0])?$findData[0]:null;
+        try{
+            if ($isMatched) {
+                $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
+                //If get data from SCIM: DeleteFlag = (active)
+                //active = false -> DeleteFlag =1
+                //So flip the value
+                if($value=="(active)" and ($findData[0]))
+                    return (string)(((int)$findData[0]+1)%2);
+                return isset($findData[0])?$findData[0]:null;
+            }
+        }catch (\Exception $exception){
+            Log::info($exception);
         }
 
         return $value;
