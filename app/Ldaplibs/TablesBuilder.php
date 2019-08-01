@@ -46,7 +46,7 @@ class TablesBuilder
     /**
      * @param $table
      * @param $column
-     * @param $defaultUpdateFlagsData: for column 'UpdateFlags'
+     * @param $defaultUpdateFlagsData : for column 'UpdateFlags'
      */
     private function addColumnTotable($table, $column, $defaultUpdateFlagsData): void
     {
@@ -54,6 +54,12 @@ class TablesBuilder
             $table->json($column)->default($defaultUpdateFlagsData);
         } elseif ($column === 'DeleteFlag') {
             $table->string($column)->default("0");
+        } elseif ($column === "RoleFlag") {
+            $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
+            for ($i = 0; $i < $roleMapCount; $i++) {
+                $table->string("$column-$i")->default("0");
+            }
+
         } else {
             $table->string($column)->nullable();
         }
@@ -71,7 +77,7 @@ class TablesBuilder
         $defaultUpdateFlagsData = $this->getDefaultUpdateFlagsJson($tableName);
         $columnsInString = implode("|", $columns);
 //      Create many User.RoleFlag
-        $this->buildColumnsWithMultiRoleFlag($columns);
+//        $this->buildColumnsWithMultiRoleFlag($columns);
         if (Schema::hasTable($tableName)) {
             echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
 //            Update table
@@ -99,6 +105,7 @@ class TablesBuilder
      */
     private function buildColumnsWithMultiRoleFlag(&$columns): void
     {
+
         $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
         foreach ($columns as $column) {
             if ($column === "RoleFlag") {
