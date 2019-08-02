@@ -53,6 +53,7 @@ class GroupController extends LaravelController
         $this->masterDB = 'Role';
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
         $this->settingManagement = new SettingsManager();
+        $this->importSetting = new ImportSettingsManager();
     }
 
     /**
@@ -202,7 +203,9 @@ class GroupController extends LaravelController
             ];
 
             if ($opTask === 'replace') {
-                $result = $scimReader->updateReplaceSCIM($id, $options);
+//                $result = $scimReader->updateReplaceSCIM($id, $options);
+                $setting = $this->importSetting->getSCIMImportSettings($this->path);
+                $result = $scimReader->updateGroup($id, $input, $setting);
                 if ($result) return $this->response([$input['schemas'], 'detail' => 'Update Group success'], $code = 200);
             } elseif ($opTask === 'add') {
                 Log::info('Add member');

@@ -47,7 +47,7 @@ class SCIMReader
         $data = [];
 
         if (file_exists($filePath)) {
-            $data = $this->settingImport->getSCIMImportSettings();
+            $data = $this->settingImport->getSCIMImportSettings($filePath);
         }
 
         return $data;
@@ -208,7 +208,7 @@ class SCIMReader
                 return isset($findData[0])?$findData[0]:null;
             }
         }catch (\Exception $exception){
-            Log::info($exception);
+            Log::info($exception->getMessage());
         }
 
         return $value;
@@ -276,7 +276,6 @@ class SCIMReader
 
     public function updateUser($memberId, $inputRequest, $setting)
     {
-        $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $pathToColumn = $this->getScimPathToColumnMap($setting);
         if(count($pathToColumn)<1){
@@ -303,6 +302,35 @@ class SCIMReader
         }
         return true;
     }
+
+    public function updateGroup($memberId, $inputRequest, $setting)
+    {
+        $operations = $inputRequest['Operations'];
+        $pathToColumn = $this->getScimPathToColumnMap($setting);
+        if(count($pathToColumn)<1){
+            return false;
+        }
+
+        //New format of operations is no bracket in the path
+        //This is my smart way to compare with scim ini config
+        $formattedOperations = array_map(function ($operation){
+            $operation['path'] = preg_replace("/\[[^)]+\]/","",$operation['path']);
+            return $operation;
+        }, $operations);
+
+        foreach ($formattedOperations as $operation) {
+            //Update user attribute. Replace or Add is both ok.
+            if (in_array(array_get($operation, 'op') ,["Replace", "Add"]))//
+            {
+                if(isset($pathToColumn[array_get($operation, 'path')]))
+                {
+                    $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
+                    $this->updateSCIMRole($memberId, [$columnNameInDB => $operation['value']]);
+                }
+            }
+        }
+        return true;
+    }
     public function updateRole($memberId, $inputRequest)
     {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
@@ -316,7 +344,7 @@ class SCIMReader
                 if(isset($pathToColumn[array_get($operation, 'path')]))
                 {
                     $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
-                    $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+                    $this->updateSCIMRole($memberId, [$columnNameInDB => $operation['value']]);
                 }
             }
         }
@@ -328,7 +356,7 @@ class SCIMReader
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings();
+        $setting = $importSetting->getSCIMImportSettings($path);
         $tableName = $this->getTableName($setting);
         $roleMap = $importSetting->getRoleMapInName();
         $tableKey = $importSetting->getTableKey($tableName);
@@ -378,7 +406,7 @@ class SCIMReader
         $path = $options['path'];
 
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings();
+        $setting = $importSetting->getSCIMImportSettings($path);
 
         $this->setColumnAndDataForUpdate($columns, $dataUpdate, $match, $options, $setting);
 
@@ -560,14 +588,32 @@ class SCIMReader
     private function updateSCIMRole(string $memberId, array $values)
     {
         $setValues = $values;
+        //Set DeleteFlag to 1 if active = false
+        foreach ($setValues as $column=>$value){
+            if($column==='DeleteFlag'){//If this is patch of deleting user, reset all roleFlags to 0
+                $roleFlagColumns = $this->settingImport->getRoleFlags();
+                if($value==="False"){
+                    $setValues[$column] = 1;
+//                    $setValues[$column] = $value==="False"?1:0;
+                    foreach ($roleFlagColumns as $roleFlagColumn){
+                        $setValues[$roleFlagColumn] = 0;
+                    }
+                }
+                else{
+                    $setValues[$column] = 0;
+                }
+            }
+        }
         $userRecord = (array)DB::table("Role")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
         $updateFlags = json_decode($userRecord['UpdateFlags'], true);
         array_walk($updateFlags, function (&$value) {
             $value = 1;
         });
         $setValues["UpdateFlags"] = json_encode($updateFlags);
-        DB::table("User")->where("ID", $memberId)->update($setValues);
+        DB::table("Role")->where("ID", $memberId)->update($setValues);
     }
+
+
 
     /**
      * Get map from Scim ini config
