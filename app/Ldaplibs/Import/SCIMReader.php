@@ -188,9 +188,10 @@ class SCIMReader
             {
                 if(isset($pathToColumn[array_get($operation, 'path')]))
                 {
-                    $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
-//                    $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
-                    $this->updateSCIMResource($memberId, [$columnNameInDB => $operation['value']], $resourceType);
+                    $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
+                    foreach ($mapColumnsInDB as $column){
+                        $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
+                    }
                 }
             }
         }
@@ -322,7 +323,12 @@ class SCIMReader
                 if($isMatched){
                     //Remove everything between []
                     $newKey = preg_replace("/\[[^)]+\]/","",$matchedValue[1]);
-                    $results[$newKey] = $shortColumnName;
+                    if(array_key_exists($newKey, $results)){
+                        array_push($results[$newKey] ,$shortColumnName);
+                    }
+                    else{
+                        $results[$newKey] = [$shortColumnName];
+                    }
                 }
             }
 
