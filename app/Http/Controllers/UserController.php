@@ -49,6 +49,7 @@ class UserController extends LaravelController
         $this->userModel = $userModel;
         $this->masterDB = 'User';
         $this->path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
+        $this->importSetting = new ImportSettingsManager();
     }
 
     /**
@@ -95,10 +96,9 @@ class UserController extends LaravelController
         $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
-            $importSetting = new ImportSettingsManager();
 
             foreach ($dataQuery as $data) {
-                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                $dataFormat = $this->importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
                 $dataFormat['id'] = $dataFormat['userName'];
                 $dataFormat['externalId'] = $dataFormat['userName'];
                 $dataFormat['userName'] =
@@ -185,14 +185,13 @@ class UserController extends LaravelController
     public function store(Request $request)
     {
         $dataPost = $request->all();
-        $importSetting = new ImportSettingsManager();
 
         Log::info('-----------------creating user...-----------------');
         Log::alert("[" . $request->method() . "]");
         Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
         Log::info('--------------------------------------------------');
 
-        $setting = $importSetting->getSCIMImportSettings($this->path);
+        $setting = $this->importSetting->getSCIMImportSettings($this->path);
 
         // save user resources model
         $queue = new ImportQueueManager();
@@ -252,7 +251,8 @@ class UserController extends LaravelController
             unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
         }
         $scimReader = new SCIMReader();
-        $scimReader->updateUser($id, $input);
+        $setting = $this->importSetting->getSCIMImportSettings($this->path);
+        $scimReader->updateUser($id, $input, $setting);
 /*        $processReplace = [];
         foreach ($input['Operations'] as $operation) {
             // process Operations Replace
@@ -309,9 +309,8 @@ class UserController extends LaravelController
     {
         $dataFormat = [];
         if ($userRecord) {
-            $importSetting = new ImportSettingsManager();
             $userResouce = $userRecord->toArray();
-            $dataFormat = $importSetting->formatDBToSCIMStandard($userResouce, $this->path);
+            $dataFormat = $this->importSetting->formatDBToSCIMStandard($userResouce, $this->path);
             $dataFormat['id'] = $dataFormat['userName'];
             unset($dataFormat[0]);
         }
