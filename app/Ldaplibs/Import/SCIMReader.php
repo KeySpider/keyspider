@@ -161,7 +161,7 @@ class SCIMReader
             return true;
         } catch (\Exception $e) {
             echo("Import from SCIM failed: $e");
-            Log::error($e);
+            Log::error($e->getMessage());
         }
     }
 
@@ -274,11 +274,11 @@ class SCIMReader
         }
     }
 
-    public function updateUser($memberId, $inputRequest)
+    public function updateUser($memberId, $inputRequest, $setting)
     {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
-        $pathToColumn = $this->getScimPathToColumnMap();
+        $pathToColumn = $this->getScimPathToColumnMap($setting);
         if(count($pathToColumn)<1){
             return false;
         }
@@ -575,11 +575,10 @@ class SCIMReader
      * New scim format is no brackets
      * @return array
      */
-    private function getScimPathToColumnMap(): array
+    private function getScimPathToColumnMap($setting): array
     {
         try{
-            $scimConfig = $this->settingImport->getSCIMImportSettings();
-            $scimFormatConversion = $scimConfig['SCIM Input Format Conversion'];
+            $scimFormatConversion = $setting['SCIM Input Format Conversion'];
 
             $results = [];
             foreach ($scimFormatConversion as $column=>$scimFormat){

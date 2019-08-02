@@ -261,10 +261,10 @@ class ImportSettingsManager extends SettingsManager
      * @return array
      * @throws \Exception
      */
-    public function getSCIMImportSettings(): array
+    public function getSCIMImportSettings($filePath): array
     {
         try {
-            $filePath = array_get($this->keySpider, 'SCIM Input Process Configration')['import_config'][0];
+//            $filePath = array_get($this->keySpider, 'SCIM Input Process Configration')['import_config'][0];
             $iniArray = parse_ini_file($filePath, true);
             $rules = [
                 self::SCIM_INPUT_BACIC_CONFIGURATION => 'required',
