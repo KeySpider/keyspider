@@ -163,7 +163,7 @@ class SCIMReader
             Log::info($exception->getMessage());
         }
 
-        return $value;
+        return null;
     }
 
     public function updateRsource($memberId, $inputRequest, $setting)
