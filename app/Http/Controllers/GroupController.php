@@ -205,7 +205,7 @@ class GroupController extends LaravelController
             if ($opTask === 'replace') {
 //                $result = $scimReader->updateReplaceSCIM($id, $options);
                 $setting = $this->importSetting->getSCIMImportSettings($this->path);
-                $result = $scimReader->updateGroup($id, $input, $setting);
+                $result = $scimReader->updateRsource($id, $input, $setting);
                 if ($result) return $this->response([$input['schemas'], 'detail' => 'Update Group success'], $code = 200);
             } elseif ($opTask === 'add') {
                 Log::info('Add member');

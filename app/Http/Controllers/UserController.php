@@ -252,24 +252,7 @@ class UserController extends LaravelController
         }
         $scimReader = new SCIMReader();
         $setting = $this->importSetting->getSCIMImportSettings($this->path);
-        $scimReader->updateUser($id, $input, $setting);
-/*        $processReplace = [];
-        foreach ($input['Operations'] as $operation) {
-            // process Operations Replace
-            if (strtolower($operation['op']) === 'replace' && $operation['path'] !== 'userName') {
-                array_push($processReplace, $operation);
-            }
-        }
-
-        foreach ($processReplace as $key => $op) {
-            $scimReader = new SCIMReader();
-            $options = [
-                "path" => $this->path,
-                'operation' => $op,
-            ];
-//            $scimReader->updateReplaceSCIM($id, $options);
-            $scimReader->updateUser($id, $options);
-        }*/
+        $scimReader->updateRsource($id, $input, $setting);
 
         $jsonResponse = [
             "schemas" => [
