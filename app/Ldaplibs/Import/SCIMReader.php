@@ -47,7 +47,7 @@ class SCIMReader
         $data = [];
 
         if (file_exists($filePath)) {
-            $data = $this->settingImport->getSCIMImportSettings($filePath);
+            $data = $this->settingImport->getSCIMImportSettings();
         }
 
         return $data;
@@ -278,12 +278,22 @@ class SCIMReader
     {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
-        $pathToColumn = ["active"=>"DeleteFlag"];
-        foreach ($operations as $operation) {
-            //Add member to group.
-            if (array_get($operation, 'op') === 'Replace')// and array_get($operation, 'path') === 'active')
+        $pathToColumn = $this->getScimPathToColumnMap();
+        if(count($pathToColumn)<1){
+            return false;
+        }
+
+        //New format of operations is no bracket in the path
+        //This is my smart way to compare with scim ini config
+        $formattedOperations = array_map(function ($operation){
+            $operation['path'] = preg_replace("/\[[^)]+\]/","",$operation['path']);
+            return $operation;
+        }, $operations);
+
+        foreach ($formattedOperations as $operation) {
+            //Update user attribute. Replace or Add is both ok.
+            if (in_array(array_get($operation, 'op') ,["Replace", "Add"]))//
             {
-//                $columnNameInDB = isset($pathToColumn[array_get($operation, 'path')])?$pathToColumn[array_get($operation, 'path')]:array_get($operation, 'path');
                 if(isset($pathToColumn[array_get($operation, 'path')]))
                 {
                     $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
@@ -318,7 +328,7 @@ class SCIMReader
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings($path);
+        $setting = $importSetting->getSCIMImportSettings();
         $tableName = $this->getTableName($setting);
         $roleMap = $importSetting->getRoleMapInName();
         $tableKey = $importSetting->getTableKey($tableName);
@@ -368,7 +378,7 @@ class SCIMReader
         $path = $options['path'];
 
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings($path);
+        $setting = $importSetting->getSCIMImportSettings();
 
         $this->setColumnAndDataForUpdate($columns, $dataUpdate, $match, $options, $setting);
 
@@ -557,6 +567,39 @@ class SCIMReader
         });
         $setValues["UpdateFlags"] = json_encode($updateFlags);
         DB::table("User")->where("ID", $memberId)->update($setValues);
+    }
+
+    /**
+     * Get map from Scim ini config
+     * Flip the array
+     * New scim format is no brackets
+     * @return array
+     */
+    private function getScimPathToColumnMap(): array
+    {
+        try{
+            $scimConfig = $this->settingImport->getSCIMImportSettings();
+            $scimFormatConversion = $scimConfig['SCIM Input Format Conversion'];
+
+            $results = [];
+            foreach ($scimFormatConversion as $column=>$scimFormat){
+                $pattern = "/^\((.*?)\)$/";
+                //Get string inside () and from . to the end
+                $shortColumnName = explode('.', $column)[1];
+                $isMatched = preg_match($pattern, $scimFormat, $matchedValue);
+                if($isMatched){
+                    //Remove everything between []
+                    $newKey = preg_replace("/\[[^)]+\]/","",$matchedValue[1]);
+                    $results[$newKey] = $shortColumnName;
+                }
+            }
+
+
+        }catch (\Exception $exception){
+            Log::info(json_encode($exception->getMessage()));
+            return [];
+        }
+        return $results;
     }
 
 }
