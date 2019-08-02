@@ -47,7 +47,7 @@ class SCIMReader
         $data = [];
 
         if (file_exists($filePath)) {
-            $data = $this->settingImport->getSCIMImportSettings();
+            $data = $this->settingImport->getSCIMImportSettings($filePath);
         }
 
         return $data;
@@ -165,29 +165,6 @@ class SCIMReader
         }
     }
 
-    public function processGroup($group, $dataPost)
-    {
-        switch ($group) {
-            case 'admin':
-                return 'admin';
-            case 'TODAY()':
-                return Carbon::now()->format('Y/m/d');
-            case '0':
-                return '0';
-            case 'hogehoge':
-                return 'hogehoge';
-            case 'hogehoga':
-                return 'hogehoga';
-            case '(roles[0])':
-                if (!empty($dataPost['roles'])) {
-                    return $dataPost['roles'][0];
-                }
-                return null;
-            default:
-                return $this->convertDataFollowSetting($group, $dataPost);
-        }
-    }
-
     private function getValueFromScimFormat($value, $dataPost)
     {
         if ($value == 'TODAY()') {
@@ -208,7 +185,7 @@ class SCIMReader
                 return isset($findData[0])?$findData[0]:null;
             }
         }catch (\Exception $exception){
-            Log::info($exception);
+            Log::info($exception->getMessage());
         }
 
         return $value;
@@ -276,7 +253,6 @@ class SCIMReader
 
     public function updateUser($memberId, $inputRequest, $setting)
     {
-        $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $pathToColumn = $this->getScimPathToColumnMap($setting);
         if(count($pathToColumn)<1){
@@ -303,6 +279,35 @@ class SCIMReader
         }
         return true;
     }
+
+    public function updateGroup($memberId, $inputRequest, $setting)
+    {
+        $operations = $inputRequest['Operations'];
+        $pathToColumn = $this->getScimPathToColumnMap($setting);
+        if(count($pathToColumn)<1){
+            return false;
+        }
+
+        //New format of operations is no bracket in the path
+        //This is my smart way to compare with scim ini config
+        $formattedOperations = array_map(function ($operation){
+            $operation['path'] = preg_replace("/\[[^)]+\]/","",$operation['path']);
+            return $operation;
+        }, $operations);
+
+        foreach ($formattedOperations as $operation) {
+            //Update user attribute. Replace or Add is both ok.
+            if (in_array(array_get($operation, 'op') ,["Replace", "Add"]))//
+            {
+                if(isset($pathToColumn[array_get($operation, 'path')]))
+                {
+                    $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
+                    $this->updateSCIMRole($memberId, [$columnNameInDB => $operation['value']]);
+                }
+            }
+        }
+        return true;
+    }
     public function updateRole($memberId, $inputRequest)
     {
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
@@ -316,7 +321,7 @@ class SCIMReader
                 if(isset($pathToColumn[array_get($operation, 'path')]))
                 {
                     $columnNameInDB = $pathToColumn[array_get($operation, 'path')];
-                    $this->updateSCIMUser($memberId, [$columnNameInDB => $operation['value']]);
+                    $this->updateSCIMRole($memberId, [$columnNameInDB => $operation['value']]);
                 }
             }
         }
@@ -328,7 +333,7 @@ class SCIMReader
         $path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $operations = $inputRequest['Operations'];
         $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings();
+        $setting = $importSetting->getSCIMImportSettings($path);
         $tableName = $this->getTableName($setting);
         $roleMap = $importSetting->getRoleMapInName();
         $tableKey = $importSetting->getTableKey($tableName);
@@ -365,138 +370,6 @@ class SCIMReader
         }
 
         return $returnFlag;
-    }
-
-    /**
-     * @param $id
-     * @param $options
-     * @return bool
-     * @throws \Exception
-     */
-    public function updateReplaceSCIM($id, $options)
-    {
-        $path = $options['path'];
-
-        $importSetting = new ImportSettingsManager();
-        $setting = $importSetting->getSCIMImportSettings();
-
-        $this->setColumnAndDataForUpdate($columns, $dataUpdate, $match, $options, $setting);
-
-        $this->setDataForUpdateAndDeleteColumn($options['operation'], $setting, $columns, $dataUpdate);
-
-        $columnsMerged = $this->buildSetQueryFromColumnsAndValues($columns, $dataUpdate);
-
-        $updateResult = $this->updateDataToDB($id, $setting, $columnsMerged);
-
-        return $updateResult;
-    }
-
-    /**
-     * @param array $columns
-     * @param array $dataUpdate
-     * @return bool|string
-     */
-    private function buildSetQueryFromColumnsAndValues(array $columns, array $dataUpdate)
-    {
-        $columnsMerged = "";
-        for ($i = 0; $i < count($columns); $i++) {
-            $keyColumn = str_replace('"', '', $columns[$i]);
-            $columnsMerged = "{$columnsMerged} `{$keyColumn}`=$dataUpdate[$i],";
-        }
-        $columnsMerged = substr($columnsMerged, 0, -1);
-        return $columnsMerged;
-    }
-
-    /**
-     * @param $id
-     * @param array $setting
-     * @param $columnsMerged
-     * @return bool
-     */
-    private function updateDataToDB($id, array $setting, $columnsMerged): bool
-    {
-        $updateResult = false;
-        $externalId = $id;
-        $nameTable = $this->getTableName($setting);
-        $keyTable = (new SettingsManager())->getTableKey($nameTable);
-        $data = DB::table($nameTable)->where("{$keyTable}", $externalId)->first();
-        if ($data) {
-            if ($columnsMerged) {
-                $key = "`{$keyTable}`";
-                $query = "update `{$nameTable}` set $columnsMerged where {$key} = '$externalId'";
-                DB::update($query);
-            }
-
-            $updateResult = true;
-        }
-        return $updateResult;
-    }
-
-    /**
-     * @param $operation
-     * @param array $setting
-     * @param $columns
-     * @param $dataUpdate
-     */
-    private function setDataForUpdateAndDeleteColumn($operation, array $setting, &$columns, &$dataUpdate): void
-    {
-        if ($operation['path'] === 'active') {
-            array_push($columns, "\"015\"");
-            if ($operation['value'] === 'False') {
-                array_push($dataUpdate, '1');
-            } else {
-                array_push($dataUpdate, '1');
-            }
-        }
-
-        $nameTable = $this->getTableName($setting);
-        $settingManagement = new SettingsManager();
-        $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($nameTable);
-
-        if ($nameColumnUpdate) {
-            array_push($columns, "\"{$nameColumnUpdate}\"");
-        }
-
-
-        $dataJsonUpdatedFlag = json_encode(config('const.updated_flag_default'));
-        array_push($dataUpdate, "'{$dataJsonUpdatedFlag}'");
-    }
-
-    /**
-     * @param $columns
-     * @param $dataUpdate
-     * @param $match
-     * @param $options
-     * @param array $setting
-     */
-    private function setColumnAndDataForUpdate(&$columns, &$dataUpdate, &$match, $options, array $setting): void
-    {
-        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
-        $pattern2 = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
-
-        $attributeValue = null;
-        $columns = [];
-        $dataUpdate = [];
-        $operation = $options['operation'];
-        foreach ($setting[config('const.scim_format')] as $key => $valueSetting) {
-            if ($key !== '' && preg_match($pattern2, $key) !== 1) {
-                $isCheck = preg_match($pattern, $valueSetting, $match);
-
-                if ($isCheck) {
-                    $attributeValue = $match['exp1'];
-                    $departmentField = config('const.scim_schema') . ":{$attributeValue}";
-
-                    if ($attributeValue === $operation['path'] || $departmentField === $operation['path']) {
-                        $newsKey = substr($key, -3);
-                        $columns[] = "\"{$newsKey}\"";
-                        $str = $this->convertDataFollowSetting($valueSetting, [
-                            $attributeValue => $operation['value'],
-                        ]);
-                        array_push($dataUpdate, "\$\${$str}\$\$");
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -560,14 +433,32 @@ class SCIMReader
     private function updateSCIMRole(string $memberId, array $values)
     {
         $setValues = $values;
+        //Set DeleteFlag to 1 if active = false
+        foreach ($setValues as $column=>$value){
+            if($column==='DeleteFlag'){//If this is patch of deleting user, reset all roleFlags to 0
+                $roleFlagColumns = $this->settingImport->getRoleFlags();
+                if($value==="False"){
+                    $setValues[$column] = 1;
+//                    $setValues[$column] = $value==="False"?1:0;
+                    foreach ($roleFlagColumns as $roleFlagColumn){
+                        $setValues[$roleFlagColumn] = 0;
+                    }
+                }
+                else{
+                    $setValues[$column] = 0;
+                }
+            }
+        }
         $userRecord = (array)DB::table("Role")->where("ID", $memberId)->get(['UpdateFlags'])->toArray()[0];
         $updateFlags = json_decode($userRecord['UpdateFlags'], true);
         array_walk($updateFlags, function (&$value) {
             $value = 1;
         });
         $setValues["UpdateFlags"] = json_encode($updateFlags);
-        DB::table("User")->where("ID", $memberId)->update($setValues);
+        DB::table("Role")->where("ID", $memberId)->update($setValues);
     }
+
+
 
     /**
      * Get map from Scim ini config
