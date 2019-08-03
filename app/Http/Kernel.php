@@ -57,11 +57,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-<<<<<<< HEAD
             'throttle:600,1',
-=======
 //            'throttle:60,1',
->>>>>>> 6afc8101a2ae98a8f1ab02e151e21c3b1ad7ae36
             'bindings',
             'request_logger'
         ],
