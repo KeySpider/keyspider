@@ -16,3 +16,6 @@ yarn-error.log
 .phpunit.result.cache
 composer.lock
 .idea
+/storage/delivery_csv_processed/user/
+/storage/import_csv_processed/role/
+/storage/import_csv_processed/user/
