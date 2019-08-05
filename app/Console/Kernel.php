@@ -161,4 +161,5 @@ class Kernel extends ConsoleKernel
             Log::error($e);
         }
     }
+
 }
