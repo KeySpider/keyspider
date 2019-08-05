@@ -106,14 +106,13 @@ class SCIMReader
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 explode('.', $key);
                 if (isset(explode('.', $key)[1])) {
-                    if(isset($scimValue)){
+                    if (isset($scimValue)) {
                         //Create keys for postgres
                         $keyWithoutTableName = explode('.', $key)[1];
 
                         if (in_array($scimValue, $getEncryptedFields)) {
                             $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
-                        }
-                        else{
+                        } else {
                             $dataCreate[$keyWithoutTableName] = "$scimValue";
                         }
                     }
@@ -149,17 +148,17 @@ class SCIMReader
         $pattern = "/\((.*?)\)/";
 
         $isMatched = preg_match($pattern, $value, $matchedValue);
-        try{
+        try {
             if ($isMatched) {
                 $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
                 //If get data from SCIM: DeleteFlag = (active)
                 //active = false -> DeleteFlag =1
                 //So flip the value
-                if($value=="(active)")
-                    return isset($findData[0])?(string)(((int)$findData[0]+1)%2):null;
-                return isset($findData[0])?$findData[0]:null;
+                if ($value == "(active)")
+                    return isset($findData[0]) ? (string)(((int)$findData[0] + 1) % 2) : null;
+                return isset($findData[0]) ? $findData[0] : null;
             }
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
             Log::info($exception->getMessage());
         }
 
@@ -171,25 +170,18 @@ class SCIMReader
         $resourceType = $this->getTableName($setting);
         $operations = $inputRequest['Operations'];
         $pathToColumn = $this->getScimPathToColumnMap($setting);
-        if(count($pathToColumn)<1){
+        if (count($pathToColumn) < 1) {
             return false;
         }
-
-        //New format of operations is no bracket in the path
-        //This is my smart way to compare with scim ini config
-        $formattedOperations = array_map(function ($operation){
-            $operation['path'] = preg_replace("/\[[^)]+\]/","",$operation['path']);
-            return $operation;
-        }, $operations);
+        $formattedOperations = $this->getFormatedOperationsFromRequest($operations);
 
         foreach ($formattedOperations as $operation) {
             //Update user attribute. Replace or Add is both ok.
-            if (in_array(array_get($operation, 'op') ,["Replace", "Add"]))//
+            if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))//
             {
-                if(isset($pathToColumn[array_get($operation, 'path')]))
-                {
+                if (isset($pathToColumn[array_get($operation, 'path')])) {
                     $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
-                    foreach ($mapColumnsInDB as $column){
+                    foreach ($mapColumnsInDB as $column) {
                         $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                     }
                 }
@@ -250,7 +242,7 @@ class SCIMReader
      * @param $groupId
      * @return mixed
      */
-    private function updateRoleForUser(string $memberId, ?string $tableName, string $tableKey, ?array $roleMap, $groupId, $isAdd=true)
+    private function updateRoleForUser(string $memberId, ?string $tableName, string $tableKey, ?array $roleMap, $groupId, $isAdd = true)
     {
         Log::info("<<<<<Add member>>>>");
         Log::info(json_encode($roleMap, JSON_PRETTY_PRINT));
@@ -259,7 +251,7 @@ class SCIMReader
         $setValues["RoleID1"] = $groupId;
         foreach ($roleMap as $index => $role) {
             if ($role['ID'] == $groupId) {
-                $setValues["RoleFlag-$index"] = $isAdd?1:0;
+                $setValues["RoleFlag-$index"] = $isAdd ? 1 : 0;
                 break;
             }
         }
@@ -279,17 +271,16 @@ class SCIMReader
         $primaryKey = $this->settingImport->getTableKey($resourceType);
         $setValues = $values;
         //Set DeleteFlag to 1 if active = false
-        foreach ($setValues as $column=>$value){
-            if($column==='DeleteFlag'){//If this is patch of deleting user, reset all roleFlags to 0
+        foreach ($setValues as $column => $value) {
+            if ($column === 'DeleteFlag') {//If this is patch of deleting user, reset all roleFlags to 0
                 $roleFlagColumns = $this->settingImport->getRoleFlags();
-                if($value==="False"){
+                if ($value === "False") {
                     $setValues[$column] = 1;
 //                    $setValues[$column] = $value==="False"?1:0;
-                    foreach ($roleFlagColumns as $roleFlagColumn){
+                    foreach ($roleFlagColumns as $roleFlagColumn) {
                         $setValues[$roleFlagColumn] = 0;
                     }
-                }
-                else{
+                } else {
                     $setValues[$column] = 0;
                 }
             }
@@ -311,33 +302,58 @@ class SCIMReader
      */
     private function getScimPathToColumnMap($setting): array
     {
-        try{
+        try {
             $scimFormatConversion = $setting['SCIM Input Format Conversion'];
 
             $results = [];
-            foreach ($scimFormatConversion as $column=>$scimFormat){
+            foreach ($scimFormatConversion as $column => $scimFormat) {
                 $pattern = "/^\((.*?)\)$/";
                 //Get string inside () and from . to the end
                 $shortColumnName = explode('.', $column)[1];
                 $isMatched = preg_match($pattern, $scimFormat, $matchedValue);
-                if($isMatched){
+                if ($isMatched) {
                     //Remove everything between []
-                    $newKey = preg_replace("/\[[^)]+\]/","",$matchedValue[1]);
-                    if(array_key_exists($newKey, $results)){
-                        array_push($results[$newKey] ,$shortColumnName);
-                    }
-                    else{
+                    $newKey = preg_replace("/\[[^)]+\]/", "", $matchedValue[1]);
+                    if (array_key_exists($newKey, $results)) {
+                        array_push($results[$newKey], $shortColumnName);
+                    } else {
                         $results[$newKey] = [$shortColumnName];
                     }
                 }
             }
 
 
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
             Log::info(json_encode($exception->getMessage()));
             return [];
         }
         return $results;
+    }
+
+    /**
+     * @param $operations
+     * @return array
+     */
+    private function getFormatedOperationsFromRequest($operations): array
+    {
+//New format of operations is no bracket in the path
+        //This is my smart way to compare with scim ini config
+        $formattedOperations = array_map(function ($operation) {
+            $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
+            return $operation;
+        }, $operations);
+        //When deleteing user, ignore changing other things.
+        $deleteUserPatch =
+            ['op' => "Replace",
+                'path' => "active",
+                'value' => "False"];
+        foreach ($formattedOperations as $op) {
+            if ($op === $deleteUserPatch) {
+                $formattedOperations = [$deleteUserPatch];
+                break;
+            }
+        }
+        return $formattedOperations;
     }
 
 }
