@@ -156,10 +156,9 @@ class CSVReader implements DataInputReader
                     }
                 }
                 $primaryKeyValue = array_get($getDataAfterConvert, $primaryKey, null);
-                if($primaryKeyValue)
+                if ($primaryKeyValue)
                     $data = DB::table($nameTable)->where("{$primaryKey}", $primaryKeyValue)->first();
-                else{
-                    echo(new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
+                else {
                     throw (new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
                 }
                 if ($data) {
