@@ -16,8 +16,8 @@ class TestFlow extends TestCase
     }
 
     public function testScenario(){
-        DB::table('User')->truncate();
-        DB::table('Role')->truncate();
+//        DB::table('User')->truncate();
+//        DB::table('Role')->truncate();
         $baseDirectory = storage_path(self::DATA_TEST_FLOWS);
         $directories = getDirectories($baseDirectory);
 
