@@ -1,0 +1,45 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User",
+    "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+  ],
+  "externalId": "user10",
+  "userName": "user10@jukkoussooutlook.onmicrosoft.com",
+  "active": true,
+  "addresses": [
+    {
+      "primary": false,
+      "type": "work",
+      "country": null,
+      "formatted": "HHH",
+      "locality": null,
+      "postalCode": "59000",
+      "region": null,
+      "streetAddress": "EEE"
+    }
+  ],
+  "displayName": "u12",
+  "meta": {
+    "resourceType": "User",
+    "location": "http://127.0.0.1:8000/api/Users/user10"
+  },
+  "name": {
+    "familyName": "BBB",
+    "givenName": "AAA"
+  },
+  "phoneNumbers": [
+    {
+      "primary": false,
+      "type": "mobile",
+      "value": "+1 2223334444"
+    },
+    {
+      "primary": true,
+      "type": "work",
+      "value": "+1 2223334444"
+    }
+  ],
+  "roles": [],
+  "title": "CCC",
+  "id": "user10"
+}

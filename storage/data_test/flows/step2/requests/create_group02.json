@@ -1,0 +1,11 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Group"
+  ],
+  "externalId": "g2",
+  "displayName": "g2",
+  "members": [],
+  "meta": {
+    "resourceType": "Group"
+  }
+}

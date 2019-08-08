@@ -208,11 +208,11 @@ class SCIMReader
                 $members = $operation['value'];
                 if (is_string($members)) {
                     $memberId = $members;
-                    $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
+                    $returnFlag = $returnFlag & $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
                 } elseif (is_array($members)) {
                     foreach ($members as $member) {
                         $memberId = $member['value'];
-                        $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
+                        $returnFlag = $returnFlag & $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId);
                     }
                 }
             }
@@ -221,11 +221,11 @@ class SCIMReader
                 $members = $operation['value'];
                 if (is_string($members)) {
                     $memberId = $members;
-                    $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
+                    $returnFlag = $returnFlag & $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
                 } elseif (is_array($members)) {
                     foreach ($members as $member) {
                         $memberId = $member['value'];
-                        $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
+                        $returnFlag = $returnFlag & $this->updateRoleForUser($memberId, $tableName, $tableKey, $roleMap, $groupId, false);
                     }
                 }
             }
@@ -248,20 +248,26 @@ class SCIMReader
         Log::info(json_encode($roleMap, JSON_PRETTY_PRINT));
         Log::info("Add [$memberId] to [$groupId]\n\n\n");
         $setValues = [];
-        $setValues["RoleID1"] = $groupId;
+//        $setValues["RoleID1"] = $groupId;
         foreach ($roleMap as $index => $role) {
             if ($role['ID'] == $groupId) {
                 $setValues["RoleFlag-$index"] = $isAdd ? 1 : 0;
                 break;
             }
         }
-        $userRecord = (array)DB::table($tableName)->where($tableKey, $memberId)->get(['UpdateFlags'])->toArray()[0];
-        $updateFlags = json_decode($userRecord['UpdateFlags'], true);
-        array_walk($updateFlags, function (&$value) {
-            $value = 1;
-        });
-        $setValues["UpdateFlags"] = json_encode($updateFlags);
-        DB::table($tableName)->where($tableKey, $memberId)->update($setValues);
+        if(count($setValues)) {
+            $userRecord = (array)DB::table($tableName)->where($tableKey, $memberId)->get(['UpdateFlags'])->toArray()[0];
+            $updateFlags = json_decode($userRecord['UpdateFlags'], true);
+            array_walk($updateFlags, function (&$value) {
+                $value = 1;
+            });
+            $setValues["UpdateFlags"] = json_encode($updateFlags);
+            DB::table($tableName)->where($tableKey, $memberId)->update($setValues);
+            return true;
+        }
+        else{
+            return false;
+        }
     }
 
     private function updateSCIMResource(string $memberId, array $values, $resourceType)
