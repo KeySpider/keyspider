@@ -1,0 +1,8 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:Success"
+  ],
+  "detail": "Update User success",
+  "id": "user07",
+  "status": 200
+}
