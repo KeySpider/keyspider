@@ -77,7 +77,7 @@ class TestFlow extends TestCase
             $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
             $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
             $allGroups[] = $inputUserData;
-            echo("Creating user from file: $fileName\n");
+            echo("Creating group from file: $fileName\n");
             $response = $this->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
             ])->json('POST', 'api/Groups', $inputUserData);
