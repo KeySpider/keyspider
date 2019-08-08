@@ -212,14 +212,14 @@ class GroupController extends LaravelController
                 $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
                 $response['id'] = $id;
-                $response['add members successfully'] = $result;
+                $response['add members successfully'] = (bool) $result;
                 return $this->response($response, $code = 200);
             } elseif ($opTask === 'remove') {
                 Log::info('Remove member');
                 $result = $scimReader->updateMembersOfGroup($id, $input);
                 $response = $input;
                 $response['id'] = $id;
-                $response['remove members successfully'] = $result;
+                $response['remove members successfully'] = (bool) $result;
                 return $this->response($response, $code = 200);
             }
         }

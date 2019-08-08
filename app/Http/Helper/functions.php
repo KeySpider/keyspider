@@ -143,3 +143,52 @@ if (!function_exists('is_exits_columns')) {
         return $flag;
     }
 }
+
+if (!function_exists('check_similar')) {
+    function check_similar($actual, $expected, $ignores = [])
+    {
+        if (!is_array($expected) || !is_array($actual)) return $actual === $expected;
+        foreach ($expected as $key => $value) {
+            if(in_array($key, $ignores)) continue;
+            if (!check_similar($actual[$key], $expected[$key],$ignores)) {
+                echo("$key");
+                var_dump($value);
+                return false;
+            }
+        }
+        foreach ($actual as $key => $value) {
+            if(in_array($key, $ignores)) continue;
+            if (!check_similar($actual[$key], $expected[$key], $ignores)) {
+                echo("$key");
+                var_dump($value);
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+function getDirectories(string $path) : array
+{
+    $directories = [];
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if($item == '..' || $item == '.' || $item[0]=='_')
+            continue;
+        if(is_dir($path.'/'.$item))
+            $directories[] = $item;
+    }
+    return $directories;
+}
+function getFiles(string $path) : array
+{
+    $directories = [];
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if($item == '..' || $item == '.')
+            continue;
+        if(is_file($path.'/'.$item))
+            $directories[] = $item;
+    }
+    return $directories;
+}

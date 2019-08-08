@@ -259,6 +259,7 @@ class UserController extends LaravelController
                 "urn:ietf:params:scim:api:messages:2.0:Success"
             ],
             "detail" => "Update User success",
+            "id"=>$id,
             "status" => 200
         ];
 
