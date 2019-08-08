@@ -30,10 +30,10 @@ class TestFlow extends TestCase
 //            $this->testAddMemberToGroup($flowDirectory, $token);
 //        }
 
-//        $this->testCreateUsers("$baseDirectory/step1", $token);
-//        $this->testCreateGroups("$baseDirectory/step2", $token);
-//        $this->addMembersToGroup("$baseDirectory/step3", $token);
-//        $this->deleteUsers("$baseDirectory/step4", $token);
+        $this->testCreateUsers("$baseDirectory/step1", $token);
+        $this->testCreateGroups("$baseDirectory/step2", $token);
+        $this->addMembersToGroup("$baseDirectory/step3", $token);
+        $this->deleteUsers("$baseDirectory/step4", $token);
         $this->testSummary();
     }
 
