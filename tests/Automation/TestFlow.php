@@ -30,10 +30,10 @@ class TestFlow extends TestCase
 //            $this->testAddMemberToGroup($flowDirectory, $token);
 //        }
 
-//        $this->testCreateUsers("$baseDirectory/step1", $token);
-//        $this->testCreateGroups("$baseDirectory/step2", $token);
-//        $this->addMembersToGroup("$baseDirectory/step3", $token);
-//        $this->deleteUsers("$baseDirectory/step4", $token);
+        $this->testCreateUsers("$baseDirectory/step1", $token);
+        $this->testCreateGroups("$baseDirectory/step2", $token);
+        $this->addMembersToGroup("$baseDirectory/step3", $token);
+        $this->deleteUsers("$baseDirectory/step4", $token);
         $this->testSummary();
     }
 
@@ -184,7 +184,8 @@ class TestFlow extends TestCase
             $this->assertTrue(true);
             echo("Check database ok!\n");
         } else {
-            echo("Check database but something went wrong!\n");
+            echo("Check database but something went wrong!\nThe different is: \n");
+            var_dump($compare);
             $this->assertTrue(false);
         }
     }
