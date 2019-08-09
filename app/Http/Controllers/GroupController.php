@@ -286,7 +286,7 @@ class GroupController extends LaravelController
         $members = [];
         $userTable = $this->settingManagement->getTableUser();
         $roleColumnIndex = $this->settingManagement->getRoleFlagIDColumnNameFromGroupId($id);
-        if ($roleColumnIndex) {
+        if ($roleColumnIndex!==null) {
             $roleFlagColumnName = 'RoleFlag-' . (string)$roleColumnIndex;
             //Find all User has RoleFlag Column name equal '1'
             $query = DB::table($userTable);
