@@ -28,6 +28,7 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Optimus\Bruno\EloquentBuilderTrait;
 use Optimus\Bruno\LaravelController;
@@ -68,16 +69,13 @@ class UserController extends LaravelController
     public function index(Request $request)
     {
         $result = null;
+        $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
 
-
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
-
-        $sqlQuery = $this->userModel::query();
+        $sqlQuery = DB::table($this->importSetting->getTableUser());
         $sqlQuery->where($columnDeleted, '!=', '1');
 
         $scimQuery = $request->input('filter', null);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey($this->masterDB);
         if ($request->has('filter')) {
             if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
@@ -93,12 +91,14 @@ class UserController extends LaravelController
         $dataConvert = [];
 
 //        $sqlQuery->where($columnDeleted, '!=', '1');
+        $sqlString  = $sqlQuery->toSql();
         $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
 
             foreach ($dataQuery as $data) {
-                $dataFormat = $this->importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                $dataArray = (array) $data;
+                $dataFormat = $this->importSetting->formatDBToSCIMStandard($dataArray, $this->path);
                 $dataFormat['id'] = $dataFormat['userName'];
                 $dataFormat['externalId'] = $dataFormat['userName'];
                 $dataFormat['userName'] =
@@ -117,7 +117,7 @@ class UserController extends LaravelController
                     "externalId" => $data['externalId'],
                     "userName" => str_replace("\"", "", $data['userName']),
                     "active" => true,
-                    "displayName" => $data['name'],
+                    "displayName" => $data['displayName'],
                     "meta" => [
                         "resourceType" => "User",
                     ],
@@ -149,9 +149,8 @@ class UserController extends LaravelController
         Log::debug($id);
         Log::info('--------------------------------------------------');
 
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
+        $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey($this->masterDB);
 
         try {
             $query = $this->userModel::query();
@@ -220,9 +219,8 @@ class UserController extends LaravelController
 
         $input = $request->input();
 
-        $settingManagement = new SettingsManager();
-        $columnDeleted = $settingManagement->getDeleteFlagColumnName($this->masterDB);
-        $keyTable = $settingManagement->getTableKey($this->masterDB);
+        $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey($this->masterDB);
 
         $where = [
             "{$keyTable}" => $id,
