@@ -66,7 +66,7 @@ class GroupController extends LaravelController
 
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
 
-        $sqlQuery = $this->roleModel::query();
+        $sqlQuery = DB::table($this->importSetting->getTableRole());
 //        $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
@@ -90,7 +90,7 @@ class GroupController extends LaravelController
             $importSetting = new ImportSettingsManager();
 
             foreach ($dataQuery as $data) {
-                $dataFormat = $importSetting->formatDBToSCIMStandard($data->toArray(), $this->path);
+                $dataFormat = $importSetting->formatDBToSCIMStandard((array) $data, $this->path);
                 unset($dataFormat[0]);
                 unset($dataFormat[""]);
 

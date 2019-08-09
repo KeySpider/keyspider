@@ -27,10 +27,14 @@ use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\SettingsManager;
+use Exception;
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use Optimus\Bruno\EloquentBuilderTrait;
+use Optimus\Bruno\Illuminate\Http\JsonResponse;
 use Optimus\Bruno\LaravelController;
 use Tmilos\ScimFilterParser\Mode;
 use Tmilos\ScimFilterParser\Parser;
@@ -54,8 +58,8 @@ class UserController extends LaravelController
     }
 
     /**
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     * @throws \Exception
+     * @return Factory|View
+     * @throws Exception
      */
     public function welcome()
     {
@@ -64,7 +68,7 @@ class UserController extends LaravelController
 
     /**
      * @param Request $request
-     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function index(Request $request)
     {
@@ -95,10 +99,8 @@ class UserController extends LaravelController
         $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
-
             foreach ($dataQuery as $data) {
-                $dataArray = (array) $data;
-                $dataFormat = $this->importSetting->formatDBToSCIMStandard($dataArray, $this->path);
+                $dataFormat = $this->importSetting->formatDBToSCIMStandard((array) $data, $this->path);
                 $dataFormat['id'] = $dataFormat['userName'];
                 $dataFormat['externalId'] = $dataFormat['userName'];
                 $dataFormat['userName'] =
@@ -140,7 +142,7 @@ class UserController extends LaravelController
 
     /**
      * @param $id
-     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @return JsonResponse
      * @throws SCIMException
      */
     public function detail($id)
@@ -161,7 +163,7 @@ class UserController extends LaravelController
             $toSql = $query->toSql();
             Log::info($toSql);
             $userRecord = $query->first();
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             throw (new SCIMException($query->toSql()))->setCode(404);
         }
 
@@ -178,8 +180,8 @@ class UserController extends LaravelController
      * Create data
      *
      * @param Request $request
-     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
-     * @throws \Exception
+     * @return JsonResponse
+     * @throws Exception
      */
     public function store(Request $request)
     {
@@ -206,7 +208,7 @@ class UserController extends LaravelController
      *
      * @param $id
      * @param Request $request
-     * @return \Optimus\Bruno\Illuminate\Http\JsonResponse
+     * @return JsonResponse
      * @throws SCIMException
      */
     public function update($id, Request $request)
