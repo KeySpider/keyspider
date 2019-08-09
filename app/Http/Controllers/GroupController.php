@@ -46,12 +46,13 @@ class GroupController extends LaravelController
     protected $masterDB;
     protected $path;
 
-    public function __construct(CCC $roleModel)
+    public function __construct()
     {
-        $this->masterDB = 'Role';
+
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
         $this->settingManagement = new SettingsManager();
         $this->importSetting = new ImportSettingsManager();
+        $this->masterDB = $this->importSetting->getTableRole();
     }
 
     /**

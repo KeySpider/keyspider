@@ -48,11 +48,12 @@ class UserController extends LaravelController
     protected $masterDB;
     protected $path;
 
-    public function __construct(AAA $userModel)
+    public function __construct()
     {
-        $this->masterDB = 'User';
+
         $this->path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $this->importSetting = new ImportSettingsManager();
+        $this->masterDB = $this->importSetting->getTableUser();
     }
 
     /**
