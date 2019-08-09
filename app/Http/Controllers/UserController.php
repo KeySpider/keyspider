@@ -45,13 +45,11 @@ class UserController extends LaravelController
 
     public const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
 
-    protected $userModel;
     protected $masterDB;
     protected $path;
 
     public function __construct(AAA $userModel)
     {
-        $this->userModel = $userModel;
         $this->masterDB = 'User';
         $this->path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $this->importSetting = new ImportSettingsManager();
@@ -95,12 +93,12 @@ class UserController extends LaravelController
         $dataConvert = [];
 
 //        $sqlQuery->where($columnDeleted, '!=', '1');
-        $sqlString  = $sqlQuery->toSql();
+        $sqlString = $sqlQuery->toSql();
         $dataQuery = $sqlQuery->get();
 
         if (!empty($dataQuery->toArray())) {
             foreach ($dataQuery as $data) {
-                $dataFormat = $this->importSetting->formatDBToSCIMStandard((array) $data, $this->path);
+                $dataFormat = $this->importSetting->formatDBToSCIMStandard((array)$data, $this->path);
                 $dataFormat['id'] = $dataFormat['userName'];
                 $dataFormat['externalId'] = $dataFormat['userName'];
                 $dataFormat['userName'] =
@@ -155,7 +153,7 @@ class UserController extends LaravelController
         $keyTable = $this->importSetting->getTableKey($this->masterDB);
 
         try {
-            $query = $this->userModel::query();
+            $query = DB::table($this->importSetting->getTableUser());
             $query = $query->where(function ($query) use ($keyTable, $columnDeleted, $id) {
                 $query->where($keyTable, $id);
 //                $query->where($columnDeleted, '!=', 1);
@@ -222,34 +220,7 @@ class UserController extends LaravelController
         $input = $request->input();
 
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
-        $keyTable = $this->importSetting->getTableKey($this->masterDB);
-
-        $where = [
-            "{$keyTable}" => $id,
-//            "{$columnDeleted}" => '0'
-        ];
-
-        if (is_exits_columns($this->masterDB, $where)) {
-            $user = $this->userModel->where($where)->first();
-        } else {
-            $user = null;
-        }
-
-        if (!$user) {
-            throw (new SCIMException('User Not Found'))->setCode(404);
-        }
-
-        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
-            throw (new SCIMException(sprintf(
-                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
-                json_encode($input['schemas'])
-            )))->setCode(404);
-        }
-
-        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
-            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
-            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
-        }
+        $input = $this->checkToResponseErrorCase($id, $input);
         $scimReader = new SCIMReader();
         $setting = $this->importSetting->getSCIMImportSettings($this->path);
         $scimReader->updateRsource($id, $input, $setting);
@@ -259,7 +230,10 @@ class UserController extends LaravelController
                 "urn:ietf:params:scim:api:messages:2.0:Success"
             ],
             "detail" => "Update User success",
-            "id"=>$id,
+            "id" => $id,
+            "meta" => [
+                "resourceType" => "User"
+            ],
             "status" => 200
         ];
 
@@ -293,7 +267,8 @@ class UserController extends LaravelController
     {
         $dataFormat = [];
         if ($userRecord) {
-            $userResouce = $userRecord->toArray();
+//            $userResouce = $userRecord->toArray();
+            $userResouce = (array)$userRecord;
             $dataFormat = $this->importSetting->formatDBToSCIMStandard($userResouce, $this->path);
             $dataFormat['id'] = $dataFormat['userName'];
             unset($dataFormat[0]);
@@ -322,5 +297,45 @@ class UserController extends LaravelController
             ];
         }
         return $jsonData;
+    }
+
+    /**
+     * @param $id
+     * @param $input
+     * @return mixed
+     * @throws SCIMException
+     */
+    private function checkToResponseErrorCase($id, $input)
+    {
+        $keyTable = $this->importSetting->getTableKey($this->masterDB);
+
+        $sqlQuery = DB::table($this->importSetting->getTableUser());
+        $where = [
+            "{$keyTable}" => $id,
+//            "{$columnDeleted}" => '0'
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $user = $sqlQuery->where($where)->first();
+        } else {
+            $user = null;
+        }
+
+        if (!$user) {
+            throw (new SCIMException('User Not Found'))->setCode(404);
+        }
+
+        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+            throw (new SCIMException(sprintf(
+                'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
+                json_encode($input['schemas'])
+            )))->setCode(404);
+        }
+
+        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
+            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
+            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
+        }
+        return $input;
     }
 }

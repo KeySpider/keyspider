@@ -1,0 +1,13 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Group"
+  ],
+  "id": "g1",
+  "externalId": "g1",
+  "displayName": "g1",
+  "meta": {
+    "resourceType": "Group",
+    "location": "http://localhost:8000/api/Groups/g1"
+  },
+  "members": []
+}
