@@ -35,6 +35,11 @@ class TestFlow extends TestCase
         $this->addMembersToGroup("$baseDirectory/step3", $token);
         $this->deleteUsers("$baseDirectory/step4", $token);
         $this->testSummary();
+        $this->getUsers("$baseDirectory/step5", $token);
+//        $this->getGroups("$baseDirectory/step5", $token);
+        $this->getDetailResource("$baseDirectory/step6", $token);
+        $this->patchResource("$baseDirectory/step7", $token);
+
     }
 
     /**
@@ -159,6 +164,112 @@ class TestFlow extends TestCase
         }
 
     }
+    public function getUsers(string $flowDirectory, $token): void
+    {
+        $allFiles = getFiles("$flowDirectory/requests");
+        $allGroups = [];
+        foreach ($allFiles as $fileName){
+            $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
+            $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
+
+            $uri = "api/Groups";
+            $response = $this->withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+            ])->json('GET', $uri, $inputUserData);
+
+            $response->assertStatus(200);
+
+            $output = $response->decodeResponseJson();
+
+//            $isCompare = check_similar($expectedResponse, $output, ['location']);
+            $isCompare = array_diff_assoc_recursive($expectedResponse, $output);
+            var_dump($output);
+            if (empty($isCompare)) {
+                $this->assertTrue(true);
+                echo("Get users success!\n");
+            } else {
+
+                $this->assertTrue(false);
+            }
+        }
+
+    }
+
+     public function getGroups(string $flowDirectory, $token):array
+        {
+            $allFiles = getFiles("$flowDirectory/requests");
+            $allGroups = [];
+            foreach ($allFiles as $fileName){
+                $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
+                $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
+
+                $uri = "api/Groups";
+                $response = $this->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                ])->json('GET', $uri, $inputUserData);
+
+                $response->assertStatus(200);
+
+                $output = $response->decodeResponseJson();
+
+    //            $isCompare = check_similar($expectedResponse, $output, ['location']);
+                $isCompare = array_diff_assoc_recursive($expectedResponse, $output);
+                var_dump($output);
+                if (empty($isCompare)) {
+                    $this->assertTrue(true);
+                    echo("Get users success!\n");
+                } else {
+
+                    $this->assertTrue(false);
+                }
+            }
+            return $output;
+        }
+     public function getDetailResource(string $flowDirectory, $token):array
+        {
+            $allFiles = getFiles("$flowDirectory/requests");
+            $allGroups = [];
+            foreach ($allFiles as $fileName){
+                $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
+                $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
+                $resouceId = $expectedResponse['id'];
+                $resouceType = $expectedResponse['meta']['resourceType'].'s';
+                $uri = "api/$resouceType/$resouceId";
+                $response = $this->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                ])->json('GET', $uri, $inputUserData);
+
+                $response->assertStatus(200);
+
+                $output = $response->decodeResponseJson();
+                var_dump($output);
+                $this->assertTrue(check_similar($expectedResponse, $output, ['location']));
+            }
+            return $output;
+        }
+
+     public function patchResource(string $flowDirectory, $token):array
+        {
+            $allFiles = getFiles("$flowDirectory/requests");
+            $allGroups = [];
+            foreach ($allFiles as $fileName){
+                $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
+                $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
+                $resouceId = $expectedResponse['id'];
+                $resouceType = $expectedResponse['meta']['resourceType'].'s';
+                $uri = "api/$resouceType/$resouceId";
+                $response = $this->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                ])->json('PATCH', $uri, $inputUserData);
+
+                $response->assertStatus(200);
+
+                $output = $response->decodeResponseJson();
+                var_dump($output);
+                $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));
+            }
+            return $output;
+        }
 
     public function testSummary(){
         $baseDirectory = storage_path(self::DATA_TEST_FLOWS);

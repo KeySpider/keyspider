@@ -4,5 +4,8 @@
   ],
   "detail": "Update User success",
   "id": "user07",
+  "meta": {
+    "resourceType": "User"
+  },
   "status": 200
 }
