@@ -1,0 +1,58 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+  ],
+  "Operations": [
+    {
+      "op": "Replace",
+      "path": "active",
+      "value": true
+    },
+    {
+      "op": "Replace",
+      "path": "displayName",
+      "value": "Brekke Jeffry - Updated"
+    },
+
+    {
+      "op": "Add",
+      "path": "title",
+      "value": "Direct Markets Specialist - Updated"
+    },
+    {
+      "op": "Add",
+      "path": "addresses[type eq \"work\"].postalCode",
+      "value": "78622-8842"
+    },
+    {
+      "op": "Add",
+      "path": "addresses[type eq \"work\"].formatted",
+      "value": "356-905-3954"
+    },
+    {
+      "op": "Add",
+      "path": "addresses[type eq \"work\"].streetAddress",
+      "value": "025 Joseph Gardens - Updated"
+    },
+    {
+      "op": "Add",
+      "path": "name.givenName",
+      "value": "Jeffry - Updated"
+    },
+    {
+      "op": "Add",
+      "path": "name.familyName",
+      "value": "Brekke - Updated"
+    },
+    {
+      "op": "Add",
+      "path": "phoneNumbers[type eq \"mobile\"].value",
+      "value": "462-670-6452"
+    },
+    {
+      "op": "Add",
+      "path": "phoneNumbers[type eq \"work\"].value",
+      "value": "356-905-3954"
+    }
+  ]
+}

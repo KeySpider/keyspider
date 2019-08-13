@@ -1,0 +1,21 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User"
+  ],
+  "id": "user01",
+  "externalId": "user01",
+  "userName": "user01@jukkoussooutlook.onmicrosoft.com",
+  "active": true,
+  "displayName": "user01@jukkoussooutlook.onmicrosoft.com",
+  "meta": {
+    "resourceType": "User"
+  },
+  "name": {
+    "formatted": "",
+    "familyName": "",
+    "givenName": ""
+  },
+  "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+    "department": ""
+  }
+}

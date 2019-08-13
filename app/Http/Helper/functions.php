@@ -185,7 +185,7 @@ function getFiles(string $path) : array
     $directories = [];
     $items = scandir($path);
     foreach ($items as $item) {
-        if($item == '..' || $item == '.')
+        if($item == '..' || $item == '.'|| $item[0]=='_')
             continue;
         if(is_file($path.'/'.$item))
             $directories[] = $item;

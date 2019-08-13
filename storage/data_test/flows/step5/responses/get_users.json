@@ -1,0 +1,154 @@
+{
+  "totalResults": 8,
+  "itemsPerPage": 10,
+  "startIndex": 1,
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+  ],
+  "Resources": [
+    {
+      "id": "user09@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user09@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user09@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user10@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user10@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user10@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user03@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user03@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user03@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user04@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user04@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user04@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user05@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user05@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user05@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user08@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user08@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user08@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user01@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user01@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user01@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    },
+    {
+      "id": "user02@jukkoussooutlook.onmicrosoft.com",
+      "externalId": "user02@jukkoussooutlook.onmicrosoft.com",
+      "userName": "user02@jukkoussooutlook.onmicrosoft.com",
+      "active": true,
+      "displayName": "u12",
+      "meta": {
+        "resourceType": "User"
+      },
+      "name": {
+        "formatted": "",
+        "familyName": "",
+        "givenName": ""
+      },
+      "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+        "department": ""
+      }
+    }
+  ]
+}

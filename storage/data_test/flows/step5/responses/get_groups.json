@@ -1,0 +1,55 @@
+{
+  "totalResults": 5,
+  "itemsPerPage": 10,
+  "startIndex": 1,
+  "schemas": [
+    "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+  ],
+  "Resources": [
+    {
+      "id": "g1",
+      "externalId": "g1",
+      "displayName": "g1",
+      "meta": {
+        "resourceType": "Group"
+      },
+      "members": []
+    },
+    {
+      "id": "g2",
+      "externalId": "g2",
+      "displayName": "g2",
+      "meta": {
+        "resourceType": "Group"
+      },
+      "members": []
+    },
+    {
+      "id": "g3",
+      "externalId": "g3",
+      "displayName": "g3",
+      "meta": {
+        "resourceType": "Group"
+      },
+      "members": []
+    },
+    {
+      "id": "g4",
+      "externalId": "g4",
+      "displayName": "g4",
+      "meta": {
+        "resourceType": "Group"
+      },
+      "members": []
+    },
+    {
+      "id": "g5",
+      "externalId": "g5",
+      "displayName": "g5",
+      "meta": {
+        "resourceType": "Group"
+      },
+      "members": []
+    }
+  ]
+}

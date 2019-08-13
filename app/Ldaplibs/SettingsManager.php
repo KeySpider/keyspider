@@ -438,4 +438,8 @@ class SettingsManager
     {
         return array_get($this->masterDBConfigData, 'User.User');
     }
+    public function getTableRole()
+    {
+        return array_get($this->masterDBConfigData, 'Role.Role');
+    }
 }
