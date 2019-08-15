@@ -84,6 +84,7 @@ class GroupController extends LaravelController
 
 
         $dataQuery = $sqlQuery->get();
+        $sqlString = $sqlQuery->toSql();
 
         if (!empty($dataQuery->toArray())) {
             $importSetting = new ImportSettingsManager();
@@ -99,8 +100,10 @@ class GroupController extends LaravelController
 
 
         $jsonData = [];
+
         if (!empty($dataConvert)) {
             foreach ($dataConvert as $data) {
+                $members = $this->getAllMembersBelongedToGroupId($data['externalId']);
                 $dataTmp = [
                     "id" => $data['externalId'],
                     "externalId" => $data['externalId'],
@@ -108,7 +111,7 @@ class GroupController extends LaravelController
                     "meta" => [
                         "resourceType" => "Group",
                     ],
-                    "members" => [],
+                    "members" => $members,
                 ];
 
                 array_push($jsonData, $dataTmp);
@@ -285,13 +288,15 @@ class GroupController extends LaravelController
     private function getAllMembersBelongedToGroupId($id): array
     {
         $members = [];
-        $userTable = $this->settingManagement->getTableUser();
+        $groupTable = $this->settingManagement->getTableUser();
         $roleColumnIndex = $this->settingManagement->getRoleFlagIDColumnNameFromGroupId($id);
+        $tableKey = $this->importSetting->getTableKey($groupTable);
         if ($roleColumnIndex!==null) {
             $roleFlagColumnName = 'RoleFlag-' . (string)$roleColumnIndex;
             //Find all User has RoleFlag Column name equal '1'
-            $query = DB::table($userTable);
+            $query = DB::table($groupTable);
             $query->where($roleFlagColumnName, '1');
+//            $query->where($tableKey, $id);
             $membersInDB = $query->get()->toArray();
 //            Set response for each member
             foreach ($membersInDB as $member) {

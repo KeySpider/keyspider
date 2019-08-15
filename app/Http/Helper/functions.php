@@ -151,16 +151,18 @@ if (!function_exists('check_similar')) {
         foreach ($expected as $key => $value) {
             if(in_array($key, $ignores)) continue;
             if (!check_similar($actual[$key], $expected[$key],$ignores)) {
-                echo("$key");
-                var_dump($value);
+                echo("---Failed reason: $key\n");
+                echo("Required: $expected[$key]\n");
+                echo("Actual  : $actual[$key]\n");
                 return false;
             }
         }
         foreach ($actual as $key => $value) {
             if(in_array($key, $ignores)) continue;
             if (!check_similar($actual[$key], $expected[$key], $ignores)) {
-                echo("$key");
-                var_dump($value);
+                echo("---Failed reason: $key\n");
+                echo("Required: $expected[$key]\n");
+                echo("Actual  : $actual[$key]\n");
                 return false;
             }
         }

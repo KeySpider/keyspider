@@ -75,7 +75,7 @@ class UserController extends LaravelController
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
 
         $sqlQuery = DB::table($this->importSetting->getTableUser());
-        $sqlQuery->where($columnDeleted, '!=', '1');
+//        $sqlQuery->where($columnDeleted, '!=', '1');
 
         $scimQuery = $request->input('filter', null);
         $keyTable = $this->importSetting->getTableKey($this->masterDB);
@@ -117,7 +117,7 @@ class UserController extends LaravelController
                     'id' => $data['id'],
                     "externalId" => $data['externalId'],
                     "userName" => str_replace("\"", "", $data['userName']),
-                    "active" => true,
+                    "active" => $data['active'] === '1' ? false : true,
                     "displayName" => $data['displayName'],
                     "meta" => [
                         "resourceType" => "User",

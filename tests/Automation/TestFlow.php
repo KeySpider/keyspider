@@ -19,8 +19,8 @@ class TestFlow extends TestCase
 
     public function testScenario()
     {
-//        DB::table('User')->truncate();
-//        DB::table('Role')->truncate();
+        DB::table('User')->truncate();
+        DB::table('Role')->truncate();
         $baseDirectory = storage_path(self::DATA_TEST_FLOWS);
         $directories = getDirectories($baseDirectory);
 
@@ -38,8 +38,7 @@ class TestFlow extends TestCase
         $this->addMembersToGroup("$baseDirectory/step3", $token);
         $this->deleteUsers("$baseDirectory/step4", $token);
         $this->testSummary();
-        $this->getUsers("$baseDirectory/step5", $token);
-        $this->getGroups("$baseDirectory/step5", $token);
+        $this->getResourcesList("$baseDirectory/step5", $token);
         $this->getDetailResource("$baseDirectory/step6", $token);
         $this->patchResource("$baseDirectory/step7", $token);
 
@@ -169,15 +168,16 @@ class TestFlow extends TestCase
 
     }
 
-    public function getUsers(string $flowDirectory, $token): void
+    public function getResourcesList(string $flowDirectory, $token): void
     {
         $allFiles = getFiles("$flowDirectory/requests");
         $allGroups = [];
         foreach ($allFiles as $fileName) {
             $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
             $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
-
-            $uri = "api/Groups";
+            $resourceType = $expectedResponse['Resources'][0]['meta']['resourceType']??null;
+            if(!$resourceType) continue;
+            $uri = "api/$resourceType".'s';
             $response = $this->withHeaders([
                 'Authorization' => 'Bearer ' . $token,
             ])->json('GET', $uri, $inputUserData);
@@ -188,48 +188,18 @@ class TestFlow extends TestCase
 
 //            $isCompare = check_similar($expectedResponse, $output, ['location']);
             $isCompare = array_diff_assoc_recursive($expectedResponse, $output);
-            var_dump($output);
+            //var_dump($output);
             if (empty($isCompare)) {
                 $this->assertTrue(true);
                 echo("Get users success!\n");
             } else {
-
+                var_dump($isCompare);
                 $this->assertTrue(false);
             }
         }
 
     }
 
-    public function getGroups(string $flowDirectory, $token): array
-    {
-        $allFiles = getFiles("$flowDirectory/requests");
-        $allGroups = [];
-        foreach ($allFiles as $fileName) {
-            $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
-            $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
-
-            $uri = "api/Groups";
-            $response = $this->withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-            ])->json('GET', $uri, $inputUserData);
-
-            $response->assertStatus(200);
-
-            $output = $response->decodeResponseJson();
-
-            //            $isCompare = check_similar($expectedResponse, $output, ['location']);
-            $isCompare = array_diff_assoc_recursive($expectedResponse, $output);
-            var_dump($output);
-            if (empty($isCompare)) {
-                $this->assertTrue(true);
-                echo("Get users success!\n");
-            } else {
-
-                $this->assertTrue(false);
-            }
-        }
-        return $output;
-    }
 
     public function getDetailResource(string $flowDirectory, $token): array
     {
@@ -248,13 +218,12 @@ class TestFlow extends TestCase
             $response->assertStatus(200);
 
             $output = $response->decodeResponseJson();
-            var_dump($output);
             $check_similar = check_similar($expectedResponse, $output, ['location']);
             if ($check_similar) {
                 $this->assertTrue(true);
             } else {
-                $this->assertFalse(false);
-                var_dump(array_diff_assoc_recursive($expectedResponse, $output));
+                $this->assertTrue(false);
+                break;
             }
         }
         return $output;
@@ -277,7 +246,7 @@ class TestFlow extends TestCase
             $response->assertStatus(200);
 
             $output = $response->decodeResponseJson();
-            var_dump($output);
+            //var_dump($output);
             $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));
         }
         return $output;
