@@ -65,16 +65,8 @@ class TestFlow extends TestCase
             $response->assertStatus(201);
 
             $output = $response->decodeResponseJson();
-            $isCompare = check_similar($expectedResponse, $output, ['location']);
 
-            if (($isCompare)) {
-                $this->assertTrue(true);
-                echo("Created user success!\n");
-            } else {
-
-                $this->assertTrue(false);
-            }
-        }
+            $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));        }
     }
 
     public function testCreateGroups(string $flowDirectory, $token): void
@@ -93,16 +85,7 @@ class TestFlow extends TestCase
             $response->assertStatus(201);
 
             $output = $response->decodeResponseJson();
-            $isCompare = check_similar($expectedResponse, $output, ['location']);
-
-            if (($isCompare)) {
-                $this->assertTrue(true);
-                echo("Created group success!\n");
-            } else {
-
-                $this->assertTrue(false);
-            }
-        }
+            $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));        }
 
     }
 
@@ -125,15 +108,7 @@ class TestFlow extends TestCase
 //            $response->assertStatus(201);
 
             $output = $response->decodeResponseJson();
-            $isCompare = check_similar($expectedResponse, $output, ['location']);
-            if (($isCompare)) {
-                $this->assertTrue(true);
-                echo("Added user to group success!\n");
-            } else {
-
-                $this->assertTrue(false);
-            }
-        }
+            $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));        }
 
     }
 
@@ -156,15 +131,7 @@ class TestFlow extends TestCase
             $response->assertStatus(200);
 
             $output = $response->decodeResponseJson();
-            $isCompare = check_similar($expectedResponse, $output, ['location']);
-            if (($isCompare)) {
-                $this->assertTrue(true);
-                echo("Delete user success!\n");
-            } else {
-
-                $this->assertTrue(false);
-            }
-        }
+            $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));        }
 
     }
 
@@ -218,14 +185,7 @@ class TestFlow extends TestCase
             $response->assertStatus(200);
 
             $output = $response->decodeResponseJson();
-            $check_similar = check_similar($expectedResponse, $output, ['location']);
-            if ($check_similar) {
-                $this->assertTrue(true);
-            } else {
-                $this->assertTrue(false);
-                break;
-            }
-        }
+            $this->assertTrue(check_similar($expectedResponse, $output, ['meta']));        }
         return $output;
     }
 
