@@ -286,17 +286,23 @@ class UserController extends LaravelController
                 "displayName" => $dataFormat['userName'],
                 "meta" => [
                     "resourceType" => "User",
+                ],                 "name" => [
+                    "formatted" => $userRecord->displayName,
+                    "familyName" => $userRecord->Name,
+                    "givenName" => $userRecord->givenName,
                 ],
-                "name" => [
-                    "formatted" => "",
-                    "familyName" => "",
-                    "givenName" => "",
-                ],
+                "emails"=> [[
+                    "value"=> $userRecord->mail,
+                    "type"=> "work",
+                    "primary"=> true
+                ]],
                 "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
                     "department" => array_get($dataFormat, 'department', "")
                 ],
             ];
         }
+
+
         return $jsonData;
     }
 
