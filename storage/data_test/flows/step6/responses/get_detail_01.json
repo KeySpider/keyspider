@@ -11,10 +11,17 @@
     "resourceType": "User"
   },
   "name": {
-    "formatted": "",
-    "familyName": "",
-    "givenName": ""
+    "formatted": "Brekke Jeffry - Updated",
+    "familyName": "user01@jukkoussooutlook.onmicrosoft.com",
+    "givenName": null
   },
+  "emails": [
+    {
+      "value": "user01@jukkoussooutlook.onmicrosoft.com",
+      "type": "work",
+      "primary": true
+    }
+  ],
   "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
     "department": ""
   }
