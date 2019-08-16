@@ -92,6 +92,7 @@ class TablesBuilder
                         echo "    + add Column: [$column]\n";
                         $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                     }
+
                 }
             });
 //          Create table
@@ -103,6 +104,15 @@ class TablesBuilder
                 }
             });
         }
+
+//        Schema::table($tableName, function ($table) use ($tableName, $defaultUpdateFlagsData) {
+//            $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
+//            if (Schema::hasColumn($tableName, $updateFlagColumnName)) {
+//                $table->json($updateFlagColumnName)->default($defaultUpdateFlagsData)->change();
+//            }
+//        });
+        $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($tableName);
+        DB::statement("ALTER TABLE \"$tableName\" ALTER COLUMN \"$updateFlagColumnName\" SET DEFAULT '$defaultUpdateFlagsData';");
     }
 
 
