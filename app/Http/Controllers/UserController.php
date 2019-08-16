@@ -50,9 +50,16 @@ class UserController extends LaravelController
 
     public function __construct()
     {
-
-        $this->path = storage_path('ini_configs/import/UserInfoSCIMInput.ini');
         $this->importSetting = new ImportSettingsManager();
+
+        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config']??[];
+        foreach ($SCIMImportSettingFiles as $file){
+            $fileContent = parse_ini_file($file);
+            if($fileContent['ImportTable']=='User'){
+                $this->path = $file;
+                break;
+            }
+        }
         $this->masterDB = $this->importSetting->getTableUser();
     }
 

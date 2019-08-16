@@ -52,7 +52,17 @@ class GroupController extends LaravelController
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
         $this->settingManagement = new SettingsManager();
         $this->importSetting = new ImportSettingsManager();
+        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config']??[];
+        foreach ($SCIMImportSettingFiles as $file){
+            $fileContent = parse_ini_file($file);
+            if($fileContent['ImportTable']=='Role'){
+                $this->path = $file;
+                break;
+            }
+        }
+
         $this->masterDB = $this->importSetting->getTableRole();
+
     }
 
     /**
