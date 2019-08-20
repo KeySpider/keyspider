@@ -148,10 +148,10 @@ class DBExtractor
         $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            if ($n !== false and $value[0] == '(' and substr($value, -1) == ')') {//TODO: will be replaced by preg_match later
-                $columnName = substr($value, strlen($nameTable) + 2, -1);
+            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            if (count($matches)>2 && is_array($matches[2])) {
+                $columnName = $matches[2][0];
                 $arrayAliasColumns[] = $columnName;
-
             } else {
                 $defaultColumn = "default_$index";
                 $index++;
@@ -258,28 +258,6 @@ class DBExtractor
         }
     }
 
-    /**
-     * Switch table by name table
-     *
-     * @param $extractTable
-     * @return string|null
-     */
-    public function switchTable($extractTable)
-    {
-        switch ($extractTable) {
-            case 'Role':
-                return 'CCC';
-                break;
-            case 'User':
-                return 'AAA';
-                break;
-            case 'Organization':
-                return 'BBB';
-                break;
-            default:
-                return null;
-        }
-    }
 
     /**
      * @param $file_name
