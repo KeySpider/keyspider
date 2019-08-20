@@ -110,18 +110,14 @@ class SCIMReader
 
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
-                explode('.', $key);
-                if (isset(explode('.', $key)[1])) {
-                    if (isset($scimValue)) {
-                        //Create keys for postgres
-                        $keyWithoutTableName = explode('.', $key)[1];
-
+                //Create keys for postgres
+                $keyWithoutTableName = explode('.', $key)[1]??null;
+                if ($keyWithoutTableName && isset($scimValue)) {
                         if (in_array($scimValue, $getEncryptedFields)) {
                             $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
                         } else {
                             $dataCreate[$keyWithoutTableName] = "$scimValue";
                         }
-                    }
                     //Remove old Key (it's only suitable for Mysql)
                     //Mysql:[User.ID], Postgres:[ID] only
                     unset($key);
