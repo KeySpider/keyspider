@@ -69,7 +69,7 @@ class SCIMReader
             $resourceType = $importTable['ImportTable'];
             $this->updateFlagsColumnName = $this->settingImport->getUpdateFlagsColumnName($resourceType);
             $this->deleteFlagColumnName = $this->settingImport->getDeleteFlagColumnName($resourceType);
-            $this->primaryKey = $this->settingImport->getTableKey($resourceType);
+            $this->primaryKey = $this->settingImport->getTableKey();
 
             return $importTable['ImportTable'];
         }
@@ -200,7 +200,7 @@ class SCIMReader
         $setting = $importSetting->getSCIMImportSettings($path);
         $tableName = $this->getTableName($setting);
         $roleMap = $importSetting->getRoleMapInName();
-        $tableKey = $importSetting->getTableKey($tableName);
+        $tableKey = $importSetting->getTableKey();
 
         $returnFlag = true;
         //TODO: So bad code, but keep it for testing, fix later.

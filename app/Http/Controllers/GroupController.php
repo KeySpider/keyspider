@@ -228,7 +228,7 @@ class GroupController extends LaravelController
 
 
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
-        $keyTable = $this->settingManagement->getTableKey($this->masterDB);
+        $keyTable = $this->settingManagement->getTableKey();
 
         $where = [
             "{$keyTable}" => $id,
@@ -300,7 +300,7 @@ class GroupController extends LaravelController
         $members = [];
         $groupTable = $this->settingManagement->getTableUser();
         $roleColumnIndex = $this->settingManagement->getRoleFlagIDColumnNameFromGroupId($id);
-        $tableKey = $this->importSetting->getTableKey($groupTable);
+        $tableKey = $this->importSetting->getTableKey();
         if ($roleColumnIndex!==null) {
             $roleFlagColumnName = 'RoleFlag-' . (string)$roleColumnIndex;
             //Find all User has RoleFlag Column name equal '1'
@@ -326,7 +326,7 @@ class GroupController extends LaravelController
      */
     private function checkToResponseErrorCase($id, $input)
     {
-        $keyTable = $this->settingManagement->getTableKey($this->masterDB);
+        $keyTable = $this->settingManagement->getTableKey();
         $sqlQuery = DB::table($this->importSetting->getTableRole());
         $where = [
             "{$keyTable}" => $id,

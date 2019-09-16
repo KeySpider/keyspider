@@ -85,7 +85,7 @@ class UserController extends LaravelController
 //        $sqlQuery->where($columnDeleted, '!=', '1');
 
         $scimQuery = $request->input('filter', null);
-        $keyTable = $this->importSetting->getTableKey($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey();
         if ($request->has('filter')) {
             if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
@@ -158,7 +158,7 @@ class UserController extends LaravelController
         Log::info('--------------------------------------------------');
 
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
-        $keyTable = $this->importSetting->getTableKey($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey();
 
         try {
             $query = DB::table($this->importSetting->getTableUser());
@@ -321,7 +321,7 @@ class UserController extends LaravelController
      */
     private function checkToResponseErrorCase($id, $input)
     {
-        $keyTable = $this->importSetting->getTableKey($this->masterDB);
+        $keyTable = $this->importSetting->getTableKey();
 
         $sqlQuery = DB::table($this->importSetting->getTableUser());
         $where = [

@@ -135,7 +135,7 @@ class CSVReader implements DataInputReader
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
-            $primaryKey = $settingManagement->getTableKey($nameTable);
+            $primaryKey = $settingManagement->getTableKey();
 
             // get data from csv file
             $csv = Reader::createFromPath($fileCSV);

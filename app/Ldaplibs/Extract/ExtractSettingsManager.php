@@ -41,7 +41,7 @@ class ExtractSettingsManager extends SettingsManager
 
     public function __construct($iniSettingsFiles = null)
     {
-        parent::__construct($iniSettingsFiles);
+        parent::__construct();
         $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
     }
 

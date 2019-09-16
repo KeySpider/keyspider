@@ -68,7 +68,7 @@ class DBExtractor
 
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
-            $primaryKey = $settingManagement->getTableKey($table);
+            $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
