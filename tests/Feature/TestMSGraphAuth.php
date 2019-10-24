@@ -45,9 +45,8 @@ class TestMSGraphAuth extends TestCase
     public function testExample()
     {
 
-//        var_dump($accessToken);
         $users = $this->getUserList();
-        var_dump($users);
+//        var_dump($users);
         $this->assertTrue(true);
     }
 
@@ -77,6 +76,25 @@ class TestMSGraphAuth extends TestCase
 
     public function testCreateUser()
     {
+        $newUser = $this->createUserObject();
+        $this->graph->createRequest("POST", "/users")
+            ->attachBody($newUser)
+            ->execute();
+
+        //Get back to test
+        $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())->setReturnType(User::class)
+            ->execute();
+        //Check they're having same UserPrincipalName
+        $newUserPrincipalName = $newUser->getUserPrincipalName();
+        $createdPrincipalName = $userCreated->getUserPrincipalName();
+        $this->assertEquals($newUserPrincipalName, $createdPrincipalName);
+    }
+
+    /**
+     * @return User
+     */
+    private function createUserObject(): User
+    {
         $faker = Factory::create();
 
         $userJson = Config::get('GraphAPISchemas.createUserJson');
@@ -91,16 +109,7 @@ class TestMSGraphAuth extends TestCase
         $newUser->setCountry($faker->country);
         $newUser->setMobilePhone($faker->phoneNumber);
         $newUser->setStreetAddress($faker->streetAddress);
-        $this->graph->createRequest("POST", "/users")
-            ->attachBody($newUser)
-            ->execute();
-
-        $userCreated = $this->graph->createRequest("GET", "/users/$userName@naljp.onmicrosoft.com")->setReturnType(User::class)
-            ->execute();
-        $newUserPrincipalName = $newUser->getUserPrincipalName();
-        $createdPrincipalName = $userCreated->getUserPrincipalName();
-        $this->assertEquals($newUserPrincipalName, $createdPrincipalName);
-        var_dump($newUser);
+        return $newUser;
     }
 
 
