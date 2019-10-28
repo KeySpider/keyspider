@@ -68,9 +68,8 @@ class TestMSGraphUser extends TestCase
     public function testGetUser()
     {
         echo "- testGetUser\n";
-        $user = $this->graph->createRequest("GET", "/users/tuanla@naljp.onmicrosoft.com")
-            ->setReturnType(User::class)
-            ->execute();
+        $userId = "stephanie_runolfsson@naljp.onmicrosoft.com";
+        $user = $this->getUserDetail($userId);
         var_dump($user);
         $this->assertNotNull($user->getUserPrincipalName());
     }
@@ -78,18 +77,20 @@ class TestMSGraphUser extends TestCase
     public function testCreateUser()
     {
         echo "- testCreateUser\n";
-        $newUser = $this->createUserObject();
-        $this->graph->createRequest("POST", "/users")
-            ->attachBody($newUser)
-            ->execute();
+        for($i=0;$i<1;$i++){
+            $newUser = $this->createUserObject();
+            $this->graph->createRequest("POST", "/users")
+                ->attachBody($newUser)
+                ->execute();
 
-        //Get back to test
-        $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())->setReturnType(User::class)
-            ->execute();
-        //Check they're having same UserPrincipalName
-        $newUserPrincipalName = $newUser->getUserPrincipalName();
-        $createdPrincipalName = $userCreated->getUserPrincipalName();
-        $this->assertEquals($newUserPrincipalName, $createdPrincipalName);
+            //Get back to test
+            $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())->setReturnType(User::class)
+                ->execute();
+            //Check they're having same UserPrincipalName
+            $newUserPrincipalName = $newUser->getUserPrincipalName();
+            $createdPrincipalName = $userCreated->getUserPrincipalName();
+            $this->assertEquals($newUserPrincipalName, $createdPrincipalName);
+        }
     }
 
     /**
@@ -113,6 +114,42 @@ class TestMSGraphUser extends TestCase
         $newUser->setStreetAddress($faker->streetAddress);
         return $newUser;
     }
+
+/*    public function testDeleteAllUser(){
+        $users = $this->getUserList();
+        foreach ($users as $user){
+            $userPrincipalName = $user->getUserPrincipalName();
+            if (strpos($userPrincipalName, 'tuanla') !== false) {
+                echo "Do nothing on user: $userPrincipalName\n";
+            }
+            $this->deleteUser($userPrincipalName);
+            echo "Delete user: $userPrincipalName!\n";
+        }
+//
+    }*/
+
+    /**
+     * @param string $userId
+     * @return mixed
+     */
+    private function getUserDetail(string $userId)
+    {
+        $user = $this->graph->createRequest("GET", "/users/{$userId}")
+            ->setReturnType(User::class)
+            ->execute();
+        return $user;
+    }
+
+    /**
+     * @param $userPrincipalName
+     */
+    private function deleteUser($userPrincipalName): void
+    {
+        $userDeleted = $this->graph->createRequest("DELETE", "/users/" . $userPrincipalName)
+            ->setReturnType(User::class)
+            ->execute();
+    }
+
 
 
 }
