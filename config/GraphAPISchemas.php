@@ -23,5 +23,15 @@ return[
   "mobilePhone": "+1 206 555 0110",
   "usageLocation": "US",
   "userPrincipalName": "something@naljp.onmicrosoft.com"
-}'
+}',
+    'createGroupJson'=>'{
+  "description": "Group with designated owner and members",
+  "displayName": "Operations group",
+  "groupTypes": [
+    "Unified"
+  ],
+  "mailEnabled": true,
+  "mailNickname": "operations2019",
+  "securityEnabled": false
+}',
 ];
