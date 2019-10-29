@@ -46,7 +46,7 @@ class TestMSGraphUser extends TestCase
     {
 
         $users = $this->getUserList();
-//        var_dump($users);
+        var_dump($users);
         $this->assertTrue(true);
     }
 
@@ -77,7 +77,7 @@ class TestMSGraphUser extends TestCase
     public function testCreateUser()
     {
         echo "- testCreateUser\n";
-        for($i=0;$i<1;$i++){
+        for($i=0;$i<5;$i++){
             $newUser = $this->createUserObject();
             $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
@@ -115,18 +115,19 @@ class TestMSGraphUser extends TestCase
         return $newUser;
     }
 
-/*    public function testDeleteAllUser(){
+    public function testDeleteAllUser(){
         $users = $this->getUserList();
         foreach ($users as $user){
             $userPrincipalName = $user->getUserPrincipalName();
-            if (strpos($userPrincipalName, 'tuanla') !== false) {
+            if ((strpos($userPrincipalName, 'tuanla') !== false) || (strpos($userPrincipalName, 'plids') !== false)) {
                 echo "Do nothing on user: $userPrincipalName\n";
+                continue;
             }
             $this->deleteUser($userPrincipalName);
             echo "Delete user: $userPrincipalName!\n";
         }
 //
-    }*/
+    }
 
     /**
      * @param string $userId

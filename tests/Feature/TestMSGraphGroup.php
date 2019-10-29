@@ -60,8 +60,11 @@ class TestMSGraphGroup extends TestCase
 
     public function testGetGroupDetails()
     {
-        $group = $this->graph->createRequest("GET", "/groups/g1")->setReturnType(Group::class);
-        var_dump($group);
+        $group = $this->graph->createRequest("GET", "/groups/aa9e43c9-afc5-4288-ba86-17e5068fe1dd")
+            ->setReturnType(Group::class)
+            ->execute();
+//        var_dump($group->getMembers());
+        var_dump($group->getMembers());
         $this->assertNotNull($group);
     }
 
@@ -69,15 +72,14 @@ class TestMSGraphGroup extends TestCase
     {
         $newGroup = $this->createGroupObject();
         var_dump($newGroup);
-        try{
+        try {
             $group = $this->graph->createRequest("POST", "/groups")
                 ->attachBody($newGroup)
                 ->setReturnType(Group::class)
                 ->execute();
             var_dump($group);
             $this->assertIsObject($group);
-        }
-        catch (\Exception $exception){
+        } catch (\Exception $exception) {
             var_dump($exception->getMessage());
             return;
         }
@@ -116,4 +118,77 @@ class TestMSGraphGroup extends TestCase
         return $newGroup;
     }
 
+    public function testDeleteGroup()
+    {
+        $groupId = '66b663ee-f0a5-41c5-b302-2a727781221f';
+
+        $group = $this->graph->createRequest("GET", "/groups/$groupId")->setReturnType(Group::class);
+        var_dump($group);
+        $this->deleteGroup($groupId);
+        $groupAfterDeleted = $this->graph->createRequest("GET", "/groups/$groupId")->setReturnType(Group::class);
+        var_dump($groupAfterDeleted);
+
+    }
+
+    private function deleteGroup($groupId): void
+    {
+        $userDeleted = $this->graph->createRequest("DELETE", "/groups/" . $groupId)
+            ->setReturnType(User::class)
+            ->execute();
+    }
+
+    public function testAddMembers()
+    {
+//        $groupId = 'aa9e43c9-afc5-4288-ba86-17e5068fe1dd';
+//        $groupId = '2c8a80f1-b967-411c-a3f7-230773629552';
+        $groupId = '6ddc9131-822e-4291-8bb4-89bade36e991';
+        $uPCN = 'faker_skuvalis@naljp.onmicrosoft.com';
+        $this->addMemberToGroup($uPCN, $groupId);
+        $membersList = $this->getMemberListOfGroupId($groupId);
+        var_dump($membersList);
+    }
+
+    /**
+     * @param string $uPCN
+     * @param string $groupId
+     */
+    private function addMemberToGroup(string $uPCN, string $groupId): void
+    {
+        $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
+        $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
+            ->attachBody($body)
+            ->setReturnType("GuzzleHttp\Psr7\Stream")
+            ->execute();
+        echo "add member to group: $uPCN\n\n";
+        var_dump($response);
+        echo "-------";
+    }
+
+    /**
+     * @param string $groupId
+     * @return mixed
+     */
+    private function getMemberListOfGroupId(string $groupId)
+    {
+        echo 'getMemberListOfGroup\n';
+        $membersList = $this->graph->createRequest("GET", "/groups/$groupId/members/")
+            ->setReturnType(User::class)
+            ->execute();
+        return $membersList;
+    }
+
+    public function testRemoveMemberOfGroup(){
+        $groupId = '6ddc9131-822e-4291-8bb4-89bade36e991';
+        $uPCN = 'faker_skuvalis@naljp.onmicrosoft.com';
+        $userId = 'f4532ebd-0183-422b-b0df-e0a2ea324a32';
+
+        $membersList = $this->getMemberListOfGroupId($groupId);
+        var_dump($membersList);
+        $response = $this->graph->createRequest("DELETE", "/groups/$groupId/members/$userId/\$ref")
+            ->setReturnType("GuzzleHttp\Psr7\Stream")
+            ->execute();
+        echo "\n\nCheck members list again\n\n";
+        var_dump($this->getMemberListOfGroupId($groupId));
+        dd($response);
+    }
 }
