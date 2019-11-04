@@ -81,6 +81,7 @@ class SettingsManager
                 'CSV Import Process Configration' => 'required',
                 'SCIM Input Process Configration' => 'required',
                 'CSV Extract Process Configration' => 'required',
+                'Azure Extract Process Configration' => 'required',
                 'CSV Output Process Configration' => 'required'
             ]);
             if ($validate->fails()) {

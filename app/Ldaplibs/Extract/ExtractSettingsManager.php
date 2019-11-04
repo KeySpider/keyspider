@@ -39,10 +39,16 @@ class ExtractSettingsManager extends SettingsManager
 
     const EXTRACT_CONFIG = 'extract_config';
 
-    public function __construct($iniSettingsFiles = null)
+    public function __construct($extract_config_tag = null)
     {
         parent::__construct();
-        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+//        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+        if($extract_config_tag==null){
+            $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+        }
+        else{
+            $this->iniExportSettingsFiles = $this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG];
+        }
     }
 
     /**
@@ -118,7 +124,7 @@ class ExtractSettingsManager extends SettingsManager
             self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
             self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
-            self::OUTPUT_PROCESS_CONVERSION => 'required'
+//            self::OUTPUT_PROCESS_CONVERSION => 'required'
         ];
 
         $validate = Validator::make($iniArray, $rules);
@@ -134,6 +140,8 @@ class ExtractSettingsManager extends SettingsManager
             return false;
         }
 
+        if(!isset($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion']))
+            return true;
 
         if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
             return true;
@@ -196,8 +204,8 @@ class ExtractSettingsManager extends SettingsManager
         $rules = [
 //            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM'],
-            'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD'],
+//            'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);
