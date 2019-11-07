@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Extract;
 
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\UserGraphAPI;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -183,7 +184,6 @@ class DBExtractor
                         $joinConditions[$data['exp1']] = $data['exp3'];
                     }
                 }
-
             }
         }
 
@@ -267,5 +267,72 @@ class DBExtractor
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
+    }
+
+    public function processExtractToAD()
+    {
+        try {
+            DB::beginTransaction();
+
+            $results = null;
+            $dataType = 'csv';
+
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+//            $table = $this->switchTable($extractTable);
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+//            if (!in_array($primaryKey, $selectColumns))
+//                $selectColumns[] = $primaryKey;
+            $selectColumnsAndID = array_merge($selectColumns, [$primaryKey]);
+
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
+            $extractedSql = $query->toSql();
+            Log::info($extractedSql);
+            $results = $query->get()->toArray();
+
+            if ($results) {
+                $userGraph = new UserGraphAPI();
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+                foreach ($results as $key => $item) {
+                    // update flag
+                    $keyString = $item->{"$primaryKey"};
+                    $userGraph->createUser($item);
+//                    TODO: create user ok but update flags failed.
+                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                }
+                //Start to extract
+                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+//                $settingOutput = $this->getContentOutputCSV($pathOutput);
+                echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
+//                $this->processOutputDataExtract($settingOutput, $results, $aliasColumns, $table);
+            }
+
+            DB::commit();
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
     }
 }

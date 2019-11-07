@@ -62,7 +62,7 @@ class ExportAzureAD extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule['setting'];
             $extractor = new DBExtractor($setting);
-            $extractor->processExtract();
+            $extractor->processExtractToAD();
         }
     }
 
