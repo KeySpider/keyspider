@@ -54,14 +54,20 @@ class UserGraphAPI
     public function createUser($userAttibutes)
     {
         echo "- \t\tcreating User: \n";
-        $userAttibutes['MailNickname'] = null;
-        $newUser = new User();
-        $newUser->setMailNickname($userAttibutes['ID']);
-        $newUser->setUserPrincipalName($userAttibutes["Name"]);
-        $newUser->setPasswordProfile([  "password"=> "Test1234",
+        unset($userAttibutes['ID']);
+        $password = $userAttibutes['password'];
+
+        unset($userAttibutes['password']);
+        $name = $userAttibutes['Name'];
+        unset($userAttibutes['Name']);
+
+        $newUser = new User($userAttibutes);
+        $newUser->setUserPrincipalName($name);
+        $newUser->setPasswordProfile([  "password"=> 'test1234A!',
                                         "forceChangePasswordNextSignIn"=> false
                                     ]);
-        $newUser->setDisplayName($userAttibutes['displayName']);
+
+
         $newUser->setAccountEnabled(true);
         var_dump($newUser);
         $this->graph->createRequest("POST", "/users")
