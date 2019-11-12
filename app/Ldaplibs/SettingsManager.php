@@ -298,7 +298,8 @@ class SettingsManager
         $columnName = $results[0];
         $updateFlagsValue = $results[1];
         $updateFlagsValue[$dataType] = $value;
-        return DB::table($tableQuery)->where($this->getTableKey(), $keyString)
+        $tableKey = $this->getTableKey();
+        return DB::table($tableQuery)->where($tableKey, $keyString)
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }
 

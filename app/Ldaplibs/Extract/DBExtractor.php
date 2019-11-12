@@ -152,7 +152,7 @@ class DBExtractor
             preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
             if (count($matches)>2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
-                $arrayAliasColumns[] = $columnName;
+                $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");;
             } else {
                 $defaultColumn = "default_$index";
                 $index++;
@@ -221,6 +221,7 @@ class DBExtractor
      */
     public function processOutputDataExtract($settingOutput, $results, $selectColumns, $table)
     {
+
         try {
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -296,7 +297,7 @@ class DBExtractor
             //Append 'ID' to selected Columns to query and process later
 //            if (!in_array($primaryKey, $selectColumns))
 //                $selectColumns[] = $primaryKey;
-            $selectColumnsAndID = array_merge($selectColumns, [$primaryKey]);
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey]);
 
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
@@ -318,15 +319,11 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     // update flag
                     $keyString = $item->{"$primaryKey"};
-                    $userGraph->createUser($item);
+                    $userOnAD = $userGraph->createUser((array)$item);
 //                    TODO: create user ok but update flags failed.
-                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                    $userOnDB = $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                    var_dump($userOnAD);
                 }
-                //Start to extract
-                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-//                $settingOutput = $this->getContentOutputCSV($pathOutput);
-                echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
-//                $this->processOutputDataExtract($settingOutput, $results, $aliasColumns, $table);
             }
 
             DB::commit();

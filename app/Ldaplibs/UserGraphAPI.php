@@ -30,6 +30,7 @@ class UserGraphAPI
         $this->graph = new Graph();
         $this->graph->setAccessToken($this->accessToken);
         echo ($this->accessToken);
+        $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
     }
 
     private function createUserObject($userAttibutes=[]): User
@@ -54,15 +55,9 @@ class UserGraphAPI
     public function createUser($userAttibutes)
     {
         echo "- \t\tcreating User: \n";
-        unset($userAttibutes['ID']);
-        $password = $userAttibutes['password'];
-
-        unset($userAttibutes['password']);
-        $name = $userAttibutes['Name'];
-        unset($userAttibutes['Name']);
+        $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
 
         $newUser = new User($userAttibutes);
-        $newUser->setUserPrincipalName($name);
         $newUser->setPasswordProfile([  "password"=> 'test1234A!',
                                         "forceChangePasswordNextSignIn"=> false
                                     ]);
@@ -75,12 +70,24 @@ class UserGraphAPI
                 ->execute();
 
             //Get back to test
-            $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())->setReturnType(User::class)
+            $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())
+                ->setReturnType(User::class)
                 ->execute();
-            //Check they're having same UserPrincipalName
-//            $newUserPrincipalName = $newUser->getId();
-//            $createdPrincipalName = $userCreated->getId();
-//            $this->assertEquals($newUserPrincipalName, $createdPrincipalName);
         echo "- \t\tcreated User \n";
+        return $userCreated->getId();
+    }
+
+    /**
+     * @param $userAttibutes
+     * @return mixed
+     */
+    private function getAttributesAfterRemoveUnused($userAttibutes)
+    {
+        foreach ($userAttibutes as $key => $value) {
+            if (!in_array($key, $this->user_attributes)) {
+                unset($userAttibutes[$key]);
+            }
+        }
+        return $userAttibutes;
     }
 }
