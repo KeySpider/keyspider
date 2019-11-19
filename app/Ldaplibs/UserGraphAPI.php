@@ -54,7 +54,7 @@ class UserGraphAPI
 
     public function createUser($userAttibutes)
     {
-        echo "- \t\tcreating User: \n";
+        echo "\n- \t\tcreating User: \n";
         $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
 
         $newUser = new User($userAttibutes);
@@ -74,7 +74,25 @@ class UserGraphAPI
                 ->setReturnType(User::class)
                 ->execute();
         echo "- \t\tcreated User \n";
-        return $userCreated->getId();
+        return $userCreated;
+    }
+
+    public function createUserWithResfulResponse($userAttibutes)
+    {
+        echo "\n- \t\tcreating User: \n";
+        $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
+
+        $newUser = new User($userAttibutes);
+        $newUser->setPasswordProfile([  "password"=> 'test1234A!',
+            "forceChangePasswordNextSignIn"=> false
+        ]);
+
+        $newUser->setAccountEnabled(true);
+//        var_dump($newUser);
+        return    $this->graph->createRequest("POST", "/users")
+            ->attachBody($newUser)
+            ->execute();
+
     }
 
     /**
@@ -90,4 +108,12 @@ class UserGraphAPI
         }
         return $userAttibutes;
     }
+
+    public function deleteUser($userPrincipalName): void
+    {
+        $userDeleted = $this->graph->createRequest("DELETE", "/users/" . $userPrincipalName)
+            ->setReturnType(User::class)
+            ->execute();
+    }
+
 }
