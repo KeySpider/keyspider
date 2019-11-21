@@ -71,10 +71,7 @@ class AutomationTestGraphAPI extends TestCase
 
     public function testExample()
     {
-//        $response = $this->get('/');
         $this->deleteAllUser();
-//        var_dump($this->getUserList());
-//        $response->assertStatus(200);
         $baseDirectory = storage_path(self::DATA_TEST_FLOWS);
         $directories = getDirectories($baseDirectory);
         $this->testCreateUsers("$baseDirectory/step1");
