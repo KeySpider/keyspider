@@ -27,6 +27,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Microsoft\Graph\Model\User;
 
 class DBExtractor
 {
@@ -150,7 +151,7 @@ class DBExtractor
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
             preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
-            if (count($matches)>2 && is_array($matches[2])) {
+            if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
                 $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");;
             } else {
@@ -273,7 +274,7 @@ class DBExtractor
     public function processExtractToAD()
     {
         try {
-            DB::beginTransaction();
+
 
             $results = null;
             $dataType = 'csv';
@@ -297,7 +298,7 @@ class DBExtractor
             //Append 'ID' to selected Columns to query and process later
 //            if (!in_array($primaryKey, $selectColumns))
 //                $selectColumns[] = $primaryKey;
-            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey]);
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
 
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
@@ -317,16 +318,29 @@ class DBExtractor
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
                 foreach ($results as $key => $item) {
+                    DB::beginTransaction();
                     // update flag
-                    $keyString = $item->{"$primaryKey"};
-                    $userOnAD = $userGraph->createUser((array)$item);
-//                    TODO: create user ok but update flags failed.
-                    $userOnDB = $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
-                    var_dump($userOnAD);
+                    if($item->externalID){
+                        $userToCheck = $userGraph->getUserDetail($item->externalID);
+                        if($userToCheck){
+                            $userGraph->updateUser((array)$item);
+                        }
+                    }
+                    else{
+                        $keyString = $item->{"$primaryKey"};
+                        $userOnAD = $userGraph->createUser((array)$item);
+//                    TODO: create user on AD, update UpdateFlags and externalID.
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                        $updateQuery = DB::table($table);
+                        $updateQuery->where($primaryKey, $keyString);
+                        $updateQuery->update(['externalID'=> $userOnAD->getID()]);
+                        var_dump($userOnAD);
+                    }
+                    DB::commit();
                 }
             }
 
-            DB::commit();
+
         } catch (Exception $exception) {
             Log::error($exception);
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
