@@ -4,7 +4,7 @@
     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
   ],
   "externalId": "user06",
-  "userName": "user06@jukkoussooutlook.onmicrosoft.com",
+  "userName": "user06@naljp.onmicrosoft.com",
   "active": true,
   "addresses": [
     {
