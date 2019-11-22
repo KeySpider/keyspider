@@ -4,6 +4,7 @@
 namespace App\Ldaplibs;
 
 
+use Exception;
 use Faker\Factory;
 use Illuminate\Support\Facades\Config;
 use Microsoft\Graph\Graph;
@@ -54,27 +55,56 @@ class UserGraphAPI
 
     public function createUser($userAttibutes)
     {
-        echo "\n- \t\tcreating User: \n";
-        $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
+        try {
+            echo "\n- \t\tcreating User: \n";
+            $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
 
-        $newUser = new User($userAttibutes);
-        $newUser->setPasswordProfile([  "password"=> 'test1234A!',
-                                        "forceChangePasswordNextSignIn"=> false
-                                    ]);
+            $newUser = new User($userAttibutes);
+            $newUser->setPasswordProfile(["password" => 'test1234A!',
+                "forceChangePasswordNextSignIn" => false
+            ]);
 
-
-        $newUser->setAccountEnabled(true);
-        var_dump($newUser);
-        $this->graph->createRequest("POST", "/users")
+            $newUser->setAccountEnabled(true);
+            var_dump($newUser);
+            $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
                 ->execute();
 
             //Get back to test
-            $userCreated = $this->graph->createRequest("GET", "/users/".$newUser->getUserPrincipalName())
+            $userCreated = $this->graph->createRequest("GET", "/users/" . $newUser->getUserPrincipalName())
                 ->setReturnType(User::class)
                 ->execute();
-        echo "- \t\tcreated User \n";
-        return $userCreated;
+            echo "- \t\tcreated User \n";
+            return $userCreated;
+        }catch (\Exception $exception){
+            echo $exception;
+            return null;
+        }
+    }
+
+    public function updateUser($userAttibutes)
+    {
+        try {
+            echo "\n- \t\tupdating User: \n";
+            $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
+            $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
+            $uPN = $userAttibutes['userPrincipalName'];
+            //Can not update userPrincipalName
+            unset($userAttibutes['userPrincipalName']);
+            $newUser = new User($userAttibutes);
+            $newUser->setAccountEnabled($accountEnable);
+            var_dump($newUser);
+            $this->graph->createRequest("PATCH", "/users/$uPN")
+                ->attachBody($newUser)
+                ->execute();
+            echo "\n- \t\t User[$uPN] updated \n";
+            return $newUser;
+        }
+        catch (\Exception $exception){
+            echo $exception;
+            return null;
+        }
+
     }
 
     public function createUserWithResfulResponse($userAttibutes)
@@ -114,6 +144,20 @@ class UserGraphAPI
         $userDeleted = $this->graph->createRequest("DELETE", "/users/" . $userPrincipalName)
             ->setReturnType(User::class)
             ->execute();
+        echo "\nDeleted user: $$userPrincipalName";
+    }
+
+    public function getUserDetail(string $userId)
+    {
+        try{
+            $user = $this->graph->createRequest("GET", "/users/{$userId}")
+                ->setReturnType(User::class)
+                ->execute();
+            return $user;
+        }
+        catch (\Exception $exception){
+            return null;
+        }
     }
 
 }

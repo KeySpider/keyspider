@@ -276,13 +276,10 @@ class DBExtractor
         try {
 
 
-            $results = null;
-            $dataType = 'csv';
-
+//            $results = null;
             $setting = $this->setting;
             $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
-//            $table = $this->switchTable($extractTable);
 
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $settingManagement = new SettingsManager();
@@ -320,20 +317,21 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     DB::beginTransaction();
                     // update flag
-                    if($item->externalID){
-                        $userToCheck = $userGraph->getUserDetail($item->externalID);
-                        if($userToCheck){
-                            $userGraph->updateUser((array)$item);
+                    if ($item->externalID) {
+                        $userToCheck = $userGraph->getUserDetail($item->userPrincipalName);
+                        if ($userToCheck) {
+                            $userUpdated = $userGraph->updateUser((array)$item);
+                            if($userUpdated==null) continue;
+                            $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                         }
-                    }
-                    else{
-                        $keyString = $item->{"$primaryKey"};
+                    } else {
                         $userOnAD = $userGraph->createUser((array)$item);
+                        if ($userOnAD == null) continue;
 //                    TODO: create user on AD, update UpdateFlags and externalID.
-                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
-                        $updateQuery = DB::table($table);
-                        $updateQuery->where($primaryKey, $keyString);
-                        $updateQuery->update(['externalID'=> $userOnAD->getID()]);
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                        $updateQuery->update(['externalID' => $userOnAD->getID()]);
                         var_dump($userOnAD);
                     }
                     DB::commit();
