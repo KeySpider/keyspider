@@ -58,11 +58,10 @@ class UserGraphAPI
 
     public function createUser($userAttibutes)
     {
+
         try {
             echo "\n- \t\tcreating User: \n";
-            $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
-
-            $newUser = new User($userAttibutes);
+            $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
             $newUser->setPasswordProfile(["password" => 'test1234A!',
                 "forceChangePasswordNextSignIn" => false
             ]);
@@ -78,6 +77,7 @@ class UserGraphAPI
                 ->setReturnType(User::class)
                 ->execute();
             echo "- \t\tcreated User \n";
+            $this->addMembersToGroup($userAttibutes);
             return $userCreated;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
@@ -88,20 +88,22 @@ class UserGraphAPI
 
     public function updateUser($userAttibutes)
     {
+
         try {
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
-            $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
             $uPN = $userAttibutes['userPrincipalName'];
             //Can not update userPrincipalName
             unset($userAttibutes['userPrincipalName']);
-            $newUser = new User($userAttibutes);
+            $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
             $newUser->setAccountEnabled($accountEnable);
             var_dump($newUser);
             $this->graph->createRequest("PATCH", "/users/$uPN")
                 ->attachBody($newUser)
                 ->execute();
             echo "\n- \t\t User[$uPN] updated \n";
+            $userAttibutes['userPrincipalName'] = $uPN;
+            $this->addMembersToGroup($userAttibutes);
             return $newUser;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
@@ -111,23 +113,6 @@ class UserGraphAPI
 
     }
 
-    public function createUserWithResfulResponse($userAttibutes)
-    {
-        echo "\n- \t\tcreating User: \n";
-        $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
-
-        $newUser = new User($userAttibutes);
-        $newUser->setPasswordProfile(["password" => 'test1234A!',
-            "forceChangePasswordNextSignIn" => false
-        ]);
-
-        $newUser->setAccountEnabled(true);
-//        var_dump($newUser);
-        return $this->graph->createRequest("POST", "/users")
-            ->attachBody($newUser)
-            ->execute();
-
-    }
 
     /**
      * @param $userAttibutes
@@ -252,6 +237,48 @@ class UserGraphAPI
             Log::error($exception->getMessage());
             echo($exception->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * @param $userAttibutes
+     * @return array
+     */
+    private function getListOfGroupsUserBelongedTo($userAttibutes): array
+    {
+        $memberOf = [];
+        $roleMap = (new SettingsManager())->getRoleMapInExternalID('Role');
+        foreach ($userAttibutes as $roleFlag => $value) {
+            if ((strpos($roleFlag, 'RoleFlag-') !== false) && ($value == 1)) {
+                $temp = explode('-', $roleFlag);
+                $memberOf[] = $roleMap[(int)$temp[1]];
+
+            }
+        }
+        return $memberOf;
+    }
+
+
+    private function addMemberToGroup(string $uPCN, string $groupId): void
+    {
+        $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
+        $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
+            ->attachBody($body)
+            ->setReturnType("GuzzleHttp\Psr7\Stream")
+            ->execute();
+        echo "\nadd member to group: $uPCN\n\n";
+        var_dump($response);
+        echo "-------";
+    }
+
+    /**
+     * @param $userAttibutes
+     */
+    private function addMembersToGroup($userAttibutes): void
+    {
+        $memberOf = $this->getListOfGroupsUserBelongedTo($userAttibutes);
+        foreach ($memberOf as $groupID) {
+            $this->addMemberToGroup($userAttibutes['userPrincipalName'], $groupID);
         }
     }
 

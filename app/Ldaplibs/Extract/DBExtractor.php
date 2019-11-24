@@ -293,8 +293,11 @@ class DBExtractor
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
-            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
 
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
+            if($table=='User'){
+                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+            }
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
@@ -316,7 +319,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     DB::beginTransaction();
                     // check resource is existed on AD or not
-                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $item['userPrincipalName']))) {
+                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $item->userPrincipalName))) {
                         $userUpdated = $userGraph->updateUser((array)$item);
                         if ($userUpdated == null) continue;
                         $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
