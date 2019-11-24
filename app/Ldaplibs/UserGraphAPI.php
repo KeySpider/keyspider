@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Group;
 use Microsoft\Graph\Model\User;
+use MongoDB\Driver\Exception\ExecutionTimeoutException;
 
 class UserGraphAPI
 {
@@ -66,18 +67,15 @@ class UserGraphAPI
                 "forceChangePasswordNextSignIn" => false
             ]);
 
-            $newUser->setAccountEnabled(true);
+            $newUser->setAccountEnabled($userAttibutes['DeleteFlag'] == 0 ? true : false);
             var_dump($newUser);
-            $this->graph->createRequest("POST", "/users")
+            $userCreated = $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
-                ->execute();
-
-            //Get back to test
-            $userCreated = $this->graph->createRequest("GET", "/users/" . $newUser->getUserPrincipalName())
                 ->setReturnType(User::class)
                 ->execute();
+            $uID = $userCreated->getId();
             echo "- \t\tcreated User \n";
-            $this->addMembersToGroup($userAttibutes);
+            $this->addMemberToGroups($userAttibutes, $uID);
             return $userCreated;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
@@ -93,6 +91,7 @@ class UserGraphAPI
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
             $uPN = $userAttibutes['userPrincipalName'];
+            $uID = $userAttibutes['externalID'];
             //Can not update userPrincipalName
             unset($userAttibutes['userPrincipalName']);
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
@@ -103,7 +102,7 @@ class UserGraphAPI
                 ->execute();
             echo "\n- \t\t User[$uPN] updated \n";
             $userAttibutes['userPrincipalName'] = $uPN;
-            $this->addMembersToGroup($userAttibutes);
+            $this->addMemberToGroups($userAttibutes, $uID);
             return $newUser;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
@@ -144,6 +143,7 @@ class UserGraphAPI
                 ->execute();
             return $user;
         } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
             try {
                 $user = $this->graph->createRequest("GET", "/users/{$uPN}")
                     ->setReturnType(User::class)
@@ -274,13 +274,46 @@ class UserGraphAPI
     /**
      * @param $userAttibutes
      */
-    private function addMembersToGroup($userAttibutes): void
+    private function addMemberToGroups($userAttibutes, $uID): void
     {
         $memberOf = $this->getListOfGroupsUserBelongedTo($userAttibutes);
+        $uPN = $userAttibutes['userPrincipalName'];
+        $groupIDListOnAD = $this->getMemberOfsAD($uPN);
+
         foreach ($memberOf as $groupID) {
-            $this->addMemberToGroup($userAttibutes['userPrincipalName'], $groupID);
+            if(!in_array($groupID, $groupIDListOnAD)){
+                $this->addMemberToGroup($uPN, $groupID);
+            }
+        }
+        foreach ($groupIDListOnAD as $groupID) {
+            if(!in_array($groupID, $memberOf)){
+                $this->removeMemberOfGroup($uID, $groupID);
+            }
         }
     }
 
+    private function getMemberOfsAD($uPN){
+        $groupList = $this->graph->createRequest("GET", "/users/$uPN/memberOf/")
+            ->setReturnType(Group::class)
+            ->execute();
+        $groupIDList = [];
+        foreach ($groupList as $group){
+            $groupIDList[] = $group->getId();
+        }
+        return $groupIDList;
+    }
+
+    private function removeMemberOfGroup($uPCN, $groupId){
+        try{
+            $this->graph->createRequest("DELETE", "/groups/$groupId/members/$uPCN/\$ref")
+                ->setReturnType("GuzzleHttp\Psr7\Stream")
+                ->execute();
+        }
+        catch (\Exception $exception){
+            Log::error($exception->getMessage());
+            echo($exception->getMessage());
+            return false;
+        }
+    }
 
 }
