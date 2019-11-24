@@ -80,7 +80,7 @@ class UserGraphAPI
             return $userCreated;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            echo $exception;
+//            echo $exception;
             return null;
         }
     }
@@ -108,7 +108,7 @@ class UserGraphAPI
             return $newUser;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            echo $exception;
+//            echo $exception;
             return null;
         }
 
@@ -211,6 +211,20 @@ class UserGraphAPI
             return $this->createUser($attributes);
         } elseif ($tableName == 'Role') {
             return $this->createGroup($attributes);
+            sleep(1);
+        } else {
+            return null;
+        }
+    }
+
+    public function updateResource($attributes, $tableName)
+    {
+        if ($tableName == 'User') {
+            return $this->updateUser($attributes);
+        } elseif ($tableName == 'Role') {
+            unset($attributes['mail']);
+            return $this->updateGroup($attributes);
+            sleep(1);
         } else {
             return null;
         }
@@ -262,17 +276,19 @@ class UserGraphAPI
     }
 
 
-    private function addMemberToGroup(string $uPCN, string $groupId): void
+    private function addMemberToGroup($uPCN, $groupId): void
     {
-        Log::info("Add member [$uPCN] to group [$groupId]");
-        $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
-        $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
-            ->attachBody($body)
-            ->setReturnType("GuzzleHttp\Psr7\Stream")
-            ->execute();
-        echo "\nadd member to group: $uPCN\n\n";
-        var_dump($response);
-        echo "-------";
+
+            Log::info("Add member [$uPCN] to group [$groupId]");
+            $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
+            $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
+                ->attachBody($body)
+                ->setReturnType("GuzzleHttp\Psr7\Stream")
+                ->execute();
+            echo "\nadd member to group: $uPCN\n\n";
+            var_dump($response);
+            echo "-------";
+
     }
 
     /**
@@ -310,16 +326,33 @@ class UserGraphAPI
     private function removeMemberOfGroup($uPCN, $groupId){
         Log::info("Remove member [$uPCN] from group [$groupId]");
         echo "\n Remove member [$uPCN] from group $groupId\n";
-        try{
+
             $this->graph->createRequest("DELETE", "/groups/$groupId/members/$uPCN/\$ref")
                 ->setReturnType("GuzzleHttp\Psr7\Stream")
                 ->execute();
-        }
-        catch (\Exception $exception){
-            Log::error($exception->getMessage());
-            echo($exception->getMessage());
-            return false;
-        }
     }
 
+    public function updateGroup($groupAttibutes)
+    {
+
+        try {
+            Log::info("Update group: ".json_encode($groupAttibutes));
+            echo "\n- \t\tupdating User: \n";
+            $accountEnable = $groupAttibutes['DeleteFlag'] == 0 ? true : false;
+            $uID = $groupAttibutes['externalID'];
+            $groupAttibutes = array_only($groupAttibutes, ['displayName']);
+            $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($groupAttibutes));
+            var_dump($newGroup);
+            $this->graph->createRequest("PATCH", "/groups/$uID")
+                ->attachBody($newGroup)
+                ->execute();
+            echo "\n- \t\t Group [$uID] updated \n";
+            return $newGroup;
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
+//            echo $exception;
+            return null;
+        }
+
+    }
 }

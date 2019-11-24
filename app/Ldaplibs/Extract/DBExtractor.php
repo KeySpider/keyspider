@@ -349,8 +349,10 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     DB::beginTransaction();
                     // check resource is existed on AD or not
-                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $item->userPrincipalName))) {
-                        $userUpdated = $userGraph->updateUser((array)$item);
+                    //TODO: need to change because userPrincipalName is not existed in group.
+                    $uPN = $item->userPrincipalName??null;
+                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $uPN))) {
+                        $userUpdated = $userGraph->updateResource((array)$item, $table);
                         if ($userUpdated == null) continue;
                         $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                     }
