@@ -1,5 +1,5 @@
 <?php
-return[
+return [
     'createUserJson' => '{
   "accountEnabled": true,
   "city": "Seattle",
@@ -24,7 +24,7 @@ return[
   "usageLocation": "US",
   "userPrincipalName": "something@naljp.onmicrosoft.com"
 }',
-    'createGroupJson'=>'{
+    'createGroupJson' => '{
   "description": "Group with designated owner and members",
   "displayName": "Operations group",
   "groupTypes": [
@@ -34,7 +34,7 @@ return[
   "mailNickname": "operations2019",
   "securityEnabled": false
 }',
-    "userAttributes"=>'[
+    "userAttributes" => '[
     "accountEnabled",
     "ageGroup",
     "assignedLicenses",
@@ -129,5 +129,57 @@ return[
     "settings",
     "joinedTeams"
 
-]'
+]',
+    "groupAttributes" => '[
+    "assignedLicenses",
+    "classification",
+    "createdDateTime",
+    "description",
+    "displayName",
+    "hasMembersWithLicenseErrors",
+    "groupTypes",
+    "licenseProcessingState",
+    "mail",
+    "mailEnabled",
+    "mailNickname",
+    "onPremisesLastSyncDateTime",
+        "onPremisesProvisioningErrors",
+    "onPremisesSecurityIdentifier",
+    "onPremisesSyncEnabled",
+    "preferredDataLocation",
+    "proxyAddresses",
+    "renewedDateTime",
+    "securityEnabled",
+    "visibility",
+    "allowExternalSenders",
+    "autoSubscribeNewMembers",
+    "isSubscribedByMail",
+    "unseenCount",
+    "isArchived",
+    "members",
+    "memberOf",
+    "membersWithLicenseErrors",
+    "transitiveMembers",
+    "transitiveMemberOf",
+    "createdOnBehalfOf",
+    "owners",
+    "settings",
+    "extensions",
+    "threads",
+    "calendar",
+    "calendarView",
+    "events",
+    "conversations",
+    "photo",
+    "photos",
+    "acceptedSenders",
+    "rejectedSenders",
+    "drive",
+    "drives",
+    "sites",
+    "planner",
+    "onenote",
+    "groupLifecyclePolicies",
+    "team" 
+    ]'
 ];

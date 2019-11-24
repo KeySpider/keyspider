@@ -8,6 +8,7 @@ use Exception;
 use Faker\Factory;
 use Illuminate\Support\Facades\Config;
 use Microsoft\Graph\Graph;
+use Microsoft\Graph\Model\Group;
 use Microsoft\Graph\Model\User;
 
 class UserGraphAPI
@@ -32,6 +33,7 @@ class UserGraphAPI
         $this->graph->setAccessToken($this->accessToken);
         echo ($this->accessToken);
         $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
+        $this->group_attributes = json_decode(Config::get('GraphAPISchemas.groupAttributes'), true);
     }
 
     private function createUserObject($userAttibutes=[]): User
@@ -156,6 +158,63 @@ class UserGraphAPI
             return $user;
         }
         catch (\Exception $exception){
+            return null;
+        }
+    }
+
+    public function createGroup($groupAttributes)
+    {
+        echo "\n- \t\tcreating Group: \n";
+        $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
+        $newGroup = $this->createGroupObject($groupAttributes);
+        var_dump($newGroup);
+        try {
+            $group = $this->graph->createRequest("POST", "/groups")
+                ->attachBody($newGroup)
+                ->setReturnType(Group::class)
+                ->execute();
+            var_dump($group);
+            echo "\n- \t\tGroup created: \n";
+            return $group;
+        } catch (\Exception $exception) {
+            var_dump($exception->getMessage());
+            return null;
+        }
+
+    }
+
+    private function createGroupObject($groupAttributes): Group
+    {
+        $userJson = Config::get('GraphAPISchemas.createGroupJson');
+        $userArray = json_decode($userJson, true);
+        $newGroup = new Group($groupAttributes);
+        $newGroup->setMailEnabled(false);
+        $newGroup->setGroupTypes(['Unified']);
+        $newGroup->setSecurityEnabled(false);
+        //        Optional attributes
+
+        return $newGroup;
+    }
+
+    private function getGroupAttributesAfterRemoveUnused($groupAttibutes)
+    {
+        foreach ($groupAttibutes as $key => $value) {
+            if (!in_array($key, $this->group_attributes)) {
+                unset($groupAttibutes[$key]);
+            }
+        }
+        return $groupAttibutes;
+    }
+
+    public function createResource($attributes, $tableName)
+    {
+        if($tableName=='User'){
+            return $this->createUser($attributes);
+        }
+        elseif($tableName=='Role'){
+            return $this->createGroup($attributes);
+        }
+        else{
             return null;
         }
     }

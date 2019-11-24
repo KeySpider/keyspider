@@ -314,6 +314,7 @@ class DBExtractor
                 $userGraph = new UserGraphAPI();
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
+
                 foreach ($results as $key => $item) {
                     DB::beginTransaction();
                     // update flag
@@ -325,7 +326,7 @@ class DBExtractor
                             $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                         }
                     } else {
-                        $userOnAD = $userGraph->createUser((array)$item);
+                        $userOnAD = $userGraph->createResource((array)$item, $table);
                         if ($userOnAD == null) continue;
 //                    TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
