@@ -7,6 +7,7 @@ namespace App\Ldaplibs;
 use Exception;
 use Faker\Factory;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Group;
 use Microsoft\Graph\Model\User;
@@ -31,23 +32,23 @@ class UserGraphAPI
         $this->accessToken = $token->access_token;
         $this->graph = new Graph();
         $this->graph->setAccessToken($this->accessToken);
-        echo ($this->accessToken);
+        echo($this->accessToken);
         $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
         $this->group_attributes = json_decode(Config::get('GraphAPISchemas.groupAttributes'), true);
     }
 
-    private function createUserObject($userAttibutes=[]): User
+    private function createUserObject($userAttibutes = []): User
     {
         $faker = Factory::create();
 
         $userJson = Config::get('GraphAPISchemas.createUserJson');
         $newUser = new User(json_decode($userJson, true));
-        $newUser->setDisplayName($userAttibutes->ID??null);
+        $newUser->setDisplayName($userAttibutes->ID ?? null);
         $userName = 'faker_' . $faker->userName;
         //        Required attributes
         $newUser->setGivenName($userAttibutes->givenName);
         $newUser->setMailNickname($userAttibutes->mail);
-        $newUser->setUserPrincipalName($userAttibutes->mailNickname??$userAttibutes->Name);
+        $newUser->setUserPrincipalName($userAttibutes->mailNickname ?? $userAttibutes->Name);
         //        Optional attributes
         $newUser->setCountry($faker->country);
         $newUser->setMobilePhone($faker->phoneNumber);
@@ -78,7 +79,8 @@ class UserGraphAPI
                 ->execute();
             echo "- \t\tcreated User \n";
             return $userCreated;
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
             echo $exception;
             return null;
         }
@@ -101,8 +103,8 @@ class UserGraphAPI
                 ->execute();
             echo "\n- \t\t User[$uPN] updated \n";
             return $newUser;
-        }
-        catch (\Exception $exception){
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
             echo $exception;
             return null;
         }
@@ -115,13 +117,13 @@ class UserGraphAPI
         $userAttibutes = $this->getAttributesAfterRemoveUnused($userAttibutes);
 
         $newUser = new User($userAttibutes);
-        $newUser->setPasswordProfile([  "password"=> 'test1234A!',
-            "forceChangePasswordNextSignIn"=> false
+        $newUser->setPasswordProfile(["password" => 'test1234A!',
+            "forceChangePasswordNextSignIn" => false
         ]);
 
         $newUser->setAccountEnabled(true);
 //        var_dump($newUser);
-        return    $this->graph->createRequest("POST", "/users")
+        return $this->graph->createRequest("POST", "/users")
             ->attachBody($newUser)
             ->execute();
 
@@ -149,16 +151,24 @@ class UserGraphAPI
         echo "\nDeleted user: $$userPrincipalName";
     }
 
-    public function getUserDetail(string $userId)
+    public function getUserDetail(string $userId, $uPN)
     {
-        try{
+        try {
             $user = $this->graph->createRequest("GET", "/users/{$userId}")
                 ->setReturnType(User::class)
                 ->execute();
             return $user;
-        }
-        catch (\Exception $exception){
-            return null;
+        } catch (\Exception $exception) {
+            try {
+                $user = $this->graph->createRequest("GET", "/users/{$uPN}")
+                    ->setReturnType(User::class)
+                    ->execute();
+                return $user;
+            } catch (\Exception $exception) {
+                Log::error($exception->getMessage());
+                return null;
+            }
+
         }
     }
 
@@ -177,6 +187,7 @@ class UserGraphAPI
             echo "\n- \t\tGroup created: \n";
             return $group;
         } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
             var_dump($exception->getMessage());
             return null;
         }
@@ -208,15 +219,41 @@ class UserGraphAPI
 
     public function createResource($attributes, $tableName)
     {
-        if($tableName=='User'){
+        if ($tableName == 'User') {
             return $this->createUser($attributes);
-        }
-        elseif($tableName=='Role'){
+        } elseif ($tableName == 'Role') {
             return $this->createGroup($attributes);
-        }
-        else{
+        } else {
             return null;
         }
     }
+
+    public function getResourceDetails($id, $tableName, $uPN = null)
+    {
+        if ($tableName == 'User') {
+            return $this->getUserDetail($id, $uPN);
+        } elseif ($tableName == 'Role') {
+            return $this->getGroupDetails($id);
+        } else {
+            return null;
+        }
+
+    }
+
+    public function getGroupDetails($id)
+    {
+        try {
+            $group = $this->graph->createRequest("GET", "/groups/$id")
+                ->setReturnType(Group::class)
+                ->execute();
+            var_dump($group);
+            return $group;
+        } catch (Exception $exception) {
+            Log::error($exception->getMessage());
+            echo($exception->getMessage());
+            return null;
+        }
+    }
+
 
 }

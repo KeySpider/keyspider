@@ -293,8 +293,6 @@ class DBExtractor
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
-//            if (!in_array($primaryKey, $selectColumns))
-//                $selectColumns[] = $primaryKey;
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
 
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
@@ -317,15 +315,14 @@ class DBExtractor
 
                 foreach ($results as $key => $item) {
                     DB::beginTransaction();
-                    // update flag
-                    if ($item->externalID) {
-                        $userToCheck = $userGraph->getUserDetail($item->userPrincipalName);
-                        if ($userToCheck) {
-                            $userUpdated = $userGraph->updateUser((array)$item);
-                            if($userUpdated==null) continue;
-                            $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
-                        }
-                    } else {
+                    // check resource is existed on AD or not
+                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $item['userPrincipalName']))) {
+                        $userUpdated = $userGraph->updateUser((array)$item);
+                        if ($userUpdated == null) continue;
+                        $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                    }
+                    //Not found resource, create it!
+                    else {
                         $userOnAD = $userGraph->createResource((array)$item, $table);
                         if ($userOnAD == null) continue;
 //                    TODO: create user on AD, update UpdateFlags and externalID.
