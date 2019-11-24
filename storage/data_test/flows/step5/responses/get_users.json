@@ -11,7 +11,7 @@
       "externalId": "user01@naljp.onmicrosoft.com",
       "userName": "user01@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User01",
       "meta": {
         "resourceType": "User"
       },
@@ -29,7 +29,7 @@
       "externalId": "user02@naljp.onmicrosoft.com",
       "userName": "user02@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User02",
       "meta": {
         "resourceType": "User"
       },
@@ -47,7 +47,7 @@
       "externalId": "user09@naljp.onmicrosoft.com",
       "userName": "user09@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User09",
       "meta": {
         "resourceType": "User"
       },
@@ -65,7 +65,7 @@
       "externalId": "user10@naljp.onmicrosoft.com",
       "userName": "user10@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User10",
       "meta": {
         "resourceType": "User"
       },
@@ -83,7 +83,7 @@
       "externalId": "user03@naljp.onmicrosoft.com",
       "userName": "user03@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User03",
       "meta": {
         "resourceType": "User"
       },
@@ -101,7 +101,7 @@
       "externalId": "user04@naljp.onmicrosoft.com",
       "userName": "user04@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User04",
       "meta": {
         "resourceType": "User"
       },
@@ -119,7 +119,7 @@
       "externalId": "user05@naljp.onmicrosoft.com",
       "userName": "user05@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User05",
       "meta": {
         "resourceType": "User"
       },
@@ -137,7 +137,7 @@
       "externalId": "user08@naljp.onmicrosoft.com",
       "userName": "user08@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User08",
       "meta": {
         "resourceType": "User"
       },
@@ -155,7 +155,7 @@
       "externalId": "user06@naljp.onmicrosoft.com",
       "userName": "user06@naljp.onmicrosoft.com",
       "active": false,
-      "displayName": "u12",
+      "displayName": "SCIM_User06",
       "meta": {
         "resourceType": "User"
       },
@@ -173,7 +173,7 @@
       "externalId": "user07@naljp.onmicrosoft.com",
       "userName": "user07@naljp.onmicrosoft.com",
       "active": false,
-      "displayName": "u12",
+      "displayName": "SCIM_User07",
       "meta": {
         "resourceType": "User"
       },

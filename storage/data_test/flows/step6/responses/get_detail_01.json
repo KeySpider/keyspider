@@ -11,7 +11,7 @@
     "resourceType": "User"
   },
   "name": {
-    "formatted": "u12",
+    "formatted": "SCIM_User01",
     "familyName": "user01@naljp.onmicrosoft.com",
     "givenName": null
   },

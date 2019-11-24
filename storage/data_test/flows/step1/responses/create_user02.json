@@ -18,7 +18,7 @@
       "streetAddress": "EEE"
     }
   ],
-  "displayName": "u12",
+  "displayName": "SCIM_User02",
   "meta": {
     "resourceType": "User",
     "location": "http://127.0.0.1:8000/api/Users/user02"

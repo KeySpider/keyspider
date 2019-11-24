@@ -39,12 +39,12 @@ class ResetDataToTestPhase4 extends Command
      */
     public function handle()
     {
-        $testMSGraphUser = new TestMSGraphUser();
-        $testMSGraphUser->setUp();
-        $testMSGraphUser->testDeleteAllUser();
-        $testMSGraphGroup = new TestMSGraphGroup();
-        $testMSGraphGroup->setUp();
-        $testMSGraphGroup->testDeleteAllGroups();
+//        $testMSGraphUser = new TestMSGraphUser();
+//        $testMSGraphUser->setUp();
+//        $testMSGraphUser->testDeleteAllUser();
+//        $testMSGraphGroup = new TestMSGraphGroup();
+//        $testMSGraphGroup->setUp();
+//        $testMSGraphGroup->testDeleteAllGroups();
         (new \Tests\Automation\TestFlow())->testScenario();
     }
 }
