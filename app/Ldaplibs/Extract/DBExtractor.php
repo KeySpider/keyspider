@@ -50,6 +50,36 @@ class DBExtractor
         $this->setting = $setting;
     }
 
+    /**
+     * @param $nameTable
+     * @param $settingConvention
+     * @return array|mixed
+     */
+    public function getColumnsSelectForCSV($nameTable, $settingConvention)
+    {
+        $index = 0;
+        $arraySelectColumns = [];
+        $arrayAliasColumns = [];
+        foreach ($settingConvention as $key => $value) {
+            $n = strpos($value, $nameTable);
+            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            if (count($matches)>2 && is_array($matches[2])) {
+                $columnName = $matches[2][0];
+                $arrayAliasColumns[] = $columnName;
+            } else {
+                $defaultColumn = "default_$index";
+                $index++;
+                $columnName = DB::raw("'$value' as \"$defaultColumn\"");
+                $arrayAliasColumns[] = $defaultColumn;
+            }
+            $arraySelectColumns[] = $columnName;
+        }
+
+//        $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
+
+        return [$arraySelectColumns, $arrayAliasColumns];
+    }
+
     public function processExtract()
     {
         try {
@@ -71,7 +101,7 @@ class DBExtractor
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
-            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $allSelectedColumns = $this->getColumnsSelectForCSV($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later

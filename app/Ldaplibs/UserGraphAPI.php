@@ -61,6 +61,7 @@ class UserGraphAPI
     {
 
         try {
+            Log::info("\nCreate user\n: ".json_encode($userAttibutes));
             echo "\n- \t\tcreating User: \n";
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
             $newUser->setPasswordProfile(["password" => 'test1234A!',
@@ -88,6 +89,7 @@ class UserGraphAPI
     {
 
         try {
+            Log::info("\nUpdate user: ".json_encode($userAttibutes));
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
             $uPN = $userAttibutes['userPrincipalName'];
@@ -159,6 +161,7 @@ class UserGraphAPI
 
     public function createGroup($groupAttributes)
     {
+        Log::info("\n- \t\tcreating Group: \n");
         echo "\n- \t\tcreating Group: \n";
         $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
         $newGroup = $this->createGroupObject($groupAttributes);
@@ -261,6 +264,7 @@ class UserGraphAPI
 
     private function addMemberToGroup(string $uPCN, string $groupId): void
     {
+        Log::info("\n- \t\tAdd member [$uPCN] to group [$groupId]: \n");
         $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
         $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
             ->attachBody($body)
@@ -304,6 +308,8 @@ class UserGraphAPI
     }
 
     private function removeMemberOfGroup($uPCN, $groupId){
+        Log::info("\n- \t\tRemove member [$uPCN] from group [$groupId]: \n");
+        echo "\n Remove member [$uPCN] from group $groupId\n";
         try{
             $this->graph->createRequest("DELETE", "/groups/$groupId/members/$uPCN/\$ref")
                 ->setReturnType("GuzzleHttp\Psr7\Stream")
