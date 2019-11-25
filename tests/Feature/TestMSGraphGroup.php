@@ -54,7 +54,9 @@ class TestMSGraphGroup extends TestCase
             ->setReturnType(Group::class)
             ->execute();
         $this->assertNotNull($groups);
-        var_dump($groups);
+//        var_dump($groups);
+        if (!is_array($groups))
+            return [$groups];
         return $groups;
     }
 
@@ -177,7 +179,8 @@ class TestMSGraphGroup extends TestCase
         return $membersList;
     }
 
-    public function testRemoveMemberOfGroup(){
+    public function testRemoveMemberOfGroup()
+    {
         $groupId = '6ddc9131-822e-4291-8bb4-89bade36e991';
         $uPCN = 'faker_skuvalis@naljp.onmicrosoft.com';
         $userId = 'f4532ebd-0183-422b-b0df-e0a2ea324a32';
@@ -191,4 +194,20 @@ class TestMSGraphGroup extends TestCase
         var_dump($this->getMemberListOfGroupId($groupId));
         dd($response);
     }
+
+    public function testDeleteAllGroups()
+    {
+        $groups = $this->testGetGroupsList();
+        foreach ($groups as $group) {
+            $groupId = $group->getId();
+            if ((strpos($groupId, 'tuanla') !== false) || (strpos($groupId, 'plids') !== false)) {
+                echo "Do nothing on group: $groupId\n";
+                continue;
+            } elseif ($groupId) {
+                $this->deleteGroup($groupId);
+                echo "Delete group: $groupId!\n";
+            }
+        }
+    }
+
 }
