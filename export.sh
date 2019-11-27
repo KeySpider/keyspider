@@ -1,6 +1,6 @@
 #!/bin/bash 
 source .env
-workDir=/var/www/LDAP_ID
+workDir=/Users/tuanleanh/PhpstormProjects/keyspider
 exportConfigDir=$workDir/storage/ini_configs/extract
 exportSourceConfigDir=$workDir/storage/tests/ini_configs/extract
 logFolder=$workDir/storage/logs

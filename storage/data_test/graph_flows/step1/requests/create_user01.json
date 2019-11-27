@@ -1,0 +1,12 @@
+{
+  "accountEnabled": true,
+  "displayName": "User 01 created via GraphAPI",
+  "jobTitle": null,
+  "mailNickname": "graph01",
+  "passwordProfile": {
+    "password": "Test1234",
+    "forceChangePasswordNextSignIn": false
+  },
+  "streetAddress": "null",
+  "userPrincipalName": "graph01@naljp.onmicrosoft.com"
+}

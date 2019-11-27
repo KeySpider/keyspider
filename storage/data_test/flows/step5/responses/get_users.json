@@ -7,11 +7,11 @@
   ],
   "Resources": [
     {
-      "id": "user01@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user01@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user01@jukkoussooutlook.onmicrosoft.com",
+      "id": "user01@naljp.onmicrosoft.com",
+      "externalId": "user01@naljp.onmicrosoft.com",
+      "userName": "user01@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User01",
       "meta": {
         "resourceType": "User"
       },
@@ -25,11 +25,11 @@
       }
     },
     {
-      "id": "user02@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user02@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user02@jukkoussooutlook.onmicrosoft.com",
+      "id": "user02@naljp.onmicrosoft.com",
+      "externalId": "user02@naljp.onmicrosoft.com",
+      "userName": "user02@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User02",
       "meta": {
         "resourceType": "User"
       },
@@ -43,11 +43,11 @@
       }
     },
     {
-      "id": "user09@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user09@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user09@jukkoussooutlook.onmicrosoft.com",
+      "id": "user09@naljp.onmicrosoft.com",
+      "externalId": "user09@naljp.onmicrosoft.com",
+      "userName": "user09@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User09",
       "meta": {
         "resourceType": "User"
       },
@@ -61,11 +61,11 @@
       }
     },
     {
-      "id": "user10@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user10@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user10@jukkoussooutlook.onmicrosoft.com",
+      "id": "user10@naljp.onmicrosoft.com",
+      "externalId": "user10@naljp.onmicrosoft.com",
+      "userName": "user10@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User10",
       "meta": {
         "resourceType": "User"
       },
@@ -79,11 +79,11 @@
       }
     },
     {
-      "id": "user03@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user03@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user03@jukkoussooutlook.onmicrosoft.com",
+      "id": "user03@naljp.onmicrosoft.com",
+      "externalId": "user03@naljp.onmicrosoft.com",
+      "userName": "user03@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User03",
       "meta": {
         "resourceType": "User"
       },
@@ -97,11 +97,11 @@
       }
     },
     {
-      "id": "user04@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user04@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user04@jukkoussooutlook.onmicrosoft.com",
+      "id": "user04@naljp.onmicrosoft.com",
+      "externalId": "user04@naljp.onmicrosoft.com",
+      "userName": "user04@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User04",
       "meta": {
         "resourceType": "User"
       },
@@ -115,11 +115,11 @@
       }
     },
     {
-      "id": "user05@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user05@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user05@jukkoussooutlook.onmicrosoft.com",
+      "id": "user05@naljp.onmicrosoft.com",
+      "externalId": "user05@naljp.onmicrosoft.com",
+      "userName": "user05@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User05",
       "meta": {
         "resourceType": "User"
       },
@@ -133,11 +133,11 @@
       }
     },
     {
-      "id": "user08@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user08@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user08@jukkoussooutlook.onmicrosoft.com",
+      "id": "user08@naljp.onmicrosoft.com",
+      "externalId": "user08@naljp.onmicrosoft.com",
+      "userName": "user08@naljp.onmicrosoft.com",
       "active": true,
-      "displayName": "u12",
+      "displayName": "SCIM_User08",
       "meta": {
         "resourceType": "User"
       },
@@ -151,11 +151,11 @@
       }
     },
     {
-      "id": "user06@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user06@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user06@jukkoussooutlook.onmicrosoft.com",
+      "id": "user06@naljp.onmicrosoft.com",
+      "externalId": "user06@naljp.onmicrosoft.com",
+      "userName": "user06@naljp.onmicrosoft.com",
       "active": false,
-      "displayName": "u12",
+      "displayName": "SCIM_User06",
       "meta": {
         "resourceType": "User"
       },
@@ -169,11 +169,11 @@
       }
     },
     {
-      "id": "user07@jukkoussooutlook.onmicrosoft.com",
-      "externalId": "user07@jukkoussooutlook.onmicrosoft.com",
-      "userName": "user07@jukkoussooutlook.onmicrosoft.com",
+      "id": "user07@naljp.onmicrosoft.com",
+      "externalId": "user07@naljp.onmicrosoft.com",
+      "userName": "user07@naljp.onmicrosoft.com",
       "active": false,
-      "displayName": "u12",
+      "displayName": "SCIM_User07",
       "meta": {
         "resourceType": "User"
       },

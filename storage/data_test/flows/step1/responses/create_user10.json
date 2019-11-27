@@ -4,7 +4,7 @@
     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
   ],
   "externalId": "user10",
-  "userName": "user10@jukkoussooutlook.onmicrosoft.com",
+  "userName": "user10@naljp.onmicrosoft.com",
   "active": true,
   "addresses": [
     {
@@ -18,7 +18,7 @@
       "streetAddress": "EEE"
     }
   ],
-  "displayName": "u12",
+  "displayName": "SCIM_User10",
   "meta": {
     "resourceType": "User",
     "location": "http://127.0.0.1:8000/api/Users/user10"

@@ -298,7 +298,8 @@ class SettingsManager
         $columnName = $results[0];
         $updateFlagsValue = $results[1];
         $updateFlagsValue[$dataType] = $value;
-        return DB::table($tableQuery)->where($this->getTableKey(), $keyString)
+        $tableKey = $this->getTableKey();
+        return DB::table($tableQuery)->where($tableKey, $keyString)
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }
 
@@ -405,6 +406,26 @@ class SettingsManager
 
             return $arrayIdUserMap;
         }
+        return null;
+    }
+    public function getRoleMapInExternalID($tableName = null)
+    {
+        if ($tableName == null) {
+            $tableName = 'Role';
+        }
+        if (isset($this->masterDBConfigData['RoleMap'])) {
+            $roleMap = $this->masterDBConfigData['RoleMap']['RoleID'];
+            $query = DB::table($tableName)->select('ID', 'externalID');
+            $allRoleRecords = $query->get()->toArray();
+            $arrayIdUserMap = [];
+                foreach ($allRoleRecords as $record) {
+                    $record = (array)$record;
+                    $arrayIdUserMap[] = $record['externalID'];
+                }
+
+            return $arrayIdUserMap;
+        }
+
         return null;
     }
 

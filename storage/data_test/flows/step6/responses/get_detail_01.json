@@ -4,20 +4,20 @@
   ],
   "id": "user01",
   "externalId": "user01",
-  "userName": "user01@jukkoussooutlook.onmicrosoft.com",
+  "userName": "user01@naljp.onmicrosoft.com",
   "active": true,
-  "displayName": "user01@jukkoussooutlook.onmicrosoft.com",
+  "displayName": "user01@naljp.onmicrosoft.com",
   "meta": {
     "resourceType": "User"
   },
   "name": {
-    "formatted": "u12",
-    "familyName": "user01@jukkoussooutlook.onmicrosoft.com",
+    "formatted": "SCIM_User01",
+    "familyName": "user01@naljp.onmicrosoft.com",
     "givenName": null
   },
   "emails": [
     {
-      "value": "user01@jukkoussooutlook.onmicrosoft.com",
+      "value": "user01@naljp.onmicrosoft.com",
       "type": "work",
       "primary": true
     }

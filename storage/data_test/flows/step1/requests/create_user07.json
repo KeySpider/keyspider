@@ -4,7 +4,7 @@
     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
   ],
   "externalId": "user07",
-  "userName": "user07@jukkoussooutlook.onmicrosoft.com",
+  "userName": "user07@naljp.onmicrosoft.com",
   "active": true,
   "addresses": [
     {
@@ -18,7 +18,7 @@
       "streetAddress": "EEE"
     }
   ],
-  "displayName": "u12",
+  "displayName": "SCIM_User07",
   "meta": {
     "resourceType": "User"
   },
