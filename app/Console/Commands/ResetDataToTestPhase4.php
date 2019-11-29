@@ -45,6 +45,8 @@ class ResetDataToTestPhase4 extends Command
         $testMSGraphGroup = new TestMSGraphGroup();
         $testMSGraphGroup->setUp();
         $testMSGraphGroup->testDeleteAllGroups();
+        //User automation test tool of Phase 1 to phase 3
         (new \Tests\Automation\TestFlow())->testScenario();
+
     }
 }
