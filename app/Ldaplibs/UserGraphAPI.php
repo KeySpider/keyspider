@@ -355,4 +355,17 @@ class UserGraphAPI
         }
 
     }
+
+    public function deleteResource($id, $table): void
+    {
+        if($table=='User')
+            $resource = 'users';
+        elseif ($table=='Role'){
+            $resource = 'groups';
+        }
+        else return;
+        $userDeleted = $this->graph->createRequest("DELETE", "/$resource/" . $id)
+//            ->setReturnType(User::class)
+            ->execute();
+    }
 }

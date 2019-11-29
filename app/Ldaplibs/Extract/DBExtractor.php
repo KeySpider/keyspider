@@ -63,7 +63,7 @@ class DBExtractor
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
             preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
-            if (count($matches)>2 && is_array($matches[2])) {
+            if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
                 $arrayAliasColumns[] = $columnName;
             } else {
@@ -325,7 +325,7 @@ class DBExtractor
             //Append 'ID' to selected Columns to query and process later
 
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
-            if($table=='User'){
+            if ($table == 'User') {
                 $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
             }
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
@@ -350,14 +350,23 @@ class DBExtractor
                     DB::beginTransaction();
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
-                    $uPN = $item->userPrincipalName??null;
+                    $uPN = $item->userPrincipalName ?? null;
                     if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $uPN))) {
-                        $userUpdated = $userGraph->updateResource((array)$item, $table);
-                        if ($userUpdated == null) continue;
+                        if ($item->DeleteFlag == 1) {
+                            //Delete resource
+                            Log::info("Delete user [$uPN] on AzureAD");
+                            $userGraph->deleteResource($item->externalID, $table);
+                        } else {
+                            $userUpdated = $userGraph->updateResource((array)$item, $table);
+                            if ($userUpdated == null) continue;
+                        }
                         $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
-                    }
-                    //Not found resource, create it!
+                    } //Not found resource, create it!
                     else {
+                        if ($item->DeleteFlag == 1) {
+                            Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
+                            continue;
+                        }
                         $userOnAD = $userGraph->createResource((array)$item, $table);
                         if ($userOnAD == null) continue;
 //                    TODO: create user on AD, update UpdateFlags and externalID.
