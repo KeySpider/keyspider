@@ -2,7 +2,12 @@
 
 namespace Tests\Automation;
 
+use App\Console\Commands\ExportAzureAD;
+use function App\Console\Commands\getArrayFromCSV;
+use App\Console\Commands\ResetDataToTestPhase4;
 use App\Ldaplibs\UserGraphAPI;
+use App\Role;
+use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\User;
 use Tests\TestCase;
@@ -44,53 +49,212 @@ class AutomationTestGraphAPI extends TestCase
         $this->graphUser = new UserGraphAPI();
     }
 
-    public function deleteAllUser()
-    {
-        $users = $this->getUserList();
-        foreach ($users as $user) {
-            $userPrincipalName = $user->getUserPrincipalName();
-            if ((strpos($userPrincipalName, 'tuanla') !== false) || (strpos($userPrincipalName, 'plids') !== false)) {
-                echo "Do nothing on user: $userPrincipalName\n";
-                continue;
+    /*    public function deleteAllUser()
+        {
+            $users = $this->getUserList();
+            foreach ($users as $user) {
+                $userPrincipalName = $user->getUserPrincipalName();
+                if ((strpos($userPrincipalName, 'tuanla') !== false) || (strpos($userPrincipalName, 'plids') !== false)) {
+                    echo "Do nothing on user: $userPrincipalName\n";
+                    continue;
+                }
+                $this->graphUser->deleteUser($userPrincipalName);
+                echo "Delete user: $userPrincipalName!\n";
             }
-            $this->graphUser->deleteUser($userPrincipalName);
-            echo "Delete user: $userPrincipalName!\n";
+    //
         }
-//
+
+        private function getUserList(): array
+        {
+            echo "- getUserList\n";
+            $users = $this->graph->createRequest("GET", "/users")
+                ->setReturnType(User::class)
+                ->execute();
+            $this->assertNotNull($users);
+            return $users;
+        }
+
+        public function testExample()
+        {
+            $this->deleteAllUser();
+            $baseDirectory = storage_path(self::DATA_TEST_FLOWS);
+            $directories = getDirectories($baseDirectory);
+            $this->testCreateUsers("$baseDirectory/step1");
+
+        }
+
+        public function testCreateUsers(string $flowDirectory): void
+        {
+            $allFiles = getFiles("$flowDirectory/requests");
+            foreach ($allFiles as $fileName) {
+                $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
+                $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
+
+                echo("Creating user from file: $fileName\n");
+                $userCreated = $this->graphUser->createUser($inputUserData);
+
+                $this->assertTrue($expectedResponse['userPrincipalName']== $userCreated->getUserPrincipalName());
+                echo "\n";
+            }
+        }*/
+
+    public function testAutomation()
+    {
+        $graphLib = new UserGraphAPI();
+        $this->checkStep8();
+        $this->assertTrue($this->checkStep9());
+        $this->checkStep10_11();
+        //step 12 -14
+
+        $this->assertTrue($this->checkResourceWithCSV(\App\User::class, storage_path('data_test/graph_flows/step10_user.csv'), ['externalID', 'UpdateFlags']));
+        //step 13
+        $this->assertTrue($checkRole = $this->checkResourceWithCSV(\App\Role::class, storage_path('data_test/graph_flows/step11_role.csv'), ['externalID', 'UpdateFlags']));
+        //step 15: remove user03 from group g1
+        $this->assertTrue($this->checkStep15($graphLib));
+        $this->assertTrue($this->checkStep16($graphLib));
+        $this->assertTrue($this->checkStep17($graphLib));
+        $this->assertTrue($this->checkStep18($graphLib));
+        $this->assertTrue($this->checkStep19($graphLib));
+        echo 'test';
+
     }
 
-    private function getUserList(): array
+    /**
+     * @param string $class
+     * @param string $userCsvFilePath
+     * @return bool
+     */
+    private function checkResourceWithCSV(string $class, string $userCsvFilePath, $except): bool
     {
-        echo "- getUserList\n";
-        $users = $this->graph->createRequest("GET", "/users")
-            ->setReturnType(User::class)
-            ->execute();
-        $this->assertNotNull($users);
+        $users = ($class::all()->toArray());
+        $users = $this->unsetUnexpectedKeys($except, $users);
+        $usersFromCSV = getArrayFromCSV($userCsvFilePath);
+        $usersFromCSV = $this->unsetUnexpectedKeys($except, $usersFromCSV);
+
+        $diff = array_diff_assoc_recursive_ignore($users, $usersFromCSV, ['externalID']);
+//        if (check_similar($users, $usersFromCSV)) {
+        if (empty($diff)) {
+            echo "\nPass CSV check of table $class";
+            $check = true;
+        } else {
+            echo "\nFAIL CSV check of table $class";
+            var_dump($diff);
+            $check = false;
+        }
+        return $check;
+    }
+
+    /**
+     * @param $except
+     * @param $users
+     * @return mixed
+     */
+    private function unsetUnexpectedKeys($except, $users)
+    {
+        foreach ($users as &$user) {
+            foreach ($except as $e) {
+                unset($user[$e]);
+            }
+        }
+        usort($users, function ($a, $b) {
+            return strcmp($a["ID"], $b["ID"]);
+        });
         return $users;
     }
 
-    public function testExample()
+    /**
+     * @param UserGraphAPI $graphLib
+     */
+    private function checkStep15(UserGraphAPI $graphLib): bool
     {
-        $this->deleteAllUser();
-        $baseDirectory = storage_path(self::DATA_TEST_FLOWS);
-        $directories = getDirectories($baseDirectory);
-        $this->testCreateUsers("$baseDirectory/step1");
-
+        try {
+            $user03ID = \App\User::select('externalID')->where('ID', 'user03')->first()->toArray()['externalID'];
+            $g1ID = \App\Role::select('externalID')->where('ID', 'g1')->first()->toArray()['externalID'];
+            $graphLib->removeMemberOfGroup($user03ID, $g1ID);
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+        }
+        $groupsList = $graphLib->getMemberOfsAD($user03ID);
+        return count($groupsList) == 0;
     }
 
-    public function testCreateUsers(string $flowDirectory): void
+    private function checkStep16(UserGraphAPI $graphLib): bool
     {
-        $allFiles = getFiles("$flowDirectory/requests");
-        foreach ($allFiles as $fileName) {
-            $inputUserData = json_decode(file_get_contents("$flowDirectory/requests/$fileName"), true);
-            $expectedResponse = json_decode(file_get_contents("$flowDirectory/responses/$fileName"), true);
 
-            echo("Creating user from file: $fileName\n");
-            $userCreated = $this->graphUser->createUser($inputUserData);
-
-            $this->assertTrue($expectedResponse['userPrincipalName']== $userCreated->getUserPrincipalName());
-            echo "\n";
+        try {
+            $user03ID = \App\User::select(['externalID', 'user-PrincipalName'])->where('ID', 'user03')->first()->toArray();
+            $displayNameUpdated = 'user03_updated';
+            $user03OnDB = $graphLib->updateUser(['externalID' => $user03ID['externalID'], 'displayName' => $displayNameUpdated, 'userPrincipalName' => $user03ID['user-PrincipalName'], 'DeleteFlag' => 1]);
+            $user03OnAD = $graphLib->getUserDetail($user03ID['externalID'], null);
+            return $user03OnAD->getDisplayName() == $displayNameUpdated;
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+            return false;
         }
     }
 
+    private function checkStep17(UserGraphAPI $graphLib): bool
+    {
+        $displayNameUpdated = 'G1-Updated';
+        try {
+            $g1ID = \App\Role::select('externalID')->where('ID', 'g1')->first()->toArray();
+            $graphLib->updateGroup(['externalID' => $g1ID['externalID'], 'displayName' => $displayNameUpdated, 'DeleteFlag' => 1]);
+            $groupOnAD = $graphLib->getGroupDetails($g1ID['externalID']);
+            return $groupOnAD->getDisplayName() == $displayNameUpdated;
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+            return false;
+        }
+
+    }
+
+    private function checkStep9(): bool
+    {
+//step 9
+        $checkUser = $this->checkResourceWithCSV(\App\User::class, storage_path('data_test/graph_flows/step9_user.csv'), ['UpdateFlags', 'externalID']);
+        $checkRole = $this->checkResourceWithCSV(\App\Role::class, storage_path('data_test/graph_flows/step9_role.csv'), ['UpdateFlags', 'externalID']);
+
+        return $checkUser && $checkRole;
+
+    }
+
+    private function checkStep10_11(): void
+    {
+//step 10 - 11
+        (new ExportAzureAD())->handle();
+    }
+
+    private function checkStep8(): void
+    {
+//step 8
+        (new ResetDataToTestPhase4())->handle();
+    }
+
+    private function checkStep18(UserGraphAPI $graphLib): bool
+    {
+        try {
+            $usersList = (array)$graphLib->getUsersList();
+            $expectedResponse = json_decode(file_get_contents(storage_path("data_test/graph_flows/step18_user.json"), true));
+            Log::info(json_encode((array)$usersList));
+            return count((array)$usersList) == count($expectedResponse);
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+            return false;
+        }
+
+    }
+
+    private function checkStep19(UserGraphAPI $graphLib): bool
+    {
+        try {
+            $groupsList = (array)$graphLib->getGroupsList();
+            $expectedResponse = json_decode(file_get_contents(storage_path("data_test/graph_flows/step19_role.json"), true));
+            Log::info(json_encode((array)$groupsList));
+            return count((array)$groupsList) == count($expectedResponse);
+        } catch (\Exception $exception) {
+            echo $exception->getMessage();
+            return false;
+        }
+
+    }
 }

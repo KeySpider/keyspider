@@ -145,7 +145,7 @@ if (!function_exists('array_diff_assoc_recursive_ignore')) {
                 } elseif (!is_array($array2[$key])) {
                     $difference[$key] = $value;
                 } else {
-                    $new_diff = array_diff_assoc_recursive($value, $array2[$key]);
+                    $new_diff = array_diff_assoc_recursive_ignore($value, $array2[$key], $ignore);
                     if ($new_diff != false) {
                         $difference[$key] = $new_diff;
                     }

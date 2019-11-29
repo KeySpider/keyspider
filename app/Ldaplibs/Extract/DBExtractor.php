@@ -358,13 +358,17 @@ class DBExtractor
                             $userGraph->deleteResource($item->externalID, $table);
                         } else {
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
-                            if ($userUpdated == null) continue;
+                            if ($userUpdated == null) {
+                                DB::commit();
+                                continue;
+                            }
                         }
                         $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                     } //Not found resource, create it!
                     else {
                         if ($item->DeleteFlag == 1) {
                             Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
+                            DB::commit();
                             continue;
                         }
                         $userOnAD = $userGraph->createResource((array)$item, $table);

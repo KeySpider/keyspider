@@ -261,7 +261,7 @@ class UserGraphAPI
      * @param $userAttibutes
      * @return array
      */
-    private function getListOfGroupsUserBelongedTo($userAttibutes): array
+    public function getListOfGroupsUserBelongedTo($userAttibutes): array
     {
         $memberOf = [];
         $roleMap = (new SettingsManager())->getRoleMapInExternalID('Role');
@@ -312,7 +312,7 @@ class UserGraphAPI
         }
     }
 
-    private function getMemberOfsAD($uPN){
+    public function getMemberOfsAD($uPN){
         $groupList = $this->graph->createRequest("GET", "/users/$uPN/memberOf/")
             ->setReturnType(Group::class)
             ->execute();
@@ -323,7 +323,7 @@ class UserGraphAPI
         return $groupIDList;
     }
 
-    private function removeMemberOfGroup($uPCN, $groupId){
+    public function removeMemberOfGroup($uPCN, $groupId){
         Log::info("Remove member [$uPCN] from group [$groupId]");
         echo "\n Remove member [$uPCN] from group $groupId\n";
 
@@ -368,4 +368,23 @@ class UserGraphAPI
 //            ->setReturnType(User::class)
             ->execute();
     }
+
+    public function getUsersList(): array
+    {
+        echo "- getUserList\n";
+        $users = $this->graph->createRequest("GET", "/users")
+            ->setReturnType(User::class)
+            ->execute();
+//        $this->assertNotNull($users);
+        return $users;
+    }
+    public function getGroupsList(): array
+    {
+        echo "- getGroupList\n";
+        $groups = $this->graph->createRequest("GET", "/groups")
+            ->setReturnType(Group::class)
+            ->execute();
+        return $groups;
+    }
+
 }
