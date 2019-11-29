@@ -1,0 +1,167 @@
+[
+  {
+    "id": "04d23190-c2dd-42a5-815f-2dc0f154b11e",
+    "deletedDateTime": null,
+    "classification": null,
+    "createdDateTime": "2019-11-29T08:44:57Z",
+    "creationOptions": [],
+    "description": null,
+    "displayName": "g2",
+    "groupTypes": [
+      "Unified"
+    ],
+    "isAssignableToRole": null,
+    "mail": "g2@naljp.onmicrosoft.com",
+    "mailEnabled": true,
+    "mailNickname": "g2",
+    "onPremisesDomainName": null,
+    "onPremisesLastSyncDateTime": null,
+    "onPremisesNetBiosName": null,
+    "onPremisesSamAccountName": null,
+    "onPremisesSecurityIdentifier": null,
+    "onPremisesSyncEnabled": null,
+    "preferredDataLocation": null,
+    "proxyAddresses": [
+      "SMTP:g2@naljp.onmicrosoft.com"
+    ],
+    "renewedDateTime": "2019-11-29T08:44:57Z",
+    "resourceBehaviorOptions": [],
+    "resourceProvisioningOptions": [],
+    "securityEnabled": false,
+    "securityIdentifier": "S-1-12-1-80884112-1118159581-3224199041-514938097",
+    "visibility": "Public",
+    "onPremisesProvisioningErrors": []
+  },
+  {
+    "id": "14a0e664-9a8b-4e64-962c-5dce94da4c2f",
+    "deletedDateTime": null,
+    "classification": null,
+    "createdDateTime": "2019-11-29T08:44:58Z",
+    "creationOptions": [],
+    "description": null,
+    "displayName": "g5",
+    "groupTypes": [
+      "Unified"
+    ],
+    "isAssignableToRole": null,
+    "mail": "g5@naljp.onmicrosoft.com",
+    "mailEnabled": true,
+    "mailNickname": "g5",
+    "onPremisesDomainName": null,
+    "onPremisesLastSyncDateTime": null,
+    "onPremisesNetBiosName": null,
+    "onPremisesSamAccountName": null,
+    "onPremisesSecurityIdentifier": null,
+    "onPremisesSyncEnabled": null,
+    "preferredDataLocation": null,
+    "proxyAddresses": [
+      "SMTP:g5@naljp.onmicrosoft.com"
+    ],
+    "renewedDateTime": "2019-11-29T08:44:58Z",
+    "resourceBehaviorOptions": [],
+    "resourceProvisioningOptions": [],
+    "securityEnabled": false,
+    "securityIdentifier": "S-1-12-1-346089060-1315216011-3462212758-793565844",
+    "visibility": "Public",
+    "onPremisesProvisioningErrors": []
+  },
+  {
+    "id": "43e537c3-ad91-4e9e-ab10-36099cef7ef8",
+    "deletedDateTime": null,
+    "classification": null,
+    "createdDateTime": "2019-11-29T08:44:57Z",
+    "creationOptions": [],
+    "description": null,
+    "displayName": "g3",
+    "groupTypes": [
+      "Unified"
+    ],
+    "isAssignableToRole": null,
+    "mail": "g3@naljp.onmicrosoft.com",
+    "mailEnabled": true,
+    "mailNickname": "g3",
+    "onPremisesDomainName": null,
+    "onPremisesLastSyncDateTime": null,
+    "onPremisesNetBiosName": null,
+    "onPremisesSamAccountName": null,
+    "onPremisesSecurityIdentifier": null,
+    "onPremisesSyncEnabled": null,
+    "preferredDataLocation": null,
+    "proxyAddresses": [
+      "SMTP:g3@naljp.onmicrosoft.com"
+    ],
+    "renewedDateTime": "2019-11-29T08:44:57Z",
+    "resourceBehaviorOptions": [],
+    "resourceProvisioningOptions": [],
+    "securityEnabled": false,
+    "securityIdentifier": "S-1-12-1-1139095491-1319021969-154538155-4169068444",
+    "visibility": "Public",
+    "onPremisesProvisioningErrors": []
+  },
+  {
+    "id": "68ab54b8-f21b-4911-91cb-abd8a93cb9d5",
+    "deletedDateTime": null,
+    "classification": null,
+    "createdDateTime": "2019-11-29T08:44:56Z",
+    "creationOptions": [],
+    "description": null,
+    "displayName": "G1-Updated",
+    "groupTypes": [
+      "Unified"
+    ],
+    "isAssignableToRole": null,
+    "mail": "g1@naljp.onmicrosoft.com",
+    "mailEnabled": true,
+    "mailNickname": "g1",
+    "onPremisesDomainName": null,
+    "onPremisesLastSyncDateTime": null,
+    "onPremisesNetBiosName": null,
+    "onPremisesSamAccountName": null,
+    "onPremisesSecurityIdentifier": null,
+    "onPremisesSyncEnabled": null,
+    "preferredDataLocation": null,
+    "proxyAddresses": [
+      "SMTP:g1@naljp.onmicrosoft.com"
+    ],
+    "renewedDateTime": "2019-11-29T08:44:56Z",
+    "resourceBehaviorOptions": [],
+    "resourceProvisioningOptions": [],
+    "securityEnabled": false,
+    "securityIdentifier": "S-1-12-1-1756058808-1225912859-3635137425-3585686697",
+    "visibility": "Public",
+    "onPremisesProvisioningErrors": []
+  },
+  {
+    "id": "d7222cc7-ad13-442c-ab67-aadb05b49772",
+    "deletedDateTime": null,
+    "classification": null,
+    "createdDateTime": "2019-11-29T08:44:58Z",
+    "creationOptions": [],
+    "description": null,
+    "displayName": "g4",
+    "groupTypes": [
+      "Unified"
+    ],
+    "isAssignableToRole": null,
+    "mail": "g4@naljp.onmicrosoft.com",
+    "mailEnabled": true,
+    "mailNickname": "g4",
+    "onPremisesDomainName": null,
+    "onPremisesLastSyncDateTime": null,
+    "onPremisesNetBiosName": null,
+    "onPremisesSamAccountName": null,
+    "onPremisesSecurityIdentifier": null,
+    "onPremisesSyncEnabled": null,
+    "preferredDataLocation": null,
+    "proxyAddresses": [
+      "SMTP:g4@naljp.onmicrosoft.com"
+    ],
+    "renewedDateTime": "2019-11-29T08:44:58Z",
+    "resourceBehaviorOptions": [],
+    "resourceProvisioningOptions": [],
+    "securityEnabled": false,
+    "securityIdentifier": "S-1-12-1-3609341127-1143778579-3685377963-1922544645",
+    "visibility": "Public",
+    "onPremisesProvisioningErrors": []
+  }
+]
