@@ -1,0 +1,6 @@
+ID,EffectiveDate,Name,UpdateFlags,UpdateDate,UpdateUserID,DeleteFlag,mail,mailNickname,ProxyAddresses,Attribute1,Attribute2,Attribute3,hogehoge,hogehoga,externalID
+g1,2019/11/29,g1,{"Role_AzureAD":0},2019/11/29,,,,,,,,,,,cefc8071-eb41-4b96-8541-37863036fb8b
+g2,2019/11/29,g2,{"Role_AzureAD":0},2019/11/29,,,,,,,,,,,c1fab0e2-f254-42e0-a2f9-e6ddcae3386c
+g3,2019/11/29,g3,{"Role_AzureAD":0},2019/11/29,,,,,,,,,,,104ea113-fa94-497b-99a7-47d8f52e865f
+g4,2019/11/29,g4,{"Role_AzureAD":0},2019/11/29,,,,,,,,,,,d93a6ba9-06b5-4ee0-acd6-ee78d3e6b9ab
+g5,2019/11/29,g5,{"Role_AzureAD":0},2019/11/29,,,,,,,,,,,d9e522ba-9fd6-4123-a1ab-741683fe3cfe

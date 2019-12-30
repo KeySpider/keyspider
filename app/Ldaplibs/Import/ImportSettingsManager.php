@@ -48,7 +48,7 @@ class ImportSettingsManager extends SettingsManager
 
     public function __construct($iniSettingsFiles = null)
     {
-        parent::__construct($iniSettingsFiles);
+        parent::__construct();
     }
 
     /**

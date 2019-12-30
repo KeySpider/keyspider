@@ -43,7 +43,7 @@ class DeliverySettingsManager extends SettingsManager
 
     public function __construct($iniSettingsFiles = null)
     {
-        parent::__construct($iniSettingsFiles);
+        parent::__construct();
         $this->iniDeliverySettingsFiles = $this->keySpider[self::CSV_OUTPUT_PROCESS_CONFIGRATION][self::OUTPUT_CONFIG];
     }
 

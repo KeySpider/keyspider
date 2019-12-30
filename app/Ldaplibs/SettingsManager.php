@@ -20,9 +20,11 @@
 
 namespace App\Ldaplibs;
 
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use RuntimeException;
 
 class SettingsManager
 {
@@ -39,7 +41,7 @@ class SettingsManager
     public $keySpider;
     private $roleFlags;
 
-    public function __construct($ini_settings_files = null)
+    public function __construct()
     {
         if (!$this->validateKeySpider()) {
             $this->keySpider = null;
@@ -79,13 +81,14 @@ class SettingsManager
                 'CSV Import Process Configration' => 'required',
                 'SCIM Input Process Configration' => 'required',
                 'CSV Extract Process Configration' => 'required',
+                'Azure Extract Process Configration' => 'required',
                 'CSV Output Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
-                throw new \RuntimeException($validate->getMessageBag());
+                throw new RuntimeException($validate->getMessageBag());
             }
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
         }
@@ -100,10 +103,10 @@ class SettingsManager
             array_walk($allFilesInKeySpider,
                 function ($filePath) {
                     if (!file_exists($filePath)) {
-                        throw new \RuntimeException("[KeySpider validation error] The file: <$filePath> is not existed!");
+                        throw new RuntimeException("[KeySpider validation error] The file: <$filePath> is not existed!");
                     }
                 });
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
         }
@@ -121,9 +124,9 @@ class SettingsManager
                 'KeySettings.Encrypted_fields' => 'required',
             ]);
             if ($validate->fails()) {
-                throw new \Exception($validate->getMessageBag());
+                throw new Exception($validate->getMessageBag());
             }
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             Log::error($exception->getMessage());
         }
         return true;
@@ -156,7 +159,7 @@ class SettingsManager
 //            Master DB Config has Tags, so traverse each tag
             foreach ($this->masterDBConfigData as $masterWithTag) {
                 $filterdArray = array_filter($masterWithTag,
-                    function ($v, $k) use ($encryptedField) {
+                    function ($k) use ($encryptedField) {
                         return $k === $encryptedField;
                     },
                     ARRAY_FILTER_USE_BOTH);
@@ -206,7 +209,7 @@ class SettingsManager
                 $encryptionKey,
                 0,
                 $initializationVector);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             Log::error($exception);
         }
     }
@@ -236,14 +239,14 @@ class SettingsManager
             $tableName = $tableAndColumn[0];
             if ($tableName == $tableQuery) {
                 $columnName = $tableAndColumn[1];
-                $tableKey = $this->getTableKey($tableName);
+                $tableKey = $this->getTableKey();
                 $flags = DB::table($tableName)->select($columnName)
                     ->where($tableKey, $keyString)
                     ->first();
                 $results = (array)$flags;
                 try {
                     return [$columnName, json_decode($results[$columnName], true)];
-                } catch (\Exception $exception) {
+                } catch (Exception $exception) {
 //                    TODO: $result is array, so this is a bug
                     Log::error("Data [$results] is not correct!");
                     Log::error($exception->getMessage());
@@ -277,7 +280,7 @@ class SettingsManager
         ];
     }
 
-    public function getTableKey($tableName)
+    public function getTableKey()
     {
         return 'ID';
     }
@@ -295,7 +298,8 @@ class SettingsManager
         $columnName = $results[0];
         $updateFlagsValue = $results[1];
         $updateFlagsValue[$dataType] = $value;
-        return DB::table($tableQuery)->where($this->getTableKey($tableQuery), $keyString)
+        $tableKey = $this->getTableKey();
+        return DB::table($tableQuery)->where($tableKey, $keyString)
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }
 
@@ -404,6 +408,26 @@ class SettingsManager
         }
         return null;
     }
+    public function getRoleMapInExternalID($tableName = null)
+    {
+        if ($tableName == null) {
+            $tableName = 'Role';
+        }
+        if (isset($this->masterDBConfigData['RoleMap'])) {
+            $roleMap = $this->masterDBConfigData['RoleMap']['RoleID'];
+            $query = DB::table($tableName)->select('ID', 'externalID');
+            $allRoleRecords = $query->get()->toArray();
+            $arrayIdUserMap = [];
+                foreach ($allRoleRecords as $record) {
+                    $record = (array)$record;
+                    $arrayIdUserMap[] = $record['externalID'];
+                }
+
+            return $arrayIdUserMap;
+        }
+
+        return null;
+    }
 
     /**
      * @param string $groupId
@@ -437,5 +461,9 @@ class SettingsManager
     public function getTableUser()
     {
         return array_get($this->masterDBConfigData, 'User.User');
+    }
+    public function getTableRole()
+    {
+        return array_get($this->masterDBConfigData, 'Role.Role');
     }
 }

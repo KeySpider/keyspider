@@ -129,6 +129,35 @@ if (!function_exists('array_diff_assoc_recursive')) {
     }
 }
 
+if (!function_exists('array_diff_assoc_recursive_ignore')) {
+    /**
+     * @param $array1
+     * @param $array2
+     * @return int
+     */
+    function array_diff_assoc_recursive_ignore($array1, $array2, $ignore)
+    {
+        foreach ($array1 as $key => $value) {
+            if(in_array($key, $ignore)) continue;
+            if (is_array($value)) {
+                if (!isset($array2[$key])) {
+                    $difference[$key] = $value;
+                } elseif (!is_array($array2[$key])) {
+                    $difference[$key] = $value;
+                } else {
+                    $new_diff = array_diff_assoc_recursive_ignore($value, $array2[$key], $ignore);
+                    if ($new_diff != false) {
+                        $difference[$key] = $new_diff;
+                    }
+                }
+            } elseif (!isset($array2[$key]) || $array2[$key] != $value) {
+                $difference[$key] = $value;
+            }
+        }
+        return !isset($difference) ? 0 : $difference;
+    }
+}
+
 if (!function_exists('is_exits_columns')) {
     function is_exits_columns($table, $data)
     {
@@ -142,4 +171,55 @@ if (!function_exists('is_exits_columns')) {
 
         return $flag;
     }
+}
+
+if (!function_exists('check_similar')) {
+    function check_similar($actual, $expected, $ignores = [])
+    {
+        if (!is_array($expected) || !is_array($actual)) return $actual === $expected;
+        foreach ($expected as $key => $value) {
+            if(in_array($key, $ignores)) continue;
+            if (!check_similar($actual[$key], $expected[$key],$ignores)) {
+                echo("---Failed reason: $key\n");
+                echo("Required: $expected[$key]\n");
+                echo("Actual  : $actual[$key]\n");
+                return false;
+            }
+        }
+        foreach ($actual as $key => $value) {
+            if(in_array($key, $ignores)) continue;
+            if (!check_similar($actual[$key], $expected[$key], $ignores)) {
+                echo("---Failed reason: $key\n");
+                echo("Required: $expected[$key]\n");
+                echo("Actual  : $actual[$key]\n");
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+function getDirectories(string $path) : array
+{
+    $directories = [];
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if($item == '..' || $item == '.' || $item[0]=='_')
+            continue;
+        if(is_dir($path.'/'.$item))
+            $directories[] = $item;
+    }
+    return $directories;
+}
+function getFiles(string $path) : array
+{
+    $directories = [];
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if($item == '..' || $item == '.'|| $item[0]=='_')
+            continue;
+        if(is_file($path.'/'.$item))
+            $directories[] = $item;
+    }
+    return $directories;
 }

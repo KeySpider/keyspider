@@ -22,6 +22,7 @@ namespace App\Console;
 
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
+use App\Jobs\DBToADExtractorJob;
 use App\Jobs\DeliveryJob;
 use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Ldaplibs\Delivery\DeliverySettingsManager;
@@ -37,6 +38,7 @@ use Illuminate\Support\Facades\Log;
 class Kernel extends ConsoleKernel
 {
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+    public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
 
     /**
      * The Artisan commands provided by your application.
@@ -75,6 +77,19 @@ class Kernel extends ConsoleKernel
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::debug('Currently, there is no file extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_AD_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToADForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
         } else {
@@ -138,6 +153,20 @@ class Kernel extends ConsoleKernel
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+    public function exportDataToADForTimeExecution($settings)
+    {
+        Log::info('exportDataToADForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToADExtractorJob($setting);
                 $queue->push($extractor);
             }
         } catch (Exception $e) {

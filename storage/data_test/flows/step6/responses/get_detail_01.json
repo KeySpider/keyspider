@@ -1,0 +1,28 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:User"
+  ],
+  "id": "user01",
+  "externalId": "user01",
+  "userName": "user01@naljp.onmicrosoft.com",
+  "active": true,
+  "displayName": "user01@naljp.onmicrosoft.com",
+  "meta": {
+    "resourceType": "User"
+  },
+  "name": {
+    "formatted": "SCIM_User01",
+    "familyName": "user01@naljp.onmicrosoft.com",
+    "givenName": null
+  },
+  "emails": [
+    {
+      "value": "user01@naljp.onmicrosoft.com",
+      "type": "work",
+      "primary": true
+    }
+  ],
+  "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+    "department": ""
+  }
+}

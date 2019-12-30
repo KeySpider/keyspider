@@ -1,0 +1,14 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+  "id": "2785de7a-4aa4-4e29-91ea-4b4d48f9eefa",
+  "businessPhones": [],
+  "displayName": "User 09 created via GraphAPI",
+  "givenName": null,
+  "jobTitle": null,
+  "mail": null,
+  "mobilePhone": null,
+  "officeLocation": null,
+  "preferredLanguage": null,
+  "surname": null,
+  "userPrincipalName": "graph09@naljp.onmicrosoft.com"
+}
