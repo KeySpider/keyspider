@@ -31,10 +31,10 @@ class SCIMToSalesforce
         }
 
         $access_token = $salesforce->getAccessToken();
-//        $instance_url = $salesforce->getInstanceUrl();
+        echo "\n";
         var_dump($access_token);
+        echo "\n";
 
-//        $query = 'SELECT Id,Name FROM USER LIMIT 10';
         $this->crud = new \bjsmasth\Salesforce\CRUD();
     }
 
@@ -43,8 +43,6 @@ class SCIMToSalesforce
         if($data == null) {
             $data = json_decode(Config::get('schemas.createUser'));
         }
-
-//        dd(json_encode($data));
         try{
             return $this->crud->create('USER', $data);  #returns id
         }
@@ -59,8 +57,6 @@ class SCIMToSalesforce
         if($data == null) {
             $data = json_decode(Config::get('schemas.createGroup'));
         }
-
-//        dd(json_encode($data));
         try{
             return $this->crud->create('GROUP', $data);  #returns id
         }
