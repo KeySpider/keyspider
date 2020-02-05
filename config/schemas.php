@@ -37,14 +37,15 @@ return [
   ]
 }',
     'createUser' => '{
-  "userName": "tiger@nal.vn",
-  "Email": "tiger@nal.vn",
-  "Alias": "tiger",
+  "UserName": "user@keyspider.jp",
+  "Email": "ks@keyspider.jp",
+  "Alias": "ks",
   "TimeZoneSidKey": "Asia/Ho_Chi_Minh",
   "LocaleSidKey": "en_GB",
   "EmailEncodingKey": "UTF-8",
   "LanguageLocaleKey": "ja",
-  "LastName": "Le Quang",
+  "LastName": "User",
+  "LastName": "KeySpider",
   "ProfileId": "00e2v000004h399"
 }',
 

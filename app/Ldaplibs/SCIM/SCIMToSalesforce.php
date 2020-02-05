@@ -6,6 +6,7 @@ namespace App\Ldaplibs\SCIM;
 
 use bjsmasth\Salesforce\Authentication\PasswordAuthentication;
 use bjsmasth\Salesforce\Exception\SalesforceAuthentication;
+use Faker\Factory;
 use Illuminate\Support\Facades\Config;
 
 class SCIMToSalesforce
@@ -52,6 +53,46 @@ class SCIMToSalesforce
         }
     }
 
+    public function createResource($resourceType, array $data=null)
+    {
+        $faker = Factory::create();
+        $dataSchema = json_decode(Config::get('schemas.createUser'), true);
+        $data['IsActive'] = $data['IsActive']?false:true;
+        if($resourceType=='User'){
+            $resourceType = 'USER';
+            foreach ($dataSchema as $key=>$value){
+                if(in_array($key, array_keys($data))){
+                    if($key=='Alias'){
+                        $data[$key] = substr($data[$key], 0, 7);
+                    }
+                    $dataSchema[$key] = $data[$key];
+                }
+                elseif ($key=='Alias'){
+                    $dataSchema[$key] = $faker->text(8);
+                }
+                elseif ($key=='LastName'){
+                    $dataSchema[$key] = $faker->lastName;
+                }
+                elseif ($key=='Email'){
+                    $dataSchema[$key] = $faker->freeEmail;
+                }
+            }
+
+        }elseif ($resourceType=='Role'){
+            $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
+            $resourceType = 'GROUP';
+        }
+        echo ("Create User with data: \n");
+        echo(json_encode($dataSchema, JSON_PRETTY_PRINT));
+        try{
+            return $this->crud->create($resourceType, $dataSchema);  #returns id
+        }
+        catch (\Exception $exception){
+            echo ($exception->getMessage());
+            return null;
+        }
+    }
+
     public function createGroupWithData(array $data=null)
     {
         if($data == null) {
@@ -73,6 +114,11 @@ class SCIMToSalesforce
         return $this->crud->getResourceDetail('Groups', $id);
     }
 
+    public function getResourceDetails ($resourceId, $resourceType){
+        $resourceType = $this->getResourceTypeOfSF($resourceType);
+        return $this->crud->getResourceDetail($resourceType, $resourceId);
+    }
+
     public function getUsersList(){
         return $this->crud->getResourceList('Users');
     }
@@ -85,7 +131,43 @@ class SCIMToSalesforce
         dd($this->crud->addMemberToGroup($memberId, $groupId));
     }
 
-    public function updateResource($resourceType, $resourceId, $data){
-        $this->crud->update($resourceType, $resourceId, $data);
+    public function updateResource($resourceType, $data){
+        $resourceType = $this->getResourceTypeOfSF($resourceType, true);
+        $resourceId = $data['externalSFID'];
+        unset($data['externalSFID']);
+        $data['IsActive'] = $data['IsActive']?false:true;
+        $dataSchema = json_decode(Config::get('schemas.createUser'), true);
+        if($resourceType=='User'){
+            $resourceType = 'USER';
+            foreach ($data as $key=>$value){
+                if(!in_array($key, array_keys($dataSchema))){
+                    unset($data[$key]);
+                }
+                if($key=='Alias'){
+                    $data[$key] = substr($data[$key], 0, 7);
+                }
+            }
+        }
+
+        echo ("\nUpdate User with data: \n");
+        echo(json_encode($data, JSON_PRETTY_PRINT));
+
+        $update = $this->crud->update($resourceType, $resourceId, $data);
+        echo("\nUpdate: $update");
+        return $update;
+    }
+
+    /**
+     * @param $resourceType
+     * @return string
+     */
+    private function getResourceTypeOfSF($resourceType, $isREST=false): string
+    {
+        if ($resourceType == 'User') {
+            $resourceType = $isREST?'User':'Users';
+        } elseif ($resourceType == 'Role') {
+            $resourceType = $isREST?'Group':'Groups';
+        }
+        return $resourceType;
     }
 }

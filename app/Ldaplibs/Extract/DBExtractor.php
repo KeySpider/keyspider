@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Ldaplibs\SCIM\SCIMToSalesforce;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
 use Carbon\Carbon;
@@ -379,6 +380,97 @@ class DBExtractor
                         $updateQuery->where($primaryKey, $item->{"$primaryKey"});
                         $updateQuery->update(['externalID' => $userOnAD->getID()]);
                         var_dump($userOnAD);
+                    }
+                    DB::commit();
+                }
+            }
+
+
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
+    }
+
+    public function processExtractToSF()
+    {
+        try {
+
+
+//            $results = null;
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalSFID', 'DeleteFlag']);
+            if ($table == 'User') {
+                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+            }
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
+            $extractedSql = $query->toSql();
+            Log::info($extractedSql);
+            $results = $query->get()->toArray();
+
+            if ($results) {
+//                $scimLib = new UserGraphAPI();
+                $scimLib = new SCIMToSalesforce();
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+
+                foreach ($results as $key => $item) {
+                    DB::beginTransaction();
+                    // check resource is existed on AD or not
+                    //TODO: need to change because userPrincipalName is not existed in group.
+                    $uPN = $item->userPrincipalName ?? null;
+                    if (($item->externalSFID) && ($scimLib->getResourceDetails($item->externalSFID, $table))) {
+                        if ($item->DeleteFlag == 1) {
+                            //Delete resource
+                            Log::info("Delete user [$uPN] on AzureAD");
+                            $scimLib->deleteResource($item->externalID, $table);
+                        } else {
+                            $userUpdated = $scimLib->updateResource($table, (array)$item);
+                            if ($userUpdated == null) {
+                                DB::commit();
+                                continue;
+                            }
+                        }
+                        $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                    } //Not found resource, create it!
+                    else {
+                        if ($item->DeleteFlag == 1) {
+                            Log::info("User [$uPN] has DeleteFlag=1 and not existed on SF, do nothing!");
+                            DB::commit();
+                            continue;
+                        }
+                        $userOnSF = $scimLib->createResource($table, (array)$item);
+                        if ($userOnSF == null) continue;
+//                    TODO: create user on AD, update UpdateFlags and externalID.
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                        $updateQuery->update(['externalSFID' => $userOnSF]);
+                        var_dump($userOnSF);
                     }
                     DB::commit();
                 }
