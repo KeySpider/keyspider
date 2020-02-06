@@ -13,18 +13,7 @@ class SCIMToSalesforce
 {
     public function __construct()
     {
-        $options = [
-            'grant_type' => 'password',
-/*            'client_id' => '3MVG9G9pzCUSkzZtQhmyLq3TUSdPdWhKaUzMAr3Gyr73oUK4Kxf.JIjEt1t_Y8l4SAoHfoiH2GTsnc8WR8JX7',
-            'client_secret' => 'F7F54A0096F01D6F7992DC7D4BEBF14599E0F6554FDCCCEB1987BC498D554E16',
-            'username' => 'vntuanla@gmail.com',
-            'password' => '1qs2wd3efVU8iz0SQY8Wml7bFWtAZUW1bI'*/
-            'client_id' => '3MVG9G9pzCUSkzZtQhmyLq3TUSepG1qXYndCYGaDpR_Tcv0RnVYUBzhbRwsxjpjCfAwQqhg7hSFs4OABtbRLh',
-            'client_secret' => '605E0082BC5A093DE4271525C3BC43710B7DA9BDA55E31A360AEEF068B17FF41',
-            'username' => 'tuanla710@gmail.com',
-            'password' => '1qs2wd3efMTfuHJaWpXRnfnOUim1it8BLo'
-        ];
-
+        $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Salesforce Keys'];
         $salesforce = new PasswordAuthentication($options);
         try {
             $salesforce->authenticate();
