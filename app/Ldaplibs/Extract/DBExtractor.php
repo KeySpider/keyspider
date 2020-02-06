@@ -464,7 +464,11 @@ class DBExtractor
                             continue;
                         }
                         $userOnSF = $scimLib->createResource($table, (array)$item);
-                        if ($userOnSF == null) continue;
+                        if ($userOnSF == null) {
+                            echo "Not found response of creating: \n";
+                            var_dump($item);
+                            continue;
+                        }
 //                    TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);

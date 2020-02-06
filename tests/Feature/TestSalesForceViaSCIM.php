@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Ldaplibs\SCIM\SCIMToSalesforce;
+use App\Role;
 use bjsmasth\Salesforce\Authentication\PasswordAuthentication;
 use Faker\Factory;
 use Illuminate\Support\Facades\Config;
@@ -68,7 +69,7 @@ class TestSalesForceViaSCIM extends TestCase
     public function testCreateGroup()
     {
         $faker = Factory::create();
-        echo($this->scimLib->createGroupWithData(['Name'=>$faker->company]));
+        echo($this->scimLib->createResource('Group', ['Name'=>$faker->company]));
 
     }
 
@@ -86,13 +87,26 @@ class TestSalesForceViaSCIM extends TestCase
 
     public function testEditGroup(){
 //        dd($this->scimLib->getUser('0052v00000gjmlTAAQ'));
-        dd($this->scimLib->updateResource('Group', '00G2v000004W30vEAC', ['GroupName'=>'Hehe']));
+        dd($this->scimLib->updateResource('Group', '00G2v0000033KZzEAM', ['GroupName'=>'Hehe']));
     }
 
     public function testAddMemberToGroup(){
         $this->scimLib->addMemberToGroup('0052v00000gk2UEAAY', '00G2v000004W30vEAC');
     }
-/**
+
+    public function testDeleteGroups(){
+        $allIDS = (Role::select('externalSFID')->get()->toArray());
+        foreach ($allIDS as $externalSFID){
+
+            $SFID = $externalSFID['externalSFID'];
+            echo "\n$SFID";
+            var_dump($this->scimLib->deleteResource('group', $SFID));
+        }
+//        dd($allIDS);
+//        $this->scimLib->;
+    }
+
+    /**
      * @param string $userName
      * @param \bjsmasth\Salesforce\CRUD $crud
      */

@@ -50,6 +50,7 @@ return [
 }',
 
     'createGroup' => '{
-    "Name":"G1"
+    "Name":"G1",
+    "DeveloperName":"DEV"
 }'
 ];
