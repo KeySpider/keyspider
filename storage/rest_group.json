@@ -1,0 +1,20 @@
+{
+  "attributes": {
+    "type": "Group",
+    "url": "/services/data/v39.0/sobjects/Group/00G2v0000033KcjEAE"
+  },
+  "Id": "00G2v0000033KcjEAE",
+  "Name": "g3",
+  "DeveloperName": "dev_g3",
+  "RelatedId": null,
+  "Type": "Regular",
+  "Email": null,
+  "OwnerId": "00D2v000003R5LTEA0",
+  "DoesSendEmailToMembers": false,
+  "DoesIncludeBosses": true,
+  "CreatedDate": "2020-02-06T04:05:03.000+0000",
+  "CreatedById": "0052v00000gc9hJAAQ",
+  "LastModifiedDate": "2020-02-06T04:05:03.000+0000",
+  "LastModifiedById": "0052v00000gc9hJAAQ",
+  "SystemModstamp": "2020-02-06T04:05:03.000+0000"
+}

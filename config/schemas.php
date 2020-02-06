@@ -38,6 +38,9 @@ return [
 }',
     'createUser' => '{
   "UserName": "user@keyspider.jp",
+  "IsActive": true,
+  "LastName":"Tuan",
+  "FirstName":"Le",
   "Email": "ks@keyspider.jp",
   "Alias": "ks",
   "TimeZoneSidKey": "Asia/Ho_Chi_Minh",
@@ -46,7 +49,19 @@ return [
   "LanguageLocaleKey": "ja",
   "LastName": "User",
   "LastName": "KeySpider",
-  "ProfileId": "00e2v000004h399"
+  "ProfileId": "00e2v000004h399",
+     "CompanyName": "null",
+    "Division": "null",
+    "Department": "null",
+    "Title": "null",
+    "Street": "null",
+    "City": "null",
+    "State": "null",
+    "PostalCode": "null",
+    "Country": "null",
+    "Latitude": "null",
+    "Longitude": "null",
+    "GeocodeAccuracy": "null"
 }',
 
     'createGroup' => '{

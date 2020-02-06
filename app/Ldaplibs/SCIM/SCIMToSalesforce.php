@@ -60,7 +60,7 @@ class SCIMToSalesforce
 
         if($resourceType=='user'){
             $dataSchema = json_decode(Config::get('schemas.createUser'), true);
-            $data['IsActive'] = $data['IsActive']?false:true;
+            $data['IsActive'] = isset($data['IsActive'])&&$data['IsActive']?false:true;
             $resourceType = 'USER';
             foreach ($dataSchema as $key=>$value){
                 if(in_array($key, array_keys($data))){
@@ -160,7 +160,14 @@ class SCIMToSalesforce
         $resourceId = $data['externalSFID'];
         unset($data['externalSFID']);
         if($resourceType=='user'){
-            $data['IsActive'] = $data['IsActive']?false:true;
+//            $data['IsActive'] = $data['IsActive']?false:true;
+            if(!isset($data['IsActive'])){
+                $data['IsActive'] = true;
+            }
+            else{
+                $data['IsActive'] = $data['IsActive']?false:true;
+            }
+
             $dataSchema = json_decode(Config::get('schemas.createUser'), true);
             $resourceType = 'USER';
             foreach ($data as $key=>$value){
@@ -181,7 +188,7 @@ class SCIMToSalesforce
                 }
             }
         }
-        echo ("\nUpdate User with data: \n");
+        echo ("\nUpdate $resourceType with data: \n");
         echo(json_encode($data, JSON_PRETTY_PRINT));
 
         $update = $this->crud->update($resourceType, $resourceId, $data);
