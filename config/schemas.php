@@ -49,19 +49,7 @@ return [
   "LanguageLocaleKey": "ja",
   "LastName": "User",
   "LastName": "KeySpider",
-  "ProfileId": "00e2v000004h399",
-     "CompanyName": "null",
-    "Division": "null",
-    "Department": "null",
-    "Title": "null",
-    "Street": "null",
-    "City": "null",
-    "State": "null",
-    "PostalCode": "null",
-    "Country": "null",
-    "Latitude": "null",
-    "Longitude": "null",
-    "GeocodeAccuracy": "null"
+  "ProfileId": "00e2v000004h38u"
 }',
 
     'createGroup' => '{

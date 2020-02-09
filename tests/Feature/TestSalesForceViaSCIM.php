@@ -67,8 +67,11 @@ class TestSalesForceViaSCIM extends TestCase
             $data['Email'] = $email;
             $data['Alias'] = $faker->countryCode;
             $data['LastName'] = $faker->lastName;
-            echo($this->scimLib->createResource('User', $data));
+            $data['externalSFID'] = ($this->scimLib->createResource('User', $data));
         }
+        //TODO: getListOfGroupsUserBelongedTo
+        $this->scimLib->getListOfGroupsUserBelongedTo($data);
+
     }
 
 
@@ -117,7 +120,7 @@ class TestSalesForceViaSCIM extends TestCase
 
     public function testAddMemberToGroup()
     {
-        $this->scimLib->addMemberToGroup('0052v00000gk2UEAAY', '00G2v000004W30vEAC');
+        $this->scimLib->addMemberToGroup('0052v00000gcFwLAAU', '00G2v0000033KcjEAE');
     }
 
     public function testDeleteGroups()
@@ -163,6 +166,5 @@ class TestSalesForceViaSCIM extends TestCase
 
     public function testUpdateResource()
     {
-//        $this->scimLib
     }
 }
