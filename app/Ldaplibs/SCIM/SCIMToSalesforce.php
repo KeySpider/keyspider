@@ -84,18 +84,10 @@ class SCIMToSalesforce
         try {
             $response = $this->crud->create($resourceType, $dataSchema);
             echo "\nCreate user Response: [$response]\n";
-            if (strtolower($resourceType) == 'user') {
-                $memberOf = $this->getListOfGroupsUserBelongedTo($data);
-                foreach ($memberOf as $groupID) {
-                    $addMemberResult = $this->addMemberToGroup($response, $groupID);
-                    echo "\nAdd member to group result:\n";
-                    var_dump( $addMemberResult);
-
-                }
-            }
+            $this->updateGroupMemebers($resourceType, $data, $response);
             return $response;  #returns id
         } catch (\Exception $exception) {
-            var_dump($exception);
+//            var_dump($exception);
             echo($exception->getMessage());
             return $response;
         }
@@ -165,6 +157,7 @@ class SCIMToSalesforce
 
     public function updateResource($resourceType, $data)
     {
+        $oriData = $data;
         $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
         $resourceId = $data['externalSFID'];
         unset($data['externalSFID']);
@@ -199,6 +192,7 @@ class SCIMToSalesforce
         echo(json_encode($data, JSON_PRETTY_PRINT));
 
         $update = $this->crud->update($resourceType, $resourceId, $data);
+        $this->updateGroupMemebers($resourceType, $oriData, $resourceId);
         echo("\nUpdate: $update");
         return $update;
     }
@@ -239,5 +233,22 @@ class SCIMToSalesforce
         $query = "SELECT userorgroupid From GROUPMEMBER where UserOrGroupId='$uID'";
         var_dump($this->crud->query($query));
         return [];
+    }
+
+    /**
+     * @param $resourceType
+     * @param array $data
+     * @param $response
+     */
+    private function updateGroupMemebers($resourceType, array $data, $response): void
+    {
+        if (strtolower($resourceType) == 'user') {
+            $memberOf = $this->getListOfGroupsUserBelongedTo($data);
+            foreach ($memberOf as $groupID) {
+                $addMemberResult = $this->addMemberToGroup($response, $groupID);
+                echo "\nAdd member to group result:\n";
+                var_dump($addMemberResult);
+            }
+        }
     }
 }
