@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\User;
+use Faker\Factory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -40,6 +42,7 @@ class ExportSalesforce extends Command
      */
     public function handle()
     {
+//        $this->updateDomainForUsers();
         // Setup schedule for Extract
         $extractSettingManager = new ExtractSettingsManager('SF Extract Process Configration');
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
@@ -63,6 +66,18 @@ class ExportSalesforce extends Command
             $setting = $dataSchedule['setting'];
             $extractor = new DBExtractor($setting);
             $extractor->processExtractToSF();
+        }
+    }
+
+    private function updateDomainForUsers(): void
+    {
+        $faker = Factory::create();
+        $domain = $faker->domainName;
+        $users = User::all();
+        foreach ($users as $user) {
+            $id = $user->toArray()['ID'];
+            $name = "$id@$domain";
+            $user->where('ID', $id)->update(['Name' => $name, 'mail' => $name]);
         }
     }
 

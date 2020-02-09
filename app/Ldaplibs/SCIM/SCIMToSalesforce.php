@@ -4,6 +4,7 @@
 namespace App\Ldaplibs\SCIM;
 
 
+use App\Ldaplibs\SettingsManager;
 use bjsmasth\Salesforce\Authentication\PasswordAuthentication;
 use bjsmasth\Salesforce\Exception\SalesforceAuthentication;
 use Faker\Factory;
@@ -13,18 +14,7 @@ class SCIMToSalesforce
 {
     public function __construct()
     {
-        $options = [
-            'grant_type' => 'password',
-/*            'client_id' => '3MVG9G9pzCUSkzZtQhmyLq3TUSdPdWhKaUzMAr3Gyr73oUK4Kxf.JIjEt1t_Y8l4SAoHfoiH2GTsnc8WR8JX7',
-            'client_secret' => 'F7F54A0096F01D6F7992DC7D4BEBF14599E0F6554FDCCCEB1987BC498D554E16',
-            'username' => 'vntuanla@gmail.com',
-            'password' => '1qs2wd3efVU8iz0SQY8Wml7bFWtAZUW1bI'*/
-            'client_id' => '3MVG9G9pzCUSkzZtQhmyLq3TUSepG1qXYndCYGaDpR_Tcv0RnVYUBzhbRwsxjpjCfAwQqhg7hSFs4OABtbRLh',
-            'client_secret' => '605E0082BC5A093DE4271525C3BC43710B7DA9BDA55E31A360AEEF068B17FF41',
-            'username' => 'tuanla710@gmail.com',
-            'password' => '1qs2wd3efMTfuHJaWpXRnfnOUim1it8BLo'
-        ];
-
+        $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Salesforce Keys'];
         $salesforce = new PasswordAuthentication($options);
         try {
             $salesforce->authenticate();
@@ -39,50 +29,46 @@ class SCIMToSalesforce
         $this->crud = new \bjsmasth\Salesforce\CRUD();
     }
 
-    public function createUserWithData(array $data=null)
+    public function createUserWithData(array $data = null)
     {
-        if($data == null) {
+        if ($data == null) {
             $data = json_decode(Config::get('schemas.createUser'));
         }
-        try{
+        try {
             return $this->crud->create('USER', $data);  #returns id
-        }
-        catch (\Exception $exception){
-            echo ($exception->getMessage());
+        } catch (\Exception $exception) {
+            echo($exception->getMessage());
             return -1;
         }
     }
 
-    public function createResource($resourceType, array $data=null)
+    public function createResource($resourceType, array $data = null)
     {
         $faker = Factory::create();
         $resourceType = strtolower($resourceType);
 
-        if($resourceType=='user'){
+        if ($resourceType == 'user') {
             $dataSchema = json_decode(Config::get('schemas.createUser'), true);
-            $data['IsActive'] = isset($data['IsActive'])&&$data['IsActive']?false:true;
+            $data['IsActive'] = isset($data['IsActive']) && $data['IsActive'] ? false : true;
             $resourceType = 'USER';
-            foreach ($dataSchema as $key=>$value){
-                if(in_array($key, array_keys($data))){
-                    if($key=='Alias'){
+            foreach ($dataSchema as $key => $value) {
+                if (in_array($key, array_keys($data))) {
+                    if ($key == 'Alias') {
                         $data[$key] = substr($data[$key], 0, 7);
                     }
                     $dataSchema[$key] = $data[$key];
-                }
-                elseif ($key=='Alias'){
+                } elseif ($key == 'Alias') {
                     $dataSchema[$key] = $faker->text(8);
-                }
-                elseif ($key=='LastName'){
+                } elseif ($key == 'LastName') {
                     $dataSchema[$key] = $faker->lastName;
-                }
-                elseif ($key=='Email'){
+                } elseif ($key == 'Email') {
                     $dataSchema[$key] = $faker->freeEmail;
                 }
             }
 
-        }elseif (($resourceType=='role')||(strtolower($resourceType)=='group')){
+        } elseif (($resourceType == 'role') || (strtolower($resourceType) == 'group')) {
             $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
-            foreach ($dataSchema as $key=>$value) {
+            foreach ($dataSchema as $key => $value) {
                 if (in_array($key, array_keys($data))) {
                     if ($key == 'Alias') {
                         $data[$key] = substr($data[$key], 0, 7);
@@ -93,93 +79,107 @@ class SCIMToSalesforce
 //                $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
             $resourceType = 'GROUP';
         }
-        echo ("Create [$resourceType] with data: \n");
+        echo("Create [$resourceType] with data: \n");
         echo(json_encode($dataSchema, JSON_PRETTY_PRINT));
-        try{
+        try {
             $response = $this->crud->create($resourceType, $dataSchema);
-            echo "\nResponse: [$response]\n";
+            echo "\nCreate user Response: [$response]\n";
+            $this->updateGroupMemebers($resourceType, $data, $response);
             return $response;  #returns id
-        }
-        catch (\Exception $exception){
-            echo ($exception->getMessage());
-            return null;
+        } catch (\Exception $exception) {
+//            var_dump($exception);
+            echo($exception->getMessage());
+            return $response;
         }
     }
 
-    public function createGroupWithData(array $data=null)
+    public function createGroupWithData(array $data = null)
     {
-        if($data == null) {
+        if ($data == null) {
             $data = json_decode(Config::get('schemas.createGroup'));
         }
-        try{
+        try {
             return $this->crud->create('GROUP', $data);  #returns id
-        }
-        catch (\Exception $exception){
-            echo ($exception->getMessage());
+        } catch (\Exception $exception) {
+            echo($exception->getMessage());
             return -1;
         }
     }
 
-    public function getUser($id){
+    public function getUser($id)
+    {
         return $this->crud->getResourceDetail('Users', $id);
     }
-    public function getGroup($id){
+
+    public function getGroup($id)
+    {
         return $this->crud->getResourceDetail('Groups', $id);
     }
 
-    public function getResourceDetails ($resourceId, $resourceType){
+    public function getResourceDetails($resourceId, $resourceType)
+    {
         $resourceType = $this->getResourceTypeOfSF($resourceType);
         return $this->crud->getResourceDetail($resourceType, $resourceId);
     }
 
-    public function getUsersList(){
+    public function getUsersList()
+    {
         return $this->crud->getResourceList('Users');
     }
 
-    public function getGroupsList(){
+    public function getGroupsList()
+    {
         return $this->crud->getResourceList('Groups');
     }
 
-    public function addMemberToGroup($memberId, $groupId){
-        dd($this->crud->addMemberToGroup($memberId, $groupId));
-    }
-    public function deleteResource($resourceType, $resourceId){
-        $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
+    public function addMemberToGroup($memberId, $groupId)
+    {
         try{
-            return ($this->crud->delete($resourceType, $resourceId));
+            return ($this->crud->addMemberToGroup($memberId, $groupId));
         }
         catch (\Exception $exception){
-            var_dump( "\n$exception");
+            return [];
+        }
+
+    }
+
+    public function deleteResource($resourceType, $resourceId)
+    {
+        $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
+        try {
+            return ($this->crud->delete($resourceType, $resourceId));
+        } catch (\Exception $exception) {
+            var_dump("\n$exception");
             return false;
         }
 
     }
 
-    public function updateResource($resourceType, $data){
+    public function updateResource($resourceType, $data)
+    {
+        $oriData = $data;
         $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
         $resourceId = $data['externalSFID'];
         unset($data['externalSFID']);
-        if($resourceType=='user'){
+        if ($resourceType == 'user') {
 //            $data['IsActive'] = $data['IsActive']?false:true;
-            if(!isset($data['IsActive'])){
+            if (!isset($data['IsActive'])) {
                 $data['IsActive'] = true;
-            }
-            else{
-                $data['IsActive'] = $data['IsActive']?false:true;
+            } else {
+                $data['IsActive'] = $data['IsActive'] ? false : true;
             }
 
             $dataSchema = json_decode(Config::get('schemas.createUser'), true);
             $resourceType = 'USER';
-            foreach ($data as $key=>$value){
-                if(!in_array($key, array_keys($dataSchema))){
+            foreach ($data as $key => $value) {
+                if (!in_array($key, array_keys($dataSchema))) {
                     unset($data[$key]);
                 }
-                if($key=='Alias'){
+                if ($key == 'Alias') {
                     $data[$key] = substr($data[$key], 0, 7);
                 }
             }
-        }
-        elseif(($resourceType=='group')||($resourceType=='role')) {
+        } elseif (($resourceType == 'group') || ($resourceType == 'role')) {
 
             $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
             foreach ($data as $key => $value) {
@@ -188,10 +188,11 @@ class SCIMToSalesforce
                 }
             }
         }
-        echo ("\nUpdate $resourceType with data: \n");
+        echo("\nUpdate $resourceType with data: \n");
         echo(json_encode($data, JSON_PRETTY_PRINT));
 
         $update = $this->crud->update($resourceType, $resourceId, $data);
+        $this->updateGroupMemebers($resourceType, $oriData, $resourceId);
         echo("\nUpdate: $update");
         return $update;
     }
@@ -200,13 +201,54 @@ class SCIMToSalesforce
      * @param $resourceType
      * @return string
      */
-    private function getResourceTypeOfSF($resourceType, $isREST=false): string
+    private function getResourceTypeOfSF($resourceType, $isREST = false): string
     {
         if ($resourceType == 'User') {
-            $resourceType = $isREST?'User':'Users';
+            $resourceType = $isREST ? 'User' : 'Users';
         } elseif ($resourceType == 'Role') {
-            $resourceType = $isREST?'Group':'Groups';
+            $resourceType = $isREST ? 'Group' : 'Groups';
         }
         return $resourceType;
+    }
+
+    public function getListOfGroupsUserBelongedTo($userAttibutes): array
+    {
+//        $memberOfSF = $this->getMemberOfsSF($userAttibutes['externalSFID']);
+        //TODO: getListOfGroupsUserBelongedTo
+        $memberOf = [];
+        $roleMap = (new SettingsManager())->getRoleMapInExternalSFID('Role');
+        foreach ($userAttibutes as $roleFlag => $value) {
+            if ((strpos($roleFlag, 'RoleFlag-') !== false) && ($value == 1)) {
+                $temp = explode('-', $roleFlag);
+                $memberOf[] = $roleMap[(int)$temp[1]];
+
+            }
+        }
+        return $memberOf;
+    }
+
+
+    public function getMemberOfsSF($uID)
+    {
+        $query = "SELECT userorgroupid From GROUPMEMBER where UserOrGroupId='$uID'";
+        var_dump($this->crud->query($query));
+        return [];
+    }
+
+    /**
+     * @param $resourceType
+     * @param array $data
+     * @param $response
+     */
+    private function updateGroupMemebers($resourceType, array $data, $response): void
+    {
+        if (strtolower($resourceType) == 'user') {
+            $memberOf = $this->getListOfGroupsUserBelongedTo($data);
+            foreach ($memberOf as $groupID) {
+                $addMemberResult = $this->addMemberToGroup($response, $groupID);
+                echo "\nAdd member to group result:\n";
+                var_dump($addMemberResult);
+            }
+        }
     }
 }

@@ -428,6 +428,26 @@ class SettingsManager
 
         return null;
     }
+    public function getRoleMapInExternalSFID($tableName = null)
+    {
+        if ($tableName == null) {
+            $tableName = 'Role';
+        }
+        if (isset($this->masterDBConfigData['RoleMap'])) {
+            $roleMap = $this->masterDBConfigData['RoleMap']['RoleID'];
+            $query = DB::table($tableName)->select('ID', 'externalSFID');
+            $allRoleRecords = $query->get()->toArray();
+            $arrayIdUserMap = [];
+                foreach ($allRoleRecords as $record) {
+                    $record = (array)$record;
+                    $arrayIdUserMap[] = $record['externalSFID'];
+                }
+
+            return $arrayIdUserMap;
+        }
+
+        return null;
+    }
 
     /**
      * @param string $groupId

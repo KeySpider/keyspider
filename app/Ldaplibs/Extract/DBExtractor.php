@@ -439,15 +439,16 @@ class DBExtractor
                 //{"processID":0}
 
                 foreach ($results as $key => $item) {
+                    $item = (array)$item;
                     DB::beginTransaction();
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
-                    $uPN = $item->userPrincipalName ?? null;
-                    if (($item->externalSFID) && ($scimLib->getResourceDetails($item->externalSFID, $table))) {
-                        if ($item->DeleteFlag == 1) {
+                    if (($item["externalSFID"]) && ($scimLib->getResourceDetails($item["externalSFID"], $table))) {
+                        if ($item["DeleteFlag"] == 1) {
                             //Delete resource
-                            Log::info("Delete user [$uPN] on AzureAD");
-                            $scimLib->deleteResource($item->externalID, $table);
+
+                            $item['IsActive'] = 1;
+                            $userUpdated = $scimLib->updateResource($table, $item);
                         } else {
                             $userUpdated = $scimLib->updateResource($table, (array)$item);
                             if ($userUpdated == null) {
@@ -455,24 +456,24 @@ class DBExtractor
                                 continue;
                             }
                         }
-                        $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                        $keyString = $item["$primaryKey"];
+                        $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
                     } //Not found resource, create it!
                     else {
-                        if ($item->DeleteFlag == 1) {
-                            Log::info("User [$uPN] has DeleteFlag=1 and not existed on SF, do nothing!");
+                        if ($item["DeleteFlag"] == 1) {
                             DB::commit();
                             continue;
                         }
                         $userOnSF = $scimLib->createResource($table, (array)$item);
                         if ($userOnSF == null) {
-                            echo "Not found response of creating: \n";
+                            echo "\Not found response of creating: \n";
                             var_dump($item);
                             continue;
                         }
 //                    TODO: create user on AD, update UpdateFlags and externalID.
-                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
-                        $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                        $updateQuery->where($primaryKey, $item["$primaryKey"]);
                         $updateQuery->update(['externalSFID' => $userOnSF]);
                         var_dump($userOnSF);
                     }
