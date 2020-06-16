@@ -92,6 +92,7 @@ class TablesBuilder
                         echo "    + add Column: [$column]\n";
                         $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                     }
+
                 }
             });
 //          Create table
@@ -103,6 +104,15 @@ class TablesBuilder
                 }
             });
         }
+
+//        Schema::table($tableName, function ($table) use ($tableName, $defaultUpdateFlagsData) {
+//            $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
+//            if (Schema::hasColumn($tableName, $updateFlagColumnName)) {
+//                $table->json($updateFlagColumnName)->default($defaultUpdateFlagsData)->change();
+//            }
+//        });
+        $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($tableName);
+        DB::statement("ALTER TABLE \"$tableName\" ALTER COLUMN \"$updateFlagColumnName\" SET DEFAULT '$defaultUpdateFlagsData';");
     }
 
 
@@ -115,8 +125,12 @@ class TablesBuilder
     {
         $defaultUpdateFlagsData = [];
         $keySpider = $this->settingsManager->keySpider;
-        $extractConfig = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
-        foreach ($extractConfig as $extractConfigFile) {
+        $csvExtractConfig = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
+        $adExtractConfig = array_get($keySpider['Azure Extract Process Configration'], 'extract_config', []);
+        $sfExtractConfig = array_get($keySpider['SF Extract Process Configration'], 'extract_config', []);
+        $extractConfigFilesPath = array_merge($csvExtractConfig, $adExtractConfig, $sfExtractConfig);
+
+        foreach ($extractConfigFilesPath as $extractConfigFile) {
             try {
                 $extractConfigContent = parse_ini_file($extractConfigFile);
                 $extractProcessID = $extractConfigContent['ExtractionProcessID'];

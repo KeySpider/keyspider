@@ -135,7 +135,7 @@ class CSVReader implements DataInputReader
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
-            $primaryKey = $settingManagement->getTableKey($nameTable);
+            $primaryKey = $settingManagement->getTableKey();
 
             // get data from csv file
             $csv = Reader::createFromPath($fileCSV);
@@ -156,10 +156,9 @@ class CSVReader implements DataInputReader
                     }
                 }
                 $primaryKeyValue = array_get($getDataAfterConvert, $primaryKey, null);
-                if($primaryKeyValue)
+                if ($primaryKeyValue)
                     $data = DB::table($nameTable)->where("{$primaryKey}", $primaryKeyValue)->first();
-                else{
-                    echo(new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
+                else {
                     throw (new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
                 }
                 if ($data) {

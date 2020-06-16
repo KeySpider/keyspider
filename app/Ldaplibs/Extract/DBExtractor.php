@@ -20,12 +20,15 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Ldaplibs\SCIM\SCIMToSalesforce;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\UserGraphAPI;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Microsoft\Graph\Model\User;
 
 class DBExtractor
 {
@@ -48,6 +51,36 @@ class DBExtractor
         $this->setting = $setting;
     }
 
+    /**
+     * @param $nameTable
+     * @param $settingConvention
+     * @return array|mixed
+     */
+    public function getColumnsSelectForCSV($nameTable, $settingConvention)
+    {
+        $index = 0;
+        $arraySelectColumns = [];
+        $arrayAliasColumns = [];
+        foreach ($settingConvention as $key => $value) {
+            $n = strpos($value, $nameTable);
+            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            if (count($matches) > 2 && is_array($matches[2])) {
+                $columnName = $matches[2][0];
+                $arrayAliasColumns[] = $columnName;
+            } else {
+                $defaultColumn = "default_$index";
+                $index++;
+                $columnName = DB::raw("'$value' as \"$defaultColumn\"");
+                $arrayAliasColumns[] = $defaultColumn;
+            }
+            $arraySelectColumns[] = $columnName;
+        }
+
+//        $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
+
+        return [$arraySelectColumns, $arrayAliasColumns];
+    }
+
     public function processExtract()
     {
         try {
@@ -68,8 +101,8 @@ class DBExtractor
 
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
-            $primaryKey = $settingManagement->getTableKey($table);
-            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelectForCSV($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
@@ -148,10 +181,10 @@ class DBExtractor
         $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            if ($n !== false and $value[0] == '(' and substr($value, -1) == ')') {//TODO: will be replaced by preg_match later
-                $columnName = substr($value, strlen($nameTable) + 2, -1);
-                $arrayAliasColumns[] = $columnName;
-
+            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            if (count($matches) > 2 && is_array($matches[2])) {
+                $columnName = $matches[2][0];
+                $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");;
             } else {
                 $defaultColumn = "default_$index";
                 $index++;
@@ -183,7 +216,6 @@ class DBExtractor
                         $joinConditions[$data['exp1']] = $data['exp3'];
                     }
                 }
-
             }
         }
 
@@ -221,6 +253,7 @@ class DBExtractor
      */
     public function processOutputDataExtract($settingOutput, $results, $selectColumns, $table)
     {
+
         try {
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -258,28 +291,6 @@ class DBExtractor
         }
     }
 
-    /**
-     * Switch table by name table
-     *
-     * @param $extractTable
-     * @return string|null
-     */
-    public function switchTable($extractTable)
-    {
-        switch ($extractTable) {
-            case 'Role':
-                return 'CCC';
-                break;
-            case 'User':
-                return 'AAA';
-                break;
-            case 'Organization':
-                return 'BBB';
-                break;
-            default:
-                return null;
-        }
-    }
 
     /**
      * @param $file_name
@@ -289,5 +300,191 @@ class DBExtractor
     {
         $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
         return $file;
+    }
+
+    public function processExtractToAD()
+    {
+        try {
+
+
+//            $results = null;
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
+            if ($table == 'User') {
+                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+            }
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
+            $extractedSql = $query->toSql();
+            Log::info($extractedSql);
+            $results = $query->get()->toArray();
+
+            if ($results) {
+                $userGraph = new UserGraphAPI();
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+
+                foreach ($results as $key => $item) {
+                    DB::beginTransaction();
+                    // check resource is existed on AD or not
+                    //TODO: need to change because userPrincipalName is not existed in group.
+                    $uPN = $item->userPrincipalName ?? null;
+                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $uPN))) {
+                        if ($item->DeleteFlag == 1) {
+                            //Delete resource
+                            Log::info("Delete user [$uPN] on AzureAD");
+                            $userGraph->deleteResource($item->externalID, $table);
+                        } else {
+                            $userUpdated = $userGraph->updateResource((array)$item, $table);
+                            if ($userUpdated == null) {
+                                DB::commit();
+                                continue;
+                            }
+                        }
+                        $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                    } //Not found resource, create it!
+                    else {
+                        if ($item->DeleteFlag == 1) {
+                            Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
+                            DB::commit();
+                            continue;
+                        }
+                        $userOnAD = $userGraph->createResource((array)$item, $table);
+                        if ($userOnAD == null) continue;
+//                    TODO: create user on AD, update UpdateFlags and externalID.
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                        $updateQuery->update(['externalID' => $userOnAD->getID()]);
+                        var_dump($userOnAD);
+                    }
+                    DB::commit();
+                }
+            }
+
+
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
+    }
+
+    public function processExtractToSF()
+    {
+        try {
+
+
+//            $results = null;
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalSFID', 'DeleteFlag']);
+            if ($table == 'User') {
+                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+            }
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
+            $extractedSql = $query->toSql();
+            Log::info($extractedSql);
+            $results = $query->get()->toArray();
+
+            if ($results) {
+//                $scimLib = new UserGraphAPI();
+                $scimLib = new SCIMToSalesforce();
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+
+                foreach ($results as $key => $item) {
+                    $item = (array)$item;
+                    DB::beginTransaction();
+                    // check resource is existed on AD or not
+                    //TODO: need to change because userPrincipalName is not existed in group.
+                    if (($item["externalSFID"]) && ($scimLib->getResourceDetails($item["externalSFID"], $table))) {
+                        if ($item["DeleteFlag"] == 1) {
+                            //Delete resource
+
+                            $item['IsActive'] = 1;
+                            $userUpdated = $scimLib->updateResource($table, $item);
+                        } else {
+                            $userUpdated = $scimLib->updateResource($table, (array)$item);
+                            if ($userUpdated == null) {
+                                DB::commit();
+                                continue;
+                            }
+                        }
+                        $keyString = $item["$primaryKey"];
+                        $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                    } //Not found resource, create it!
+                    else {
+                        if ($item["DeleteFlag"] == 1) {
+                            DB::commit();
+                            continue;
+                        }
+                        $userOnSF = $scimLib->createResource($table, (array)$item);
+                        if ($userOnSF == null) {
+                            echo "\Not found response of creating: \n";
+                            var_dump($item);
+                            continue;
+                        }
+//                    TODO: create user on AD, update UpdateFlags and externalID.
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                        $updateQuery->update(['externalSFID' => $userOnSF]);
+                        var_dump($userOnSF);
+                    }
+                    DB::commit();
+                }
+            }
+
+
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
     }
 }
