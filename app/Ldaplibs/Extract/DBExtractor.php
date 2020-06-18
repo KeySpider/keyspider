@@ -109,7 +109,6 @@ class DBExtractor
 //            if (!in_array($primaryKey, $selectColumns))
 //                $selectColumns[] = $primaryKey;
             $selectColumnsAndID = array_merge($selectColumns, [$primaryKey]);
-
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
@@ -261,6 +260,9 @@ class DBExtractor
             $tempPath = $settingOutput['TempPath'];
             $fileName = $settingOutput['FileName'];
 
+            $setting = $this->setting;
+            $nameTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];            
+
             mkDirectory($tempPath);
 
             if (is_file("{$tempPath}/$fileName")) {
@@ -271,12 +273,15 @@ class DBExtractor
             // create csv file
             foreach ($results as $data) {
                 $data = array_only((array)$data, $selectColumns);
+
                 $dataTmp = [];
-                foreach ($data as $column => $line) {
-                    if (in_array($column, $getEncryptedFields)) {
+                foreach ($selectColumns as $index => $column) {
+                    $line = $data[$column];
+                    $twColumn = $nameTable . '.' . $column;
+                    // if (in_array($column, $getEncryptedFields)) {
+                    if (in_array($twColumn, $getEncryptedFields)) {
                         $line = $settingManagement->passwordDecrypt($line);
                     }
-
                     array_push($dataTmp, $line);
                 }
                 fputcsv($file, $dataTmp, ',');
