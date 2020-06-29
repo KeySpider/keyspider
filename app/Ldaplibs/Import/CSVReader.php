@@ -198,7 +198,7 @@ class CSVReader implements DataInputReader
 
         foreach ($conversions as $key => $item) {
             if ($key === '' || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
-                unset($conversions[$key]);
+                // unset($conversions[$key]);
             }
 
             if (isset($conversions[$key])) {

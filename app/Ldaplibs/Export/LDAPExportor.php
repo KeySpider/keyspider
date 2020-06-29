@@ -271,15 +271,14 @@ class LDAPExportor
                 $ldapUser['userAccountControl'] = self::NORMAL_ACCOUNT;
                 $ldapUser['pwdLastSet'] = 0;
 
-                if ($useSSL) {
-                    $entry->setPassword($defaultPassword);
-                }
-
                 $entry =  $this->provider->make()->user([
                     'cn'       => $ldapUser['name'],
                     'userAccountControl' => self::NORMAL_ACCOUNT,
                     'pwdLastSet' => 0,
                 ]);
+                if ($useSSL) {
+                    $entry->setPassword($defaultPassword);
+                }
                 $is_success = $entry->save();
 
                 if ($is_success) {
