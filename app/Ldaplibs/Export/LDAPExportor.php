@@ -44,6 +44,8 @@ class LDAPExportor
     // https://support.microsoft.com/ja-jp/help/305144/how-to-use-useraccountcontrol-to-manipulate-user-account-properties
     const NORMAL_ACCOUNT = 544;
     const DISABLE_ACCOUNT = 514;
+    // const HOLDING_ACCOUNT = 66082;
+    const HOLDING_ACCOUNT = 66050;
 
     protected $setting;
     protected $tableMaster;
@@ -87,9 +89,6 @@ class LDAPExportor
 
                 foreach ($results as $data) {
                     $array = json_decode(json_encode($data), true);
-
-//var_dump($array);
-// DB の配列
                     // Skip because 'cn' cannot be created
                     if (empty($array['Name'])) {
                         $this->setUpdateFlags($array['ID']);
@@ -181,8 +180,6 @@ class LDAPExportor
         
         $fields = [];
 
-//var_dump($array);
-
         foreach ($conversions as $key => $nameTable) {
             $explodeItem = explode('.', $nameTable);
             $item = $explodeItem[count($explodeItem) -1];
@@ -268,13 +265,15 @@ class LDAPExportor
                 $is_success = $entry->update($ldapUser);
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                $ldapUser['userAccountControl'] = self::NORMAL_ACCOUNT;
-                $ldapUser['pwdLastSet'] = 0;
+                $ldapUser['userAccountControl'] = self::HOLDING_ACCOUNT;
+                // $ldapUser['userAccountControl'] = self::NORMAL_ACCOUNT;
+                // $ldapUser['pwdLastSet'] = 0;
 
                 $entry =  $this->provider->make()->user([
                     'cn'       => $ldapUser['name'],
-                    'userAccountControl' => self::NORMAL_ACCOUNT,
-                    'pwdLastSet' => 0,
+                    'userAccountControl' => self::HOLDING_ACCOUNT,
+                    // 'userAccountControl' => self::NORMAL_ACCOUNT,
+                    // 'pwdLastSet' => 0,
                 ]);
                 if ($useSSL) {
                     $entry->setPassword($defaultPassword);
