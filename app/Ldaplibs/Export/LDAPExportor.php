@@ -129,7 +129,8 @@ class LDAPExportor
         $adLdap = new \Adldap\Adldap();
 
         $config = [  
-            'hosts'    => [ $ldapHosts ],
+//            'hosts'    => [ $ldapHosts ],
+            'hosts'    => explode(',', $ldapHosts),
             'base_dn'  => $LdapBaseDn,
             'username' => $LdapUsername,
             'password' => $LdapPassword,

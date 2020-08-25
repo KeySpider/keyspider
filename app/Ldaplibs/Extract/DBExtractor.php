@@ -63,7 +63,9 @@ class DBExtractor
         $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            // preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+
             if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
                 $arrayAliasColumns[] = $columnName;
