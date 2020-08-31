@@ -40,9 +40,12 @@ class SettingsManager
     public $generalKeys;
     public $keySpider;
     private $roleFlags;
+    private $pathIniConfigs;
 
     public function __construct()
     {
+        $this->pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
+
         if (!$this->validateKeySpider()) {
             $this->keySpider = null;
         } elseif ($this->isGeneralSettingsFileValid()) {
@@ -477,6 +480,31 @@ class SettingsManager
             }
         }
         return null;
+    }
+
+    public function getAllExtractionProcessID($tableName = 'User')
+    {
+        $extractionProcessIDs = [];
+        try {
+                $extractionFilePaths = parse_ini_file($this->pathIniConfigs.
+                    'KeySpider.ini')['extract_config'];
+                $exportFilePaths = parse_ini_file($this->pathIniConfigs.
+                'KeySpider.ini')['export_config'];
+
+                $filePaths = array_merge($extractionFilePaths, $exportFilePaths);
+
+                foreach($filePaths as $filePath) {
+                if (is_file($filePath)) {
+                    $file = parse_ini_file($filePath);
+                    if ($tableName == $file['ExtractionTable'] ?? '') {
+                        $extractionProcessIDs[] = $file['ExtractionProcessID'] ?? '';
+                    }
+                }
+            }
+        } catch (Exception $exception) {
+            Log::error($exception);
+        }
+        return $extractionProcessIDs;
     }
 
     public function getTableUser()

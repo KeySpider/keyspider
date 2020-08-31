@@ -29,5 +29,8 @@ return [
         'csv' => [
             'isUpdated' => 1,
         ]
-    ]
+    ],
+    'PATH_INI_CONFIGS' => env('PATH_INI_CONFIGS'),
+    'INI_CONFIGS' => '/ini_configs/',
+    'SET_ALL_EXTRACTIONS_IS_TRUE' => '1',
 ];

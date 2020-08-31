@@ -209,6 +209,72 @@ class UserController extends LaravelController
         return $this->response($dataResponse, $code = 201);
     }
 
+    public function destroy($id, Request $request)
+    {
+        // do something
+        Log::info('-----------------DELETE USER...-----------------');
+        Log::debug($id);
+        Log::info('--------------------------------------------------');
+
+        $this->checkToResponseErrorUserNotFound($id);
+
+        $this->logicalDeleteUser($id);
+
+        $jsonResponse = [
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:Success"
+            ],
+            "detail" => "Delete User success",
+            "id" => $id,
+            "meta" => [
+                "resourceType" => "User"
+            ],
+            "status" => 200
+        ];
+
+        return $this->response($jsonResponse);
+    }
+
+    /**
+     * logicalDeleteUser
+     *
+     * @param $id
+     * @return Bool
+     * @throws SCIMException
+     */
+    private function logicalDeleteUser($id) {
+        $updateFlagsJson = $this->importSetting->getAllExtractionProcessID($this->masterDB);
+
+        $updateFlags = [];
+        if (!empty($updateFlagsJson)) {
+            foreach ($updateFlagsJson as $item) {
+                $updateFlags[$item] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
+            }
+        }
+
+        $deleteFlagColumnName = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
+        $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
+
+        $setValues = [];
+        $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
+        $setValues[$updateFlagsColumnName] = json_encode($updateFlags);
+
+        $keyTable = $this->importSetting->getTableKey();
+        $query = DB::table($this->importSetting->getTableUser());
+        $data = $query->where($keyTable, $id)->first();
+
+        // $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
+
+        if ($data) {
+            DB::table($this->importSetting->getTableUser())
+                ->where($keyTable, $id)->update($setValues);
+        } else {
+            throw (new SCIMException('User Not Found'))->setCode(404);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Update
      *
@@ -311,6 +377,26 @@ class UserController extends LaravelController
 
 
         return $jsonData;
+    }
+
+    private function checkToResponseErrorUserNotFound($id)
+    {
+        $keyTable = $this->importSetting->getTableKey();
+
+        $sqlQuery = DB::table($this->importSetting->getTableUser());
+        $where = [
+            "{$keyTable}" => $id,
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $user = $sqlQuery->where($where)->first();
+        } else {
+            $user = null;
+        }
+
+        if (!$user) {
+            throw (new SCIMException('User Not Found'))->setCode(404);
+        }
     }
 
     /**
