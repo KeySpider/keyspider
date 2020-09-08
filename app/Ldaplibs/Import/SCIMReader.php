@@ -102,16 +102,24 @@ class SCIMReader
 
             $nameTable = $this->getTableName($setting);
             $scimInputFormat = $setting[config('const.scim_format')];
-
             $colUpdateFlag = $this->updateFlagsColumnName;
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
             $primaryKey = $this->primaryKey;
             $getEncryptedFields = $settingManagement->getEncryptedFields();
+            $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
                 $keyWithoutTableName = explode('.', $key)[1]??null;
+
+                if ($keyWithoutTableName == config('const.JOB_TITLE')) {
+                    $dataCreate = $settingManagement->resetRoleFlagX($dataCreate);
+                    $xIndex = $settingManagement->getRoleFlagX($scimValue, $roleMaps);
+                    $keyValue = sprintf("RoleFlag-%d", $xIndex);
+                    $dataCreate[$keyValue] = '1';
+                }
+
                 if ($keyWithoutTableName && isset($scimValue)) {
                         if (in_array($scimValue, $getEncryptedFields)) {
                             $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
@@ -123,8 +131,9 @@ class SCIMReader
                     unset($key);
                 }
             }
-            $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
+            $dataCreate[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($nameTable);
 
+            $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
             if ($data) {
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
@@ -290,12 +299,10 @@ class SCIMReader
                 }
             }
         }
-        $userRecord = (array)DB::table($resourceType)->where($this->primaryKey, $memberId)->get([$this->updateFlagsColumnName])->toArray()[0];
-        $updateFlags = json_decode($userRecord[$this->updateFlagsColumnName], true);
-        array_walk($updateFlags, function (&$value) {
-            $value = 1;
-        });
-        $setValues[$this->updateFlagsColumnName] = json_encode($updateFlags);
+
+        $settingManagement = new SettingsManager();
+        $setValues[$this->updateFlagsColumnName] = $settingManagement->makeUpdateFlagsJson($resourceType);
+
         DB::table($resourceType)->where($this->primaryKey, $memberId)->update($setValues);
     }
 

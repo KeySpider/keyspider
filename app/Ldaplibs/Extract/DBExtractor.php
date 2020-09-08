@@ -265,6 +265,8 @@ class DBExtractor
             $setting = $this->setting;
             $nameTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];            
 
+            $roleMaps = $settingManagement->getRoleMapInName($nameTable);
+
             mkDirectory($tempPath);
 
             if (is_file("{$tempPath}/$fileName")) {
@@ -283,6 +285,10 @@ class DBExtractor
                     // if (in_array($column, $getEncryptedFields)) {
                     if (in_array($twColumn, $getEncryptedFields)) {
                         $line = $settingManagement->passwordDecrypt($line);
+                    }
+                    if ( strpos($column, config('const.ROLE_FLAG')) !== false ) {
+                        $exp = explode('-', $column);
+                        $line = $settingManagement->getRoleFlagInName($roleMaps, $exp[1], $line);
                     }
                     array_push($dataTmp, $line);
                 }
@@ -334,7 +340,9 @@ class DBExtractor
 
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
             if ($table == 'User') {
-                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+                // $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+                $allRoleFlags = $settingManagement->getRoleFlags();
+                $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
@@ -424,7 +432,9 @@ class DBExtractor
 
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalSFID', 'DeleteFlag']);
             if ($table == 'User') {
-                $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+                // $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+                $allRoleFlags = $settingManagement->getRoleFlags();
+                $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {

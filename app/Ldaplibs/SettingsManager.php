@@ -507,6 +507,48 @@ class SettingsManager
         return $extractionProcessIDs;
     }
 
+    public function makeUpdateFlagsJson($nameTable)
+    {
+        $updateFlagsJson = $this->getAllExtractionProcessID($nameTable);
+
+        $updateFlags = [];
+        if (!empty($updateFlagsJson)) {
+            foreach ($updateFlagsJson as $item) {
+                $updateFlags[$item] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
+            }
+        }
+        return json_encode($updateFlags);
+    }
+
+    public function getRoleFlagInName($roleMaps, $roleFlag, $value)
+    {
+        if ($value == '0') return;
+        $groupName = $roleMaps[$roleFlag]['Name'];
+        return $groupName;
+    }
+
+    public function resetRoleFlagX($datas)
+    {
+        $allRoleFlags = $this->getRoleFlags();
+
+        foreach ($allRoleFlags as $roleFlag) {
+            $datas[$roleFlag] = '0';
+        }
+        return $datas;
+    }
+
+    public function getRoleFlagX($scimValue, $roleMaps)
+    {
+        $index = null;
+        foreach($roleMaps as $key => $value) {
+            if ($value['Name'] == $scimValue) {
+                $index =  $key;
+                break;
+            }
+        }
+        return $index;
+    }
+
     public function getTableUser()
     {
         return array_get($this->masterDBConfigData, 'User.User');

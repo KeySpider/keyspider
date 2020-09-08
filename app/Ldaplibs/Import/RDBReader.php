@@ -294,15 +294,9 @@ class RDBReader
      */
     private function setUpdateFlags($id, $itemTable, $addFlagName)
     {
-        $userRecord = DB::table($itemTable)->where("ID", $id)->first();
-
-        $userRecord = (array)DB::table($itemTable)
-            ->where("ID", $id)
-            ->get(['UpdateFlags'])->toArray()[0];
-
-        $updateFlags = json_decode($userRecord['UpdateFlags'], true);
-        $updateFlags[$addFlagName] = '1';
-        $setValues["UpdateFlags"] = json_encode($updateFlags);
+        $settingManagement = new SettingsManager();
+        $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($itemTable);
+        $setValues[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($itemTable);
 
         DB::table($itemTable)->where("ID", $id)
             ->update($setValues);

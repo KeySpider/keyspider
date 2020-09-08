@@ -243,17 +243,10 @@ class UserController extends LaravelController
      * @throws SCIMException
      */
     private function logicalDeleteUser($id) {
-        $updateFlagsJson = $this->importSetting->getAllExtractionProcessID($this->masterDB);
-
-        $updateFlags = [];
-        if (!empty($updateFlagsJson)) {
-            foreach ($updateFlagsJson as $item) {
-                $updateFlags[$item] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
-            }
-        }
-
         $deleteFlagColumnName = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
         $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
+
+        $updateFlags = $this->importSetting->getAllExtractionProcessID($this->masterDB);
 
         $setValues = [];
         $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');

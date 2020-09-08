@@ -137,6 +137,8 @@ class CSVReader implements DataInputReader
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey();
 
+            $roleMaps = $settingManagement->getRoleMapInName($nameTable);
+
             // get data from csv file
             $csv = Reader::createFromPath($fileCSV);
             $stmt = new Statement();
@@ -145,6 +147,18 @@ class CSVReader implements DataInputReader
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
 //                $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
+                $roleFlags = [];
+                $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
+                foreach ($getDataAfterConvert as $cl => $item) {
+                    if ( strpos($cl, config('const.ROLE_ID')) !== false ) {
+                        $num = $settingManagement->getRoleFlagX($item, $roleMaps);
+                        if ($num !== null) {
+                            $keyValue = sprintf("RoleFlag-%d", $num);
+                            $roleFlags[$keyValue] = '1';
+                        }
+                    }
+                }
+                $getDataAfterConvert = array_merge($getDataAfterConvert, $roleFlags);
 
                 if (!empty($getEncryptedFields)) {
                     foreach ($getDataAfterConvert as $cl => $item) {
@@ -161,6 +175,12 @@ class CSVReader implements DataInputReader
                 else {
                     throw (new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
                 }
+
+                // set UpdateFlags
+                $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
+                $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($nameTable);
+                $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
+
                 if ($data) {
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
