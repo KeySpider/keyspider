@@ -130,7 +130,8 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     // update flag
                     $keyString = $item->{"$primaryKey"};
-                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                    // $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
+                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = '0');
                 }
                 //Start to extract
                 $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
