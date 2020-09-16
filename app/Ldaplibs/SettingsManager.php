@@ -507,7 +507,7 @@ class SettingsManager
         return $extractionProcessIDs;
     }
 
-    public function makeUpdateFlagsJson($nameTable)
+    public function makeUpdateFlagsJson($nameTable = 'User')
     {
         $updateFlagsJson = $this->getAllExtractionProcessID($nameTable);
 

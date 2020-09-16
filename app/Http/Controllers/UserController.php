@@ -246,11 +246,11 @@ class UserController extends LaravelController
         $deleteFlagColumnName = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
         $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
 
-        $updateFlags = $this->importSetting->getAllExtractionProcessID($this->masterDB);
+        // $updateFlags = $this->importSetting->getAllExtractionProcessID($this->masterDB);
 
         $setValues = [];
         $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
-        $setValues[$updateFlagsColumnName] = json_encode($updateFlags);
+        $setValues[$updateFlagsColumnName] = $this->importSetting->makeUpdateFlagsJson();
 
         $keyTable = $this->importSetting->getTableKey();
         $query = DB::table($this->importSetting->getTableUser());

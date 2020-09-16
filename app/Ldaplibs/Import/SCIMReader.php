@@ -31,6 +31,9 @@ use Illuminate\Support\Facades\Schema;
 
 class SCIMReader
 {
+    private const SCIM_ENT = 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User';
+    private const SCIM_MNG = 'manager';
+
     public function __construct()
     {
         $this->settingImport = new ImportSettingsManager();
@@ -156,8 +159,23 @@ class SCIMReader
             $nowString = Carbon::now()->format('Y/m/d');
             return $nowString;
         }
-        $pattern = "/\((.*?)\)/";
 
+        // Return Enterprise attribute 
+        if (strpos($value, self::SCIM_ENT) !== false) {
+            $scim_ent = array_key_exists(self::SCIM_ENT, $dataPost)
+                ? $dataPost[self::SCIM_ENT] : '';
+
+        $pattern = "/\((.*?)\)/";
+            $isMatched = preg_match($pattern, $value, $matchedValue);
+            if ($isMatched) {
+                $entAttribute = explode(':', $matchedValue[1]);
+                $ret = $this->chooseAtributeValue($scim_ent, 
+                            $entAttribute[count($entAttribute) - 1]);
+                return $ret;
+            }
+        }
+
+        $pattern = "/\((.*?)\)/";
         $isMatched = preg_match($pattern, $value, $matchedValue);
         try {
             if ($isMatched) {
@@ -174,6 +192,17 @@ class SCIMReader
         }
 
         return null;
+    }
+
+    private function chooseAtributeValue($scim_ent, $attr)
+    {
+        $attrValue = '';
+        if ( $attr !== self::SCIM_MNG ) {
+            $attrValue = $scim_ent[$attr];
+        } else {
+            $attrValue = $scim_ent[$attr]['displayName'];
+        }
+        return $attrValue;
     }
 
     public function updateRsource($memberId, $inputRequest, $setting)

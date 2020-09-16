@@ -411,9 +411,6 @@ class DBExtractor
     public function processExtractToSF()
     {
         try {
-
-
-//            $results = null;
             $setting = $this->setting;
             $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
