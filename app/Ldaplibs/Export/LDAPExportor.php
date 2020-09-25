@@ -144,6 +144,7 @@ class LDAPExportor
 
         // Add a connection provider to Adldap.
         $adLdap->addProvider($config);
+
         return $adLdap;
     }
 

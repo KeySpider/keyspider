@@ -109,8 +109,10 @@ class SCIMReader
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
             $primaryKey = $this->primaryKey;
             $getEncryptedFields = $settingManagement->getEncryptedFields();
+
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
+            $dataCreate = [];
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
@@ -210,11 +212,11 @@ class SCIMReader
         $resourceType = $this->getTableName($setting);
         $operations = $inputRequest['Operations'];
         $pathToColumn = $this->getScimPathToColumnMap($setting);
+
         if (count($pathToColumn) < 1) {
             return false;
         }
         $formattedOperations = $this->getFormatedOperationsFromRequest($operations);
-
         foreach ($formattedOperations as $operation) {
             //Update user attribute. Replace or Add is both ok.
             if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))//

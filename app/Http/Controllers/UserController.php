@@ -256,8 +256,6 @@ class UserController extends LaravelController
         $query = DB::table($this->importSetting->getTableUser());
         $data = $query->where($keyTable, $id)->first();
 
-        // $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
-
         if ($data) {
             DB::table($this->importSetting->getTableUser())
                 ->where($keyTable, $id)->update($setValues);

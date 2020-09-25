@@ -356,6 +356,7 @@ class ImportSettingsManager extends SettingsManager
         }, array_values($conversion));
 
         $newConversion = array_combine($newValues, $newKeys);
+
         $result = [];
         foreach ($newConversion as $k => $v) {
             if (isset($resource[$v])) {

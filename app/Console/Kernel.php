@@ -23,6 +23,7 @@ namespace App\Console;
 use App\Jobs\DBExtractorJob;
 use App\Jobs\DBImporterJob;
 use App\Jobs\DBToADExtractorJob;
+use App\Jobs\DBToTLExtractorJob;
 use App\Jobs\DeliveryJob;
 use App\Jobs\DBImporterFromRDBJob;
 use App\Jobs\LDAPExportorJob;
@@ -44,6 +45,7 @@ class Kernel extends ConsoleKernel
 {
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
     public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
+    public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
     public const DATABASE_INFO = 'RDB Import Database Configuration';
 
     /**
@@ -109,6 +111,19 @@ class Kernel extends ConsoleKernel
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->exportDataToADForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::debug('Currently, there is no file extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToTLForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
         } else {
@@ -246,6 +261,21 @@ class Kernel extends ConsoleKernel
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBToADExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToTLForTimeExecution($settings)
+    {
+        Log::info('exportDataToTLForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToTLExtractorJob($setting);
                 $queue->push($extractor);
             }
         } catch (Exception $e) {

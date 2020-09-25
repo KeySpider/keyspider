@@ -133,7 +133,6 @@ class CSVReader implements DataInputReader
 
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey();
 

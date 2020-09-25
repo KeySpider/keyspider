@@ -25,6 +25,8 @@ use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
 use Carbon\Carbon;
 use Exception;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -39,6 +41,7 @@ class DBExtractor
     const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
+    const SCIM_CONFIG = 'SCIM Authentication Configuration';
 
     protected $setting;
 
@@ -100,7 +103,6 @@ class DBExtractor
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
-
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
@@ -183,7 +185,9 @@ class DBExtractor
         $arrayAliasColumns = [];
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            // preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+         
             if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
                 $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");;
@@ -274,7 +278,6 @@ class DBExtractor
                 $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
             }
             $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
-
             // create csv file
             foreach ($results as $data) {
                 $data = array_only((array)$data, $selectColumns);
@@ -319,9 +322,6 @@ class DBExtractor
     public function processExtractToAD()
     {
         try {
-
-
-//            $results = null;
             $setting = $this->setting;
             $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
@@ -330,7 +330,6 @@ class DBExtractor
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
-
 
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
@@ -502,4 +501,216 @@ class DBExtractor
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
         }
     }
+
+    public function processExtractToTL()
+    {
+        try {
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+
+            $selectColumnsAndID = array_merge($aliasColumns, ['externalTLID', 'DeleteFlag']);
+            if ($table == 'User') {
+                $allRoleFlags = $settingManagement->getRoleFlags();
+                $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
+            }
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
+            $extractedSql = $query->toSql();
+            // Log::info($extractedSql);
+            $results = $query->get()->toArray();
+
+            if ($results) {
+
+                foreach ($results as $key => $item) {
+
+                    $item = (array)$item;
+
+                    if ($item['DeleteFlag'] == '1') {
+                        if (!empty($item['externalTLID'])) {
+                            $this->sendDeleteUser($item['externalTLID']);
+                            DB::beginTransaction();
+                            $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                            $updateQuery->update(['externalTLID' => null]);
+                            DB::commit();
+                            continue;
+                        } else {
+                            $item['locked'] = '1';
+                        }
+                    }
+
+                    $ext_id = null;
+                    if (!empty($item['externalTLID'])) {
+                        // Update
+                        $tmpl = $this->replaceCreateUser($item);
+                        $ext_id = $this->sendReplaceUser($item['externalTLID'], $tmpl);
+                    } else {
+                        $tmpl = $this->replaceCreateUser($item);
+                        $ext_id = $this->sendCreateUser($tmpl);
+                    }
+
+                    if ($ext_id !== null) {
+                        DB::beginTransaction();
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                        $updateQuery->update(['externalTLID' => $ext_id]);
+                        DB::commit();
+                    }
+                }
+            }
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
+    }
+
+    private function replaceCreateUser($item)
+    {
+        $tmp = Config::get('trustlogin.createUser');
+        $isActive = 'true';
+        foreach ($item as $key => $value) {
+            if ($key === 'locked') {
+                if ( $value == '1') $isActive = 'false';
+                $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
+                continue;
+            }
+            $tmp = str_replace("(User.$key)", $value, $tmp);
+        }
+        return $tmp;
+    }
+
+    private function sendCreateUser($data) {
+        $setting = $this->setting;
+
+        $url = $setting[self::SCIM_CONFIG]['url'];
+        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+        $accept = $setting[self::SCIM_CONFIG]['accept'];
+        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $return_id = '';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, $url);
+        curl_setopt($tuCurl, CURLOPT_POST, 1);
+        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
+            array("Authorization: $auth","Content-type: $contentType", "accept: $accept"));
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
+
+        $tuData = curl_exec($tuCurl);
+        if(!curl_errno($tuCurl)){
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ( array_key_exists('id', $responce)) {
+                $return_id = $responce['id'];
+                Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return $return_id;
+            };
+
+            if ( array_key_exists('status', $responce)) {
+                $curl_status = $responce['status'];
+                Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            }
+            Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        } else {
+            Log::debug('Curl error: ' . curl_error($tuCurl));
+        }
+        curl_close($tuCurl);
+        return null;
+    }
+
+    private function sendDeleteUser($externalTLID){
+        $setting = $this->setting;
+
+        $url = $setting[self::SCIM_CONFIG]['url'];
+        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, $url . '/' . $externalTLID);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
+            array("Authorization: $auth", "accept: */*"));
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+
+        $tuData = curl_exec($tuCurl);
+        if(!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        } else {
+            Log::debug('Curl error: ' . curl_error($tuCurl));
+        }
+        curl_close($tuCurl);
+    }
+
+    private function sendReplaceUser($externalTLID, $data) {
+        $setting = $this->setting;
+
+        $url = $setting[self::SCIM_CONFIG]['url'];
+        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+        $accept = $setting[self::SCIM_CONFIG]['accept'];
+        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $return_id = '';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, $url . '/' . $externalTLID);
+        // curl_setopt($tuCurl, CURLOPT_POST, 1);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
+            array("Authorization: $auth","Content-type: $contentType", "accept: $accept"));
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
+
+        $tuData = curl_exec($tuCurl);
+        if(!curl_errno($tuCurl)){
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ( array_key_exists('id', $responce)) {
+                $return_id = $responce['id'];
+                Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return $return_id;
+            };
+
+            if ( array_key_exists('status', $responce)) {
+                $curl_status = $responce['status'];
+                Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            }
+            Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        } else {
+            Log::debug('Curl error: ' . curl_error($tuCurl));
+        }
+        curl_close($tuCurl);
+        return null;
+    }
+
+
 }
