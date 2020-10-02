@@ -158,6 +158,9 @@ class SettingsManager
     {
         $result = [];
         $encryptedFields = $this->generalKeys['KeySettings']['Encrypted_fields'];
+
+        return array_values($encryptedFields);
+
 //        Compare for each encrypt key
         foreach ($encryptedFields as $encryptedField) {
 //            Master DB Config has Tags, so traverse each tag

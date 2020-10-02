@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs;
 
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,8 +29,6 @@ use RuntimeException;
 
 class RegExpsManager
 {
-    // const REGEXP_FORMAT = '/\(\s*(?<exp1>[a-zA-Z0-9_\-]+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
-    // private $roleFlags;
 
     public function __construct()
     {
@@ -77,5 +76,23 @@ class RegExpsManager
             $format = str_replace('[$'.$index.']', $value, $format);
         }
         return $format;
+    }
+
+    public function getEffectiveDate($item)
+    {
+        $pattern = '/(TODAY\(\))\s*([\+|-])\s*([0-9]*)/';  
+        $retDate = Carbon::now()->format('Y/m/d');
+      
+        if (strpos($item, 'TODAY()') !== false) {
+          if ($item != 'TODAY()') {
+            preg_match($pattern, $item, $matchs);
+            if ($matchs[2] == '+') {
+              $retDate = Carbon::now()->addDays((int)$matchs[3])->format('Y/m/d');
+            } elseif ($matchs[2] == '-') {
+              $retDate = Carbon::now()->subDays((int)$matchs[3])->format('Y/m/d');
+            }
+          }
+        }
+        return $retDate;
     }
 }

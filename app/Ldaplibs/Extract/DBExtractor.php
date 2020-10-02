@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SCIM\SCIMToSalesforce;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
@@ -44,6 +45,7 @@ class DBExtractor
     const SCIM_CONFIG = 'SCIM Authentication Configuration';
 
     protected $setting;
+    protected $regExpManagement;
 
     /**
      * DBExtractor constructor.
@@ -52,6 +54,8 @@ class DBExtractor
     public function __construct($setting)
     {
         $this->setting = $setting;
+        $this->regExpManagement = new RegExpsManager();
+
     }
 
     /**
@@ -157,6 +161,14 @@ class DBExtractor
     {
         $whereData = [];
         foreach ($extractCondition as $key => &$condition) {
+            if (!is_array($condition)) {
+                if (strpos((string)$condition, 'TODAY()') !== false) {
+                    $condition = $this->regExpManagement->getEffectiveDate($condition);
+                    array_push($whereData, [$key, '<=', $condition]);
+                    continue;
+                }
+            }
+
             // condition
             if ($condition === 'TODAY() + 7') {
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');
@@ -338,6 +350,8 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
+
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
             if ($table == 'User') {
                 // $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
@@ -363,6 +377,17 @@ class DBExtractor
                 //{"processID":0}
 
                 foreach ($results as $key => $item) {
+
+                    $item = (array)$item;
+
+                    foreach ($item as $kv => $iv) {
+                        $twColumn = "Azure.$kv";
+                        if (in_array($twColumn, $getEncryptedFields)) {
+                            $item[$kv] = $settingManagement->passwordDecrypt($iv);
+                        }
+                    }
+                    $item = json_decode(json_encode($item));
+        
                     DB::beginTransaction();
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
@@ -419,13 +444,14 @@ class DBExtractor
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
 
-
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
+
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalSFID', 'DeleteFlag']);
             if ($table == 'User') {
@@ -449,11 +475,18 @@ class DBExtractor
             if ($results) {
 //                $scimLib = new UserGraphAPI();
                 $scimLib = new SCIMToSalesforce();
+
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
-
                 foreach ($results as $key => $item) {
                     $item = (array)$item;
+                    foreach ($item as $kv => $iv) {
+                        $twColumn = "SalesForce.$kv";
+                        if (in_array($twColumn, $getEncryptedFields)) {
+                            $item[$kv] = $settingManagement->passwordDecrypt($iv);
+                        }
+                    }
+
                     DB::beginTransaction();
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
@@ -494,8 +527,6 @@ class DBExtractor
                     DB::commit();
                 }
             }
-
-
         } catch (Exception $exception) {
             Log::error($exception);
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
@@ -589,13 +620,22 @@ class DBExtractor
 
     private function replaceCreateUser($item)
     {
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
+
         $tmp = Config::get('trustlogin.createUser');
         $isActive = 'true';
+
         foreach ($item as $key => $value) {
             if ($key === 'locked') {
                 if ( $value == '1') $isActive = 'false';
                 $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
                 continue;
+            }
+
+            $twColumn = "User.$key";
+            if (in_array($twColumn, $getEncryptedFields)) {
+                $value = $settingManagement->passwordDecrypt($value);
             }
             $tmp = str_replace("(User.$key)", $value, $tmp);
         }
@@ -711,6 +751,4 @@ class DBExtractor
         curl_close($tuCurl);
         return null;
     }
-
-
 }
