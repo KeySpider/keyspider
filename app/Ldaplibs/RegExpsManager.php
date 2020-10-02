@@ -84,14 +84,15 @@ class RegExpsManager
         $retDate = Carbon::now()->format('Y/m/d');
       
         if (strpos($item, 'TODAY()') !== false) {
-          if ($item != 'TODAY()') {
-            preg_match($pattern, $item, $matchs);
-            if ($matchs[2] == '+') {
-              $retDate = Carbon::now()->addDays((int)$matchs[3])->format('Y/m/d');
-            } elseif ($matchs[2] == '-') {
-              $retDate = Carbon::now()->subDays((int)$matchs[3])->format('Y/m/d');
+            if ($item != 'TODAY()') {
+                if (preg_match($pattern, $item, $matchs)) {
+                    if ($matchs[2] == '+') {
+                        $retDate = Carbon::now()->addDays((int)$matchs[3])->format('Y/m/d');
+                    } elseif ($matchs[2] == '-') {
+                        $retDate = Carbon::now()->subDays((int)$matchs[3])->format('Y/m/d');
+                    }
+                }
             }
-          }
         }
         return $retDate;
     }
