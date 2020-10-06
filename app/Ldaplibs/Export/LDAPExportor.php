@@ -60,6 +60,7 @@ class LDAPExportor
         $this->setting = $setting;
         $this->tableMaster = null;
         $this->provider = null;
+        $this->regExpManagement = new RegExpsManager();
     }
 
     public function processExportLDAP4User()
@@ -69,6 +70,9 @@ class LDAPExportor
             $tableMaster = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
             $extractCondition = $setting[self::EXTRACTION_CONDITION];
             $nameColumnUpdate = 'UpdateFlags';
+
+            $settingManagement = new SettingsManager();
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             // If a successful connection is made to your server, the provider will be returned.
             $this->provider = $this->configureLDAPServer()->connect();
@@ -152,6 +156,14 @@ class LDAPExportor
     {
         $whereData = [];
         foreach ($extractCondition as $key => &$condition) {
+            if (!is_array($condition)) {
+                if (strpos((string)$condition, 'TODAY()') !== false) {
+                    $condition = $this->regExpManagement->getEffectiveDate($condition);
+                    array_push($whereData, [$key, '<=', $condition]);
+                    continue;
+                }
+            }
+
             // condition
             if ($condition === 'TODAY() + 7') {
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');

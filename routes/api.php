@@ -27,7 +27,6 @@ Route::middleware('azure')->group(function () {
     Route::delete('Users/{id}', 'UserController@destroy');
     Route::get('Users/{id}', 'UserController@detail');
 
-
     // Groups
     Route::get('Groups', 'GroupController@index');
     Route::get('Groups/{id}', 'GroupController@detail');
