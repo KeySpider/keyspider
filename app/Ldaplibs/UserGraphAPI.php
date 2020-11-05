@@ -3,9 +3,11 @@
 
 namespace App\Ldaplibs;
 
-
 use Exception;
 use Faker\Factory;
+
+use GuzzleHttp\Client;
+
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
@@ -17,9 +19,17 @@ class UserGraphAPI
 {
     public function __construct()
     {
-        $tenantId = 'd40093bb-a186-4f71-8331-36cca3f165f8';
-        $clientId = 'eb827075-42c3-4d23-8df0-ec135b46b5a6';
-        $clientSecret = 'BtnF@kN3.?k.HA3raQBMasXiVOM3dNN0';
+        $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'),
+         true) ['AzureAD Keys'];
+
+        // $tenantId = '77b7b616-2300-4f84-8406-a5155f307dbf';
+        // $clientId = '7a1f26c0-1261-4e5a-90fb-716ffbc9d923';
+        // $clientSecret = 'eTOMjY.klFs-YV_-jm3Eb5C3ZT~3dbX-v6';
+
+        $tenantId = $options['tenantId'];
+        $clientId = $options['clientId'];
+        $clientSecret = $options['clientSecret'];;
+
         $guzzle = new \GuzzleHttp\Client();
         $url = 'https://login.microsoftonline.com/' . $tenantId . '/oauth2/token?api-version=1.0';
         $token = json_decode($guzzle->post($url, [
@@ -33,7 +43,10 @@ class UserGraphAPI
         $this->accessToken = $token->access_token;
         $this->graph = new Graph();
         $this->graph->setAccessToken($this->accessToken);
-        echo($this->accessToken);
+        // echo($this->accessToken);
+        // Log::debug('=====token =====');
+        // Log::debug(print_r($this->accessToken, true));
+        // Log::debug('=====token =====');
         $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
         $this->group_attributes = json_decode(Config::get('GraphAPISchemas.groupAttributes'), true);
     }
@@ -45,15 +58,16 @@ class UserGraphAPI
         $userJson = Config::get('GraphAPISchemas.createUserJson');
         $newUser = new User(json_decode($userJson, true));
         $newUser->setDisplayName($userAttibutes->ID ?? null);
-        $userName = 'faker_' . $faker->userName;
+        // $userName = 'faker_' . $faker->userName;
         //        Required attributes
         $newUser->setGivenName($userAttibutes->givenName);
         $newUser->setMailNickname($userAttibutes->mail);
         $newUser->setUserPrincipalName($userAttibutes->mailNickname ?? $userAttibutes->Name);
+        $newUser->setUsageLocation('JP');
         //        Optional attributes
-        $newUser->setCountry($faker->country);
-        $newUser->setMobilePhone($faker->phoneNumber);
-        $newUser->setStreetAddress($faker->streetAddress);
+        // $newUser->setCountry($faker->country);
+        // $newUser->setMobilePhone($faker->phoneNumber);
+        // $newUser->setStreetAddress($faker->streetAddress);
         return $newUser;
     }
 
@@ -68,13 +82,17 @@ class UserGraphAPI
                 "forceChangePasswordNextSignIn" => false
             ]);
 
+            $newUser->setUsageLocation('JP');
             $newUser->setAccountEnabled($userAttibutes['DeleteFlag'] == 0 ? true : false);
-            var_dump($newUser);
+            // var_dump($newUser);
             $userCreated = $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
                 ->setReturnType(User::class)
                 ->execute();
             $uID = $userCreated->getId();
+
+            $this->updateUserAssignLicense($uID);
+
             echo "- \t\tcreated User \n";
             $this->addMemberToGroups($userAttibutes, $uID);
             return $userCreated;
@@ -105,6 +123,9 @@ class UserGraphAPI
             echo "\n- \t\t User[$uPN] updated \n";
             $userAttibutes['userPrincipalName'] = $uPN;
             $this->addMemberToGroups($userAttibutes, $uID);
+
+            $this->updateUserAssignLicense($uID);
+
             return $newUser;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
@@ -296,8 +317,10 @@ class UserGraphAPI
      */
     private function addMemberToGroups($userAttibutes, $uID): void
     {
+        // Import data role info
         $memberOf = $this->getListOfGroupsUserBelongedTo($userAttibutes);
         $uPN = $userAttibutes['userPrincipalName'];
+        // Now stored role info
         $groupIDListOnAD = $this->getMemberOfsAD($uPN);
 
         foreach ($memberOf as $groupID) {
@@ -385,6 +408,45 @@ class UserGraphAPI
             ->setReturnType(Group::class)
             ->execute();
         return $groups;
+    }
+
+    private function updateUserAssignLicense($uID)
+    {
+        echo "- UserAssignLicense\n";
+        $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
+
+        $url = 'https://graph.microsoft.com/v1.0/users/' . $uID . '/assignLicense';
+        $auth = 'Bearer ' . $this->accessToken;
+        $contentType = 'application/json';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, $url);
+        curl_setopt($tuCurl, CURLOPT_POST, 1);
+        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
+            array("Authorization: $auth", "Content-type: $contentType"));
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
+
+        $tuData = curl_exec($tuCurl);
+        if(!curl_errno($tuCurl)){
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if (array_key_exists("Errors", $responce)) {
+                $curl_status = $responce['Errors']['description'];
+                Log::error('Assign License faild ststus = ' . $curl_status);
+                Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            }
+            Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        } else {
+            Log::debug('Curl error: ' . curl_error($tuCurl));
+        }
+        curl_close($tuCurl);
+        return null;
+
+
     }
 
 }

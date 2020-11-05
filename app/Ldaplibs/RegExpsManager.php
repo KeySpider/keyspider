@@ -27,6 +27,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use RuntimeException;
 
+use App\User;
+use App\Organization;
+
 class RegExpsManager
 {
 
@@ -95,5 +98,20 @@ class RegExpsManager
             }
         }
         return $retDate;
+    }
+
+    public function eloquentItem($id, $evalStr)
+    {
+        $box = '';
+
+        $evalStr = str_replace('***', $id, $evalStr);
+        $commands = '$box = ' . $evalStr . ';';
+
+        try {
+            eval($commands);
+        } catch (ParseError $e) {
+            // echo 'Caught exception: '.$e->getMessage()."\n";
+        }
+        return $box;
     }
 }

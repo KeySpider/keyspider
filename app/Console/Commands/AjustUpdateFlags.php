@@ -41,17 +41,23 @@ class AjustUpdateFlags extends Command
      */
     public function handle()
     {
-        $nameTable = 'User';
+        $this->alterUpdateFlags('User');
+        $this->alterUpdateFlags('Role');
+        $this->alterUpdateFlags('Organization');
+    }
+
+    private function alterUpdateFlags($nameTable)
+    {
+        // $nameTable = 'User';
         $settingManagement = new SettingsManager();
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
         // set UpdateFlags
         // $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
         $updateFlagsArray = $settingManagement->getAllExtractionProcessID($nameTable);
 
-
         $users = DB::table($nameTable)->get()->toArray();
-        Log::info("Find out " . count($users) . " people in total");
-        echo "Find out " . count($users) . " people in total\n";
+        Log::info($nameTable . " Find out " . count($users) . " in total");
+        echo $nameTable . " Find out " . count($users) . " in total\n";
 
         $effectives = 0;
         foreach ($users as $user) {
@@ -66,7 +72,8 @@ class AjustUpdateFlags extends Command
             $setValues[$colUpdateFlag] = json_encode($updateFlags);
             DB::table($nameTable)->where("ID", $user->ID)->update($setValues);
         }
-        Log::info("Changed " . $effectives . " processIDs");
-        echo "Changed " . $effectives . " processIDs\n";
+        Log::info($nameTable . " Changed " . $effectives . " processIDs");
+        echo $nameTable . " Changed " . $effectives . " processIDs\n";
     }
+
 }

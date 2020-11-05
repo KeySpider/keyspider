@@ -1,40 +1,49 @@
 <?php
 return [
-    'createUserJson' => '{
-  "accountEnabled": true,
-  "city": "Seattle",
-  "country": "United States",
-  "department": "Sales & Marketing",
-  "displayName": "something",
-  "givenName": "something",
-  "jobTitle": "Marketing Director",
-  "mailNickname": "MelissaD",
-  "passwordPolicies": "DisablePasswordExpiration",
-  "passwordProfile": {
-    "password": "Test1234",
-    "forceChangePasswordNextSignIn": false
-  },
-  "officeLocation": "131/1105",
-  "postalCode": "98052",
-  "preferredLanguage": "en-US",
-  "state": "WA",
-  "streetAddress": "9256 Towne Center Dr., Suite 400",
-  "surname": "Darrow",
-  "mobilePhone": "+1 206 555 0110",
-  "usageLocation": "US",
-  "userPrincipalName": "something@naljp.onmicrosoft.com"
-}',
-    'createGroupJson' => '{
-  "description": "Group with designated owner and members",
-  "displayName": "Operations group",
-  "groupTypes": [
-    "Unified"
-  ],
-  "mailEnabled": true,
-  "mailNickname": "operations2019",
-  "securityEnabled": false
-}',
-    "userAttributes" => '[
+  'updateUserAssignLicenseJson' => '{
+    "addLicenses": [
+      {
+        "disabledPlans": [],
+        "skuId": "c42b9cae-ea4f-4ab7-9717-81576235ccac"
+      }
+    ],
+    "removeLicenses": []
+  }',
+  'createUserJson' => '{
+    "accountEnabled": true, 
+    "city": "Seattle",
+    "country": "United States",
+    "department": "Sales & Marketing",
+    "displayName": "something",
+    "givenName": "something",
+    "jobTitle": "Marketing Director",
+    "mailNickname": "MelissaD",
+    "passwordPolicies": "DisablePasswordExpiration",
+    "passwordProfile": {
+      "password": "Test1234",
+      "forceChangePasswordNextSignIn": false
+    },
+    "officeLocation": "131/1105",
+    "postalCode": "98052",
+    "preferredLanguage": "en-US",
+    "state": "WA",
+    "streetAddress": "9256 Towne Center Dr., Suite 400",
+    "surname": "Darrow",
+    "mobilePhone": "+1 206 555 0110",
+    "usageLocation": "JP",
+    "userPrincipalName": "something@naljp.onmicrosoft.com"
+  }',
+  'createGroupJson' => '{
+    "description": "Group with designated owner and members",
+    "displayName": "Operations group",
+    "groupTypes": [
+      "Unified"
+    ],
+    "mailEnabled": true,
+    "mailNickname": "operations2019",
+    "securityEnabled": false
+  }',
+  "userAttributes" => '[
     "accountEnabled",
     "ageGroup",
     "assignedLicenses",
@@ -46,7 +55,6 @@ return [
     "country",
     "department",
     "displayName",
-
     "employeeId",
     "faxNumber",
     "givenName",
@@ -128,9 +136,8 @@ return [
     "insights",
     "settings",
     "joinedTeams"
-
-]',
-    "groupAttributes" => '[
+  ]',
+  "groupAttributes" => '[
     "assignedLicenses",
     "classification",
     "createdDateTime",
@@ -143,7 +150,7 @@ return [
     "mailEnabled",
     "mailNickname",
     "onPremisesLastSyncDateTime",
-        "onPremisesProvisioningErrors",
+    "onPremisesProvisioningErrors",
     "onPremisesSecurityIdentifier",
     "onPremisesSyncEnabled",
     "preferredDataLocation",
@@ -181,5 +188,5 @@ return [
     "onenote",
     "groupLifecyclePolicies",
     "team" 
-    ]'
+  ]'
 ];
