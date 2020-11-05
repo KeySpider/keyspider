@@ -151,6 +151,13 @@ class SettingsManager
         return $this->generalKeys['KeySettings']['Azure_key'];
     }
 
+    public function getOfficeLicenseFields()
+    {
+        $officeLicenseFields = $this->generalKeys['KeySettings']['Office_license_field'];
+        return $officeLicenseFields;
+        // return array_values($officeLicenseFields);
+    }
+
     /**
      * @return Array of fields encrypted
      */

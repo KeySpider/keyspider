@@ -377,10 +377,16 @@ class DBExtractor
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
+
             if ($table == 'User') {
                 // $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
+
+                $getOfficeLicenseFields = $settingManagement->getOfficeLicenseFields();
+                if (!empty($getOfficeLicenseFields)) {
+                    $selectColumnsAndID = array_merge($selectColumnsAndID, [$getOfficeLicenseFields]);
+                }
             }
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
@@ -437,10 +443,6 @@ class DBExtractor
                             continue;
                         }
                         $userOnAD = $userGraph->createResource((array)$item, $table);
-                        // Log::debug('=================');
-                        // Log::debug(print_r($userOnAD, true));
-                        // Log::debug('=================');
-
                         if ($userOnAD == null) continue;
                         // TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);

@@ -4,7 +4,7 @@ return [
     "addLicenses": [
       {
         "disabledPlans": [],
-        "skuId": "c42b9cae-ea4f-4ab7-9717-81576235ccac"
+        "skuId": "(User.OfficeLicense)"
       }
     ],
     "removeLicenses": []

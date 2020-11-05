@@ -3,11 +3,10 @@
 
 namespace App\Ldaplibs;
 
+use App\Ldaplibs\SettingsManager;
 use Exception;
 use Faker\Factory;
-
 use GuzzleHttp\Client;
-
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
@@ -21,10 +20,6 @@ class UserGraphAPI
     {
         $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'),
          true) ['AzureAD Keys'];
-
-        // $tenantId = '77b7b616-2300-4f84-8406-a5155f307dbf';
-        // $clientId = '7a1f26c0-1261-4e5a-90fb-716ffbc9d923';
-        // $clientSecret = 'eTOMjY.klFs-YV_-jm3Eb5C3ZT~3dbX-v6';
 
         $tenantId = $options['tenantId'];
         $clientId = $options['clientId'];
@@ -40,15 +35,21 @@ class UserGraphAPI
                 'grant_type' => 'client_credentials',
             ],
         ])->getBody()->getContents());
+
+        Log::info('===== Access Token here =====');
+        Log::info($token->access_token);
+
         $this->accessToken = $token->access_token;
         $this->graph = new Graph();
         $this->graph->setAccessToken($this->accessToken);
-        // echo($this->accessToken);
-        // Log::debug('=====token =====');
-        // Log::debug(print_r($this->accessToken, true));
-        // Log::debug('=====token =====');
         $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
         $this->group_attributes = json_decode(Config::get('GraphAPISchemas.groupAttributes'), true);
+
+        $this->licenses = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'),
+         true) ['Microsoft Office 365 Licenses'];
+
+        $settingManagement = new SettingsManager();
+        $this->getOfficeLicenseField = $settingManagement->getOfficeLicenseFields();
     }
 
     private function createUserObject($userAttibutes = []): User
@@ -73,7 +74,6 @@ class UserGraphAPI
 
     public function createUser($userAttibutes)
     {
-
         try {
             Log::info("Create user: ".json_encode($userAttibutes));
             echo "\n- \t\tcreating User: \n";
@@ -91,7 +91,13 @@ class UserGraphAPI
                 ->execute();
             $uID = $userCreated->getId();
 
-            $this->updateUserAssignLicense($uID);
+            if (!empty($this->getOfficeLicenseField)) {
+                $item = explode('.', $this->getOfficeLicenseField);
+                if (!empty($userAttibutes[$item[1]])) {
+                    $license = $this->licenses[$userAttibutes[$item[1]]];
+                    $this->updateUserAssignLicense($uID, $license, $this->getOfficeLicenseField);
+                }
+            }
 
             echo "- \t\tcreated User \n";
             $this->addMemberToGroups($userAttibutes, $uID);
@@ -124,7 +130,13 @@ class UserGraphAPI
             $userAttibutes['userPrincipalName'] = $uPN;
             $this->addMemberToGroups($userAttibutes, $uID);
 
-            $this->updateUserAssignLicense($uID);
+            if (!empty($this->getOfficeLicenseField)) {
+                $item = explode('.', $this->getOfficeLicenseField);
+                if (!empty($userAttibutes[$item[1]])) {
+                    $license = $this->licenses[$userAttibutes[$item[1]]];
+                    $this->updateUserAssignLicense($uID, $license, $this->getOfficeLicenseField);
+                }
+            }
 
             return $newUser;
         } catch (\Exception $exception) {
@@ -410,11 +422,12 @@ class UserGraphAPI
         return $groups;
     }
 
-    private function updateUserAssignLicense($uID)
+    private function updateUserAssignLicense($uID, $license, $field)
     {
         echo "- UserAssignLicense\n";
         $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
-
+        $data = str_replace("($field)", $license, $data);
+        
         $url = 'https://graph.microsoft.com/v1.0/users/' . $uID . '/assignLicense';
         $auth = 'Bearer ' . $this->accessToken;
         $contentType = 'application/json';
