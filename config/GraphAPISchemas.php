@@ -1,5 +1,14 @@
 <?php
 return [
+  'removeOfficeLicenseJson' => '{
+    "addLicenses": [
+      {
+        "disabledPlans": [],
+        "skuId": "(User.OfficeLicense)"
+      }
+    ],
+    "removeLicenses": ["(User.OfficeLicense)"]
+  }',
   'updateUserAssignLicenseJson' => '{
     "addLicenses": [
       {

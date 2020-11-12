@@ -3,6 +3,7 @@
 
 namespace App\Ldaplibs;
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Exception;
 use Faker\Factory;
@@ -35,9 +36,6 @@ class UserGraphAPI
                 'grant_type' => 'client_credentials',
             ],
         ])->getBody()->getContents());
-
-        Log::info('===== Access Token here =====');
-        Log::info($token->access_token);
 
         $this->accessToken = $token->access_token;
         $this->graph = new Graph();
@@ -144,7 +142,6 @@ class UserGraphAPI
 //            echo $exception;
             return null;
         }
-
     }
 
 
@@ -188,23 +185,26 @@ class UserGraphAPI
                 Log::error($exception->getMessage());
                 return null;
             }
-
         }
     }
 
-    public function createGroup($groupAttributes)
+    public function createGroup($groupAttributes, $ext = null)
     {
         Log::info("creating Group: ".json_encode($groupAttributes));
         echo "\n- \t\tcreating Group: \n";
         $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
+        if (empty($ext)) {
         $newGroup = $this->createGroupObject($groupAttributes);
-        var_dump($newGroup);
+        } else {
+            $newGroup = $this->createGroupObjectExt($groupAttributes);
+        }
+        // var_dump($newGroup);
         try {
             $group = $this->graph->createRequest("POST", "/groups")
                 ->attachBody($newGroup)
                 ->setReturnType(Group::class)
                 ->execute();
-            var_dump($group);
+            // var_dump($group);
             echo "\n- \t\tGroup created: \n";
             return $group;
         } catch (\Exception $exception) {
@@ -212,7 +212,6 @@ class UserGraphAPI
             var_dump($exception->getMessage());
             return null;
         }
-
     }
 
     private function createGroupObject($groupAttributes): Group
@@ -225,6 +224,25 @@ class UserGraphAPI
         $newGroup->setSecurityEnabled(false);
         //        Optional attributes
 
+        return $newGroup;
+    }
+
+    private function createGroupObjectExt($groupAttributes): Group
+    {
+        $storage_path = storage_path('ini_configs/extract/GroupToAzureExtraction.ini');
+        $section = 'Grpup type ' . $groupAttributes['groupTypes'];
+        $groupConf = parse_ini_file($storage_path, true) [$section];
+
+        $userJson = Config::get('GraphAPISchemas.createGroupJson');
+        $userArray = json_decode($userJson, true);
+        $newGroup = new Group($groupAttributes);
+
+        $newGroup->setGroupTypes([]);
+        if (!empty($groupConf['groupTypes'])) {
+            $newGroup->setGroupTypes((array)$groupConf['groupTypes']);
+        }
+        $newGroup->setMailEnabled($groupConf['mailEnabled']);
+        $newGroup->setSecurityEnabled($groupConf['securityEnabled']);
         return $newGroup;
     }
 
@@ -242,9 +260,10 @@ class UserGraphAPI
     {
         if ($tableName == 'User') {
             return $this->createUser($attributes);
-        } elseif ($tableName == 'Role') {
-            return $this->createGroup($attributes);
-            sleep(1);
+        // } elseif ($tableName == 'Role') {
+        //     return $this->createGroup($attributes);
+        } elseif ($tableName == 'Group') {
+            return $this->createGroup($attributes, 'ext');
         } else {
             return null;
         }
@@ -254,10 +273,12 @@ class UserGraphAPI
     {
         if ($tableName == 'User') {
             return $this->updateUser($attributes);
-        } elseif ($tableName == 'Role') {
+        // } elseif ($tableName == 'Role') {
+        //     unset($attributes['mail']);
+        //     return $this->updateGroup($attributes);
+        } elseif ($tableName == 'Group') {
             unset($attributes['mail']);
             return $this->updateGroup($attributes);
-            sleep(1);
         } else {
             return null;
         }
@@ -267,12 +288,13 @@ class UserGraphAPI
     {
         if ($tableName == 'User') {
             return $this->getUserDetail($id, $uPN);
-        } elseif ($tableName == 'Role') {
+        // } elseif ($tableName == 'Role') {
+        //     return $this->getGroupDetails($id);
+        } elseif ($tableName == 'Group') {
             return $this->getGroupDetails($id);
         } else {
             return null;
         }
-
     }
 
     public function getGroupDetails($id)
@@ -297,21 +319,25 @@ class UserGraphAPI
     public function getListOfGroupsUserBelongedTo($userAttibutes): array
     {
         $memberOf = [];
-        $roleMap = (new SettingsManager())->getRoleMapInExternalID('Role');
-        foreach ($userAttibutes as $roleFlag => $value) {
-            if ((strpos($roleFlag, 'RoleFlag-') !== false) && ($value == 1)) {
-                $temp = explode('-', $roleFlag);
-                $memberOf[] = $roleMap[(int)$temp[1]];
 
-            }
-        }
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID']);
+
+        // Role.ExternalID array
+        // $roleMap = (new SettingsManager())->getRoleMapInExternalID('Role');
+
+        // foreach ($userAttibutes as $roleFlag => $value) {
+        //     if ((strpos($roleFlag, 'RoleFlag-') !== false) && ($value == 1)) {
+        //         $temp = explode('-', $roleFlag);
+        //         $memberOf[] = $roleMap[(int)$temp[1]];
+
+        //     }
+        // }
         return $memberOf;
     }
 
 
     private function addMemberToGroup($uPCN, $groupId): void
     {
-
             Log::info("Add member [$uPCN] to group [$groupId]");
             $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uPCN . '"}', true);
             $response = $this->graph->createRequest("POST", "/groups/$groupId/members/\$ref")
@@ -321,7 +347,6 @@ class UserGraphAPI
             echo "\nadd member to group: $uPCN\n\n";
             var_dump($response);
             echo "-------";
-
     }
 
     /**
@@ -334,7 +359,6 @@ class UserGraphAPI
         $uPN = $userAttibutes['userPrincipalName'];
         // Now stored role info
         $groupIDListOnAD = $this->getMemberOfsAD($uPN);
-
         foreach ($memberOf as $groupID) {
             if(!in_array($groupID, $groupIDListOnAD)){
                 $this->addMemberToGroup($uPN, $groupID);
@@ -369,7 +393,6 @@ class UserGraphAPI
 
     public function updateGroup($groupAttibutes)
     {
-
         try {
             Log::info("Update group: ".json_encode($groupAttibutes));
             echo "\n- \t\tupdating User: \n";
@@ -388,14 +411,15 @@ class UserGraphAPI
 //            echo $exception;
             return null;
         }
-
     }
 
     public function deleteResource($id, $table): void
     {
-        if($table=='User')
+        if ($table=='User') {
             $resource = 'users';
-        elseif ($table=='Role'){
+        // }   elseif ($table=='Role') {
+        //     $resource = 'groups';
+        }   elseif ($table=='Group') {
             $resource = 'groups';
         }
         else return;
@@ -422,10 +446,32 @@ class UserGraphAPI
         return $groups;
     }
 
-    private function updateUserAssignLicense($uID, $license, $field)
+    public function removeicenseDetail($uID)
     {
+        echo "--- RemoveUserLicense ---\n";
+        // $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
+        // $data = str_replace("($field)", $license, $data);
+
+        $licenseDetail = $this->graph->createRequest("GET", "/users/{$uID}/licenseDetails")
+            ->setReturnType(User::class)
+            ->execute();
+
+        $cnv = json_decode(json_encode($licenseDetail), true);
+
+        foreach ($cnv as $data) {
+            $license = $data['skuId'];
+            $this->updateUserAssignLicense($uID, $license, 'User.OfficeLicense', 'ext');
+        }
+    }
+
+    private function updateUserAssignLicense($uID, $license, $field, $ext = null)
+    {
+        if (empty($ext)) {
         echo "- UserAssignLicense\n";
         $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
+        } else {
+            $data = Config::get('GraphAPISchemas.removeOfficeLicenseJson');
+        }
         $data = str_replace("($field)", $license, $data);
         
         $url = 'https://graph.microsoft.com/v1.0/users/' . $uID . '/assignLicense';
@@ -458,8 +504,6 @@ class UserGraphAPI
         }
         curl_close($tuCurl);
         return null;
-
-
     }
 
 }

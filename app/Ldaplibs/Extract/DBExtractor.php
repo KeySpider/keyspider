@@ -21,22 +21,18 @@
 namespace App\Ldaplibs\Extract;
 
 use App\Ldaplibs\RegExpsManager;
-use App\Ldaplibs\SCIM\SCIMToSalesforce;
+use App\Ldaplibs\SCIM\Box\SCIMToBox;
+use App\Ldaplibs\SCIM\Salesforce\SCIMToSalesforce;
+use App\Ldaplibs\SCIM\Slack\SCIMToSlack;
+use App\Ldaplibs\SCIM\TrustLogin\SCIMToTrustLogin;
+use App\Ldaplibs\SCIM\Zoom\SCIMToZoom;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
 use Carbon\Carbon;
 use Exception;
-use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Microsoft\Graph\Model\User;
-
-use MacsiDigital\Zoom\Exceptions\FileTooLargeException;
-use MacsiDigital\Zoom\Exceptions\ValidationException;
-use MacsiDigital\Zoom\Support\Model;
-use MacsiDigital\Zoom\Facades\Zoom;
 
 class DBExtractor
 {
@@ -47,7 +43,6 @@ class DBExtractor
     const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
-    const SCIM_CONFIG = 'SCIM Authentication Configuration';
 
     protected $setting;
     protected $regExpManagement;
@@ -497,27 +492,18 @@ class DBExtractor
             $query = DB::table($table);
             $query = $query->select($selectColumnsAndID)
                 ->where($whereData);
-//                ->where("{$nameColumnUpdate}->{$extractedId}", 1);
             $extractedSql = $query->toSql();
             // Log::info($extractedSql);
             $results = $query->get()->toArray();
 
             if ($results) {
-                // $scimLib = new UserGraphAPI();
                 $scimLib = new SCIMToSalesforce();
 
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
                 foreach ($results as $key => $item) {
                     $item = (array)$item;
-                    foreach ($item as $kv => $iv) {
-                        $twColumn = "SalesForce.$kv";
-                        if (in_array($twColumn, $getEncryptedFields)) {
-                            $item[$kv] = $settingManagement->passwordDecrypt($iv);
-                        }
-                    }
 
-                    DB::beginTransaction();
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
                     if (($item["externalSFID"]) && ($scimLib->getResourceDetails($item["externalSFID"], $table))) {
@@ -525,20 +511,19 @@ class DBExtractor
                             //Delete resource
 
                             $item['IsActive'] = 1;
-                            $userUpdated = $scimLib->updateResource($table, $item);
+                            $userUpdated = $scimLib->deleteResource($table, (array)$item);
                         } else {
                             $userUpdated = $scimLib->updateResource($table, (array)$item);
                             if ($userUpdated == null) {
-                                DB::commit();
                                 continue;
                             }
+                            $scimLib->passwordResource($table, (array)$item);
                         }
                         $keyString = $item["$primaryKey"];
                         $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
                     } //Not found resource, create it!
                     else {
                         if ($item["DeleteFlag"] == 1) {
-                            DB::commit();
                             continue;
                         }
                         $userOnSF = $scimLib->createResource($table, (array)$item);
@@ -547,14 +532,17 @@ class DBExtractor
                             var_dump($item);
                             continue;
                         }
+                        $scimLib->passwordResource($table, (array)$item);
+
                         // TODO: create user on AD, update UpdateFlags and externalID.
+                        DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
                         $updateQuery->update(['externalSFID' => $userOnSF]);
+                        DB::commit();
                         var_dump($userOnSF);
                     }
-                    DB::commit();
                 }
             }
         } catch (Exception $exception) {
@@ -603,17 +591,15 @@ class DBExtractor
 
             if ($results) {
 
+                $scimLib = new SCIMToZoom($setting);
+
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
-                    $item = $this->decryptZoomItem($item);
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalZOOMID'])) {
-                            $user = Zoom::user()->find($item['email']);
-                            Log::info('Zoom Delete -> ' . $item['last_name'] . ' ' . $item['first_name']);
-                            $user->delete();
-                            // $this->sendDeleteUser($item['externalZOOMID']);
+                            $scimLib->deleteResource($table, $item);
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                             $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
@@ -629,44 +615,10 @@ class DBExtractor
                     $ext_id = null;
                     if (!empty($item['externalZOOMID'])) {
                         // Update
-                        Log::info('Zoom Update -> ' . $item['last_name'] . ' ' . $item['first_name']);
-                        try {
-                        $user = Zoom::user()->find($item['email']);
-                        $ext_id = $user->id;
-                        $result = $user->update([
-                            'first_name' => $item['first_name'],
-                                'last_name' => $item['last_name'],
-                                // 'email' => $item['email'],
-                                'phone_country' => 'JP',
-                                'phone_number' => $item['phone_number'],
-                                'timezone' => 'Asia/Tokyo',
-                                'job_title' => $item['job_title'],
-                                'type' => 1,
-                                'verified' => 0,
-                                'language' => 'jp-JP',
-                                'status' => 'active',
-                            ]);
-
-                        } catch (\Exception $e) {
-                            if (strpos($e->getMessage(),'Only paid') !== false) {
-                                // これは正常系なので無視する
-                            } else {
-                                Log::error($exception);
-                            }
-                        }
+                        $ext_id = $scimLib->updateResource($table, $item);
                     } else {
                         // Create
-                        Log::info('Zoom Create -> ' . $item['last_name'] . ' ' . $item['first_name']);
-                        $user = Zoom::user()->create([
-                            'first_name' => $item['first_name'],
-                            'last_name' => $item['last_name'],
-                            'email' => $item['email'],
-                            'timezone' => 'Asia/Tokyo',
-                            'verified' => 0,
-                            'language' => 'jp-JP',
-                            'status' => 'active'
-                        ]);
-                        $ext_id = $user->id;
+                        $ext_id = $scimLib->createResource($table, $item);
                     }
 
                     if ($ext_id !== null) {
@@ -725,21 +677,21 @@ class DBExtractor
 
             if ($results) {
 
+                $scimLib = new SCIMToSlack($setting);
+
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalSlackID'])) {
-                            $ext_id = $this->sendDeleteUser_Slack($item['externalSlackID']);
-                            if (!empty($ext_id)) {
-                                DB::beginTransaction();
-                                $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
-                                $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                                $updateQuery->update(['externalSlackID' => null]);
-                                DB::commit();
-                            }
+                            $scimLib->deleteResource($table, $item);
+                            DB::beginTransaction();
+                            $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                            $updateQuery->update(['externalSlackID' => null]);
+                            DB::commit();
                             continue;
                         } else {
                             $item['locked'] = '1';
@@ -747,23 +699,12 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if ($table == 'User') {
-                        if (!empty($item['externalSlackID'])) {
-                            // Update
-                            $tmpl = $this->replaceCreateUser_Slack($item);
-                            $ext_id = $this->sendReplaceUser_Slack($item['externalSlackID'], $tmpl);
-                        } else {
-                            $tmpl = $this->replaceCreateUser_Slack($item);
-                            $ext_id = $this->sendCreateUser_Slack($tmpl);
-                        }
+                    if (!empty($item['externalSlackID'])) {
+                        // Update
+                        $ext_id = $scimLib->updateResource($table, $item);
                     } else {
-                        $tmpl = $this->replaceCreateOrganization_Slack($item);
-                        if (!empty($item['externalSlackID'])) {
-                            // Update
-                            $ext_id = $this->sendReplaceOrganization_Slack($item['externalSlackID'], $tmpl);
-                        } else {
-                            $ext_id = $this->sendCreateOrganization_Slack($tmpl);
-                        }
+                        // Create
+                        $ext_id = $scimLib->createResource($table, $item);
                     }
 
                     if ($ext_id !== null) {
@@ -780,46 +721,6 @@ class DBExtractor
             Log::error($exception);
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
         }
-    }
-
-    private function replaceCreateOrganization_Slack($item)
-    {
-        $tmp = Config::get('scim-slack.createGroup');
-        $tmp = str_replace("(Organization.DisplayName)", $item['displayName'], $tmp);
-        $tmp = str_replace("(Organization.externalID)", $item['externalSlackID'], $tmp);
-        return $tmp;
-    }
-
-    private function replaceCreateUser_Slack($item)
-    {
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-        $tmp = Config::get('scim-slack.createUser');
-        $isActive = 'true';
-
-        $macnt = explode('@', $item['mail']);
-        if (strlen($macnt[0]) > 20) {
-            $item['userName'] = substr($macnt[0], -21);
-        } else {
-            $item['userName'] = $macnt[0];
-        }
-
-        foreach ($item as $key => $value) {
-            if ($key === 'locked') {
-                if ( $value == '1') $isActive = 'false';
-                $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
-                continue;
-            }
-
-            $twColumn = "Slack.$key";
-            if (in_array($twColumn, $getEncryptedFields)) {
-                $value = $settingManagement->passwordDecrypt($value);
-            }
-            $tmp = str_replace("(User.$key)", $value, $tmp);
-        }
-
-        return $tmp;
     }
 
     public function processExtractToTL()
@@ -862,13 +763,15 @@ class DBExtractor
 
             if ($results) {
 
+                $scimLib = new SCIMToTrustLogin($setting);
+
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalTLID'])) {
-                            $this->sendDeleteUser($item['externalTLID']);
+                            $scimLib->deleteResource($table, $item);
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                             $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
@@ -884,11 +787,10 @@ class DBExtractor
                     $ext_id = null;
                     if (!empty($item['externalTLID'])) {
                         // Update
-                        $tmpl = $this->replaceCreateUser_TL($item);
-                        $ext_id = $this->sendReplaceUser($item['externalTLID'], $tmpl);
+                        $ext_id = $scimLib->updateResource($table, $item);
                     } else {
-                        $tmpl = $this->replaceCreateUser_TL($item);
-                        $ext_id = $this->sendCreateUser($tmpl);
+                        // Create
+                        $ext_id = $scimLib->createResource($table, $item);
                     }
 
                     if ($ext_id !== null) {
@@ -905,45 +807,6 @@ class DBExtractor
             Log::error($exception);
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
         }
-    }
-
-    private function decryptZoomItem($item)
-    {
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-        foreach ($item as $key => $value) {
-            $twColumn = "ZOOM.$key";
-
-            if (in_array($twColumn, $getEncryptedFields)) {
-                $item[$key] = $settingManagement->passwordDecrypt($value);
-            }
-        }
-        return $item;
-    }
-
-    private function replaceCreateUser_TL($item)
-    {
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-        $tmp = Config::get('scim-trustlogin.createUser');
-        $isActive = 'true';
-
-        foreach ($item as $key => $value) {
-            if ($key === 'locked') {
-                if ( $value == '1') $isActive = 'false';
-                $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
-                continue;
-            }
-
-            $twColumn = "User.$key";
-            if (in_array($twColumn, $getEncryptedFields)) {
-                $value = $settingManagement->passwordDecrypt($value);
-            }
-            $tmp = str_replace("(User.$key)", $value, $tmp);
-        }
-        return $tmp;
     }
 
     public function processExtractToBOX()
@@ -986,13 +849,15 @@ class DBExtractor
 
             if ($results) {
 
+                $scimLib = new SCIMToBox($setting);
+
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalBOXID'])) {
-                            $this->sendDeleteUser($item['externalBOXID']);
+                            $scimLib->deleteResource($table, $item);
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                             $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
@@ -1008,12 +873,10 @@ class DBExtractor
                     $ext_id = null;
                     if (!empty($item['externalBOXID'])) {
                         // Update
-                        $tmpl = $this->replaceCreateUser_BOX($table, $item);
-                        $ext_id = $this->sendReplaceUser($item['externalBOXID'], $tmpl);
+                        $ext_id = $scimLib->updateResource($table, $item);
                     } else {
                         // Create
-                        $tmpl = $this->replaceCreateUser_BOX($table, $item);
-                        $ext_id = $this->sendCreateUser($tmpl);
+                        $ext_id = $scimLib->createResource($table, $item);
                     }
 
                     if ($ext_id !== null) {
@@ -1030,392 +893,6 @@ class DBExtractor
             Log::error($exception);
             echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
         }
-    }
-
-    private function replaceCreateUser_BOX($table, $item)
-    {
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-        $tmp = Config::get('scim-box.createUser');
-        if ($table === 'Role') {
-            $tmp = Config::get('scim-box.createGroup');
-        }
-
-        $isActive = 'active';
-        foreach ($item as $key => $value) {
-            if ($key === 'state') {
-                $address = sprintf("%s, %s, %s", 
-                    $item['state'], $item['city'], $item['streetAddress']);
-                $tmp = str_replace("(User.joinAddress)", $address, $tmp);
-                continue;
-
-            }
-
-            if ($key === 'locked') {
-                if ( $value == '1') $isActive = 'inactive';
-                $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
-                continue;
-            }
-
-            $twColumn = $table . ".$key";
-            if (in_array($twColumn, $getEncryptedFields)) {
-                $value = $settingManagement->passwordDecrypt($value);
-            }
-            $tmp = str_replace("(" . $table . ".$key)", $value, $tmp);
-        }
-        return $tmp;
-    }
-
-    private function sendCreateUser($data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
-    }
-
-    private function sendCreateUser_Slack($data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-
-            if (array_key_exists("Errors", $responce)) {
-                $curl_status = $responce['Errors']['description'];
-                Log::error('Create faild ststus = ' . $curl_status);
-                Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-    
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
-    }
-
-    private function sendCreateOrganization_Slack($data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-
-            if (array_key_exists("Errors", $responce)) {
-                $curl_status = $responce['Errors']['description'];
-                Log::error('Create faild ststus = ' . $curl_status);
-                Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-    
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
-    }
-
-    private function sendDeleteUser($externalID){
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "accept: */*"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)) {
-            $info = curl_getinfo($tuCurl);
-            Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-    }
-
-    private function sendDeleteUser_slack($externalID){
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "accept: */*"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-
-        $tuData = curl_exec($tuCurl);
-        $responce = json_decode($tuData, true);
-        $info = curl_getinfo($tuCurl);
-
-        if (empty($responce)) {
-            if(!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            } else {
-                Log::debug('Curl error: ' . curl_error($tuCurl));
-            }
-            curl_close($tuCurl);
-            return $responce['id'];
-        }
-        
-        if (array_key_exists("Errors", $responce)) {
-            $curl_status = $responce['Errors']['description'];
-            Log::error('Delete faild ststus = ' . $curl_status);
-            Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            curl_close($tuCurl);
-            return null;
-        }
-    }
-
-    private function sendReplaceUser($externalID, $data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        // curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
-    }
-
-    private function sendReplaceUser_Slack($externalID, $data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        // curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-
-            if (array_key_exists("Errors", $responce)) {
-                $curl_status = $responce['Errors']['description'];
-                Log::error('Replace faild ststus = ' . $curl_status);
-                Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
-    }
-
-    private function sendReplaceOrganization_Slack($externalID, $data) {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $return_id = '';
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        // curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $data);
-
-        $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
-            $info = curl_getinfo($tuCurl);
-            $responce = json_decode($tuData, true);
-
-            if (array_key_exists("Errors", $responce)) {
-                $curl_status = $responce['Errors']['description'];
-                Log::error('Replace faild ststus = ' . $curl_status);
-                Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-
-            if ( array_key_exists('id', $responce)) {
-                $return_id = $responce['id'];
-                Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return $return_id;
-            };
-
-            if ( array_key_exists('status', $responce)) {
-                $curl_status = $responce['status'];
-                Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-                return null;
-            }
-            Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-        } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
-        }
-        curl_close($tuCurl);
-        return null;
     }
 
 }

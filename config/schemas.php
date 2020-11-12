@@ -39,16 +39,14 @@ return [
     'createUser' => '{
   "UserName": "user@keyspider.jp",
   "IsActive": true,
-  "LastName":"Tuan",
-  "FirstName":"Le",
+  "LastName":"LastName",
+  "FirstName":"FirstName",
   "Email": "ks@keyspider.jp",
   "Alias": "ks",
-  "TimeZoneSidKey": "Asia/Ho_Chi_Minh",
-  "LocaleSidKey": "en_GB",
+  "TimeZoneSidKey": "Asia/Tokyo",
+  "LocaleSidKey": "ja_JP",
   "EmailEncodingKey": "UTF-8",
   "LanguageLocaleKey": "ja",
-  "LastName": "User",
-  "LastName": "KeySpider",
   "ProfileId": "00e2w000001IUc1"
 }',
 

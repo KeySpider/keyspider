@@ -109,7 +109,6 @@ class SCIMReader
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
             $primaryKey = $this->primaryKey;
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
             $dataCreate = [];
@@ -126,7 +125,9 @@ class SCIMReader
                 }
 
                 if ($keyWithoutTableName && isset($scimValue)) {
-                        if (in_array($scimValue, $getEncryptedFields)) {
+
+                    // if (in_array($scimValue, $getEncryptedFields)) {
+                    if (in_array($key, $getEncryptedFields)) {
                             $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
                         } else {
                             $dataCreate[$keyWithoutTableName] = "$scimValue";
@@ -137,7 +138,6 @@ class SCIMReader
                 }
             }
             $dataCreate[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($nameTable);
-
             $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
             if ($data) {
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
@@ -316,7 +316,17 @@ class SCIMReader
     {
         $setValues = $values;
         //Set DeleteFlag to 1 if active = false
+
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
+
         foreach ($setValues as $column => $value) {
+
+            $chkEncField = $resourceType . '.' . $column;
+            if (in_array($chkEncField, $getEncryptedFields)) {
+                $setValues[$column] = $settingManagement->passwordEncrypt($value);
+            }
+    
             if ($column === $this->deleteFlagColumnName) {//If this is patch of deleting user, reset all roleFlags to 0
                 $roleFlagColumns = $this->settingImport->getRoleFlags();
                 if ($value === "False") {

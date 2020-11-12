@@ -47,6 +47,9 @@ class LDAPExportor
     // const HOLDING_ACCOUNT = 66082;
     const HOLDING_ACCOUNT = 66050;
 
+    const GROUP_TYPE_365 = 2;
+    const GROUP_TYPE_SECURITY = -2147483646;
+    
     protected $setting;
     protected $tableMaster;
     protected $provider;
@@ -95,15 +98,20 @@ class LDAPExportor
                     $array = json_decode(json_encode($data), true);
                     // Skip because 'cn' cannot be created
                     if (empty($array['Name'])) {
+                        if (empty($array['displayName'])) {
                         $this->setUpdateFlags($array['ID']);
                         continue;
+                    }
                     }
 
                     switch ($this->tableMaster) {
                     case 'User':
                         $this->exportUserFromKeyspider($array);
                         break;
-                    case 'Role':
+                    // case 'Role':
+                    //     $this->exportRoleFromKeyspider($array);
+                    //     break;
+                    case 'Group':
                         $this->exportGroupFromKeyspider($array);
                         break;
                     case 'Organization':
@@ -320,12 +328,19 @@ class LDAPExportor
 
             $ldapGroup = $this->conversionArrayValue($data);
 
+            if (!empty($data['groupTypes'])) {
+                $ldapGroup['groupType'] = self::GROUP_TYPE_365;
+                if ($data['groupTypes'] == 'Security') {
+                    $ldapGroup['groupType'] = self::GROUP_TYPE_SECURITY;
+                }
+            }
+
             // Finding a record.
             try {
-                $group = $this->provider->search()->groups()->find($data['Name']);
+                $group = $this->provider->search()->groups()->find($data['displayName']);
             } catch (Exception $exception) {
                 // Record wasn't found!
-                Log::info(sprintf("Group wasn't found! : %s = %s", $ldapBasePath, $data['Name']));
+                Log::info(sprintf("Group wasn't found! : %s = %s", $ldapBasePath, $data['displayName']));
                 $group = false;
             }
 

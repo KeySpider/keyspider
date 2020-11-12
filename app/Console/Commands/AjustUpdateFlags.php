@@ -43,6 +43,7 @@ class AjustUpdateFlags extends Command
     {
         $this->alterUpdateFlags('User');
         $this->alterUpdateFlags('Role');
+        $this->alterUpdateFlags('Group');
         $this->alterUpdateFlags('Organization');
     }
 

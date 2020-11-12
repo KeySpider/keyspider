@@ -1,13 +1,12 @@
 <?php
 
 
-namespace App\Ldaplibs\SCIM;
+namespace App\Ldaplibs\SCIM\Salesforce;
 
 
 use App\Ldaplibs\SettingsManager;
-use bjsmasth\Salesforce\Authentication\PasswordAuthentication;
-use bjsmasth\Salesforce\Exception\SalesforceAuthentication;
-use Faker\Factory;
+use App\Ldaplibs\SCIM\Salesforce\Authentication\PasswordAuthentication;
+use App\Ldaplibs\SCIM\Salesforce\Exception\SalesforceAuthentication;
 use Illuminate\Support\Facades\Config;
 
 class SCIMToSalesforce
@@ -26,7 +25,7 @@ class SCIMToSalesforce
         var_dump($access_token);
         echo "\n";
 
-        $this->crud = new \bjsmasth\Salesforce\CRUD();
+        $this->crud = new \App\Ldaplibs\SCIM\Salesforce\CRUD();
     }
 
     public function createUserWithData(array $data = null)
@@ -44,7 +43,8 @@ class SCIMToSalesforce
 
     public function createResource($resourceType, array $data = null)
     {
-        $faker = Factory::create();
+        $data = $this->replaceResource($resourceType, $data);
+
         $resourceType = strtolower($resourceType);
 
         if ($resourceType == 'user') {
@@ -57,12 +57,6 @@ class SCIMToSalesforce
                         $data[$key] = substr($data[$key], 0, 7);
                     }
                     $dataSchema[$key] = $data[$key];
-                } elseif ($key == 'Alias') {
-                    $dataSchema[$key] = $faker->text(8);
-                } elseif ($key == 'LastName') {
-                    $dataSchema[$key] = $faker->lastName;
-                } elseif ($key == 'Email') {
-                    $dataSchema[$key] = $faker->freeEmail;
                 }
             }
 
@@ -118,7 +112,7 @@ class SCIMToSalesforce
 
     public function getResourceDetails($resourceId, $resourceType)
     {
-        $resourceType = $this->getResourceTypeOfSF($resourceType);
+        $resourceType = $this->getResourceTypeOfSF($resourceType, true);
         return $this->crud->getResourceDetail($resourceType, $resourceId);
     }
 
@@ -143,20 +137,27 @@ class SCIMToSalesforce
 
     }
 
-    public function deleteResource($resourceType, $resourceId)
+    public function deleteResource($resourceType, $data)
     {
         $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
-        try {
-            return ($this->crud->delete($resourceType, $resourceId));
-        } catch (\Exception $exception) {
-            var_dump("\n$exception");
-            return false;
+        if ($resourceType == 'user') {
+            $this->updateResource($resourceType, $data);
+        } elseif (($resourceType == 'group') || ($resourceType == 'role')) {
+            $resourceId = $data['externalSFID'];
+            try {
+                return ($this->crud->delete($resourceType, $resourceId));
+            } catch (\Exception $exception) {
+                var_dump("\n$exception");
+                return false;
+            }
         }
 
     }
 
     public function updateResource($resourceType, $data)
     {
+        $data = $this->replaceResource($resourceType, $data);
+
         $oriData = $data;
         $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
         $resourceId = $data['externalSFID'];
@@ -250,5 +251,35 @@ class SCIMToSalesforce
                 var_dump($addMemberResult);
             }
         }
+    }
+
+    public function replaceResource($resourceType, $item)
+    {
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
+
+        foreach ($item as $kv => $iv) {
+            $twColumn = "$resourceType.$kv";
+            if (in_array($twColumn, $getEncryptedFields)) {
+                $item[$kv] = $settingManagement->passwordDecrypt($iv);
+            }
+        }
+        return $item;
+    }
+
+    public function passwordResource($resourceType, $data)
+    {
+        $data = $this->replaceResource($resourceType, $data);
+
+        $oriData = $data;
+        $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
+        $resourceId = $data['externalSFID'];
+        unset($data['externalSFID']);
+        if ($resourceType != 'user') {
+            return;
+        }
+        $item['NewPassword'] = $data['Password'];
+
+        $this->crud->password($resourceType, $resourceId, $item);
     }
 }

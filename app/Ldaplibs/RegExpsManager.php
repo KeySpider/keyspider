@@ -29,6 +29,7 @@ use RuntimeException;
 
 use App\User;
 use App\Organization;
+use App\UserToGroup;
 
 class RegExpsManager
 {
@@ -98,6 +99,28 @@ class RegExpsManager
             }
         }
         return $retDate;
+    }
+
+    public function getGroupInExternalID($uid)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                   ->select('Group_ID')->where('User_ID', $uid)->get();
+
+        $groupIds = [];
+        foreach ($queries as $key => $value) {
+            $groupIds[] = $value->Group_ID;
+        }
+
+        $table = 'Group';
+        $queries = DB::table($table)
+                   ->select('externalID')->whereIn('ID', $groupIds)->get();
+
+        $externalIds = [];
+        foreach ($queries as $key => $value) {
+            $externalIds[] = $value->externalID;
+        }
+        return $externalIds; 
     }
 
     public function eloquentItem($id, $evalStr)
