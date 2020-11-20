@@ -11,8 +11,8 @@ class Organization extends Model
     protected $table = 'Organization';
     protected $primaryKey = "ID";
 
-    // 自動増分ではない場合
-    public $incrementing = false;
+    // // 自動増分ではない場合
+    // public $incrementing = false;
 
     // 主キーが数値型ではない場合
     protected $keyType = 'string';
@@ -26,9 +26,9 @@ class Organization extends Model
     }
 
     // 循環参照
-    public function upper()
+    public function parent()
     {
-        return $this->hasOne('App\Organization', "UpperID")->withDefault();
+        return $this->belongsTo('App\Organization', "UpperID")->withDefault();
     }
 
 }

@@ -4,10 +4,10 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserToGroup extends Model
+class UserToRole extends Model
 {
     //
-    protected $table = 'UserToGroup';
+    protected $table = 'UserToRole';
     // protected $primaryKey = "ID";
 
     // 自動増分ではない場合

@@ -145,15 +145,25 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
-//                $getDataAfterConvert[$colUpdateFlag] = json_encode(config('const.updated_flag_default'));
+                if ($nameTable == 'UserToGroup' || 
+                    $nameTable == 'UserToOrganization' || 
+                    $nameTable == 'UserToRole') {
+
+                    unset($getDataAfterConvert['ID']);
+                    DB::table($nameTable)->insert($getDataAfterConvert);
+                    continue;
+                }
+
                 $roleFlags = [];
-                $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
-                foreach ($getDataAfterConvert as $cl => $item) {
-                    if ( strpos($cl, config('const.ROLE_ID')) !== false ) {
-                        $num = $settingManagement->getRoleFlagX($item, $roleMaps);
-                        if ($num !== null) {
-                            $keyValue = sprintf("RoleFlag-%d", $num);
-                            $roleFlags[$keyValue] = '1';
+                if ($nameTable == 'User') {
+                    $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
+                    foreach ($getDataAfterConvert as $cl => $item) {
+                        if ( strpos($cl, config('const.ROLE_ID')) !== false ) {
+                            $num = $settingManagement->getRoleFlagX($item, $roleMaps);
+                            if ($num !== null) {
+                                $keyValue = sprintf("RoleFlag-%d", $num);
+                                $roleFlags[$keyValue] = '1';
+                            }
                         }
                     }
                 }
@@ -190,16 +200,49 @@ class CSVReader implements DataInputReader
 
             // move file
             $now = Carbon::now()->format('Ymdhis') . random_int(1000, 9999);
-            $fileName = "hogehoge_{$now}.csv";
+            // $fileName = "hogehoge_{$now}.csv";
+            $fileName = $nameTable . "_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
-            $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
-            DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}"=>'0']);
+            if ($nameTable != 'UserToGroup' && 
+                $nameTable != 'UserToOrganization' && 
+                $nameTable != 'UserToRole') {
+
+                $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
+                DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}"=>'0']);
+            } else {
+                $this->sanitizeRecord($nameTable);
+            }
             DB::commit();
         } catch (\Exception $e) {
             Log::error($e);
         }
     }
+
+    private function sanitizeRecord($nameTable)
+    {
+        $colmn = null;
+        switch ($nameTable) {
+            case 'UserToGroup':
+                $colmn = 'Group_ID';
+                break;
+            case 'UserToOrganization':
+                $colmn = 'Organization_ID';
+                break;
+            case 'UserToRole':
+                $colmn = 'Role_ID';
+                break;
+        }        
+        $sqlStr = 'DELETE FROM "' . $nameTable . '" t1'
+                . ' WHERE EXISTS(SELECT *'
+                . ' FROM   "' . $nameTable . '" t2'
+                . ' WHERE  t2."User_ID" = t1."User_ID"'
+                . '   AND    t2."' . $colmn . '" = t1."' . $colmn . '"'
+                . '   AND    t2.ctid > t1.ctid );';
+
+        DB::statement($sqlStr);        
+    }
+
 
     /**
      * Get data after process

@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model
 {
     //
-    // protected $table = 'User';
-    // protected $primaryKey = "ID";
+    protected $table = 'Group';
+    protected $primaryKey = "ID";
 
     // 自動増分ではない場合
     // public $incrementing = false;
@@ -19,9 +19,9 @@ class Group extends Model
     public $timestamps = false;
 
     //belongsTo設定
-    public function u2g()
+    public function users()
     {
-        // return $this->belongsTo('App\Organization', "OrganizationID1", "$primaryKey");
-        return $this->belongsTo('App\UserToGroup')->withDefault();
+        return $this->belongsToMany('App\User', 'UserToGroup', 'Group_ID', 'User_ID')
+            ->withPivot(['User_ID'])->orderBy('User_ID');
     }    
 }

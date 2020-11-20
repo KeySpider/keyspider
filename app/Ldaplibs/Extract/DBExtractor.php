@@ -310,9 +310,18 @@ class DBExtractor
                         array_push($dataTmp, $line);
                         continue;
                     } else {
-                        preg_match('/\((\w+)\.(.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                        $isMache = preg_match('/\((\w+)\.(.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                        if ($isMache) {
                         $column = $matches[2][0];
                         $line = $data[$column];
+                        } else {
+                            $isMache = preg_match('/\((.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                            if ($isMache) {
+                                $line = $matches[1][0];
+                            } else {
+                                $line = $column;
+                            }
+                        }
                     }
 
                     // $line = $data[$column];
@@ -420,8 +429,22 @@ class DBExtractor
                     if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $uPN))) {
                         if ($item->DeleteFlag == 1) {
                             //Delete resource
-                            Log::info("Delete user [$uPN] on AzureAD");
+                            Log::info("Delete $table [$uPN] on AzureAD");
+
+                            $userGraph->removeicenseDetail($item->externalID);
+
                             $userGraph->deleteResource($item->externalID, $table);
+
+                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                            $updateQuery->update(['externalID' => null]);
+
+                            if ($table == 'Group') {
+                                $updateQuery = DB::table('UserToGroup');
+                                $updateQuery->where('Group_ID', $item->{"$primaryKey"});
+                                $updateQuery->delete();
+                            }
+
                         } else {
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
                             if ($userUpdated == null) {

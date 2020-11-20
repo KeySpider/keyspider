@@ -127,8 +127,19 @@ class RegExpsManager
     {
         $box = '';
 
+        $splts = explode('->', $evalStr);
+        $cmps = '';
+        foreach ($splts as $key => $value) {
+            if ($key == 0) {
+                $cmps = $value . "::find('***')";
+            } else {
+                $cmps = $cmps . '->' . $value;
+            }
+        }
+        $evalStr = $cmps;
+
         $evalStr = str_replace('***', $id, $evalStr);
-        $commands = '$box = ' . $evalStr . ';';
+        $commands = '$box = \App\\' . $evalStr . ';';
 
         try {
             eval($commands);
