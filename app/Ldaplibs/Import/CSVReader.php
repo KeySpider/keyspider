@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use http\Exception;
 use Illuminate\Database\Schema\Blueprint;
@@ -131,7 +132,9 @@ class CSVReader implements DataInputReader
         try {
             DB::beginTransaction();
 
+            $regExpManagement = new RegExpsManager();
             $settingManagement = new SettingsManager();
+
             $getEncryptedFields = $settingManagement->getEncryptedFields();
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
             $primaryKey = $settingManagement->getTableKey();
@@ -145,12 +148,29 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+
                 if ($nameTable == 'UserToGroup' || 
                     $nameTable == 'UserToOrganization' || 
                     $nameTable == 'UserToRole') {
 
+                    $aliasTable = str_replace("UserTo", "", $nameTable);
+
+                    DB::table($nameTable)
+                        ->where('User_ID', $getDataAfterConvert['User_ID'])
+                        ->where($aliasTable.'_ID', $getDataAfterConvert[$aliasTable.'_ID'])
+                        // ->where('DeleteFlag', '0')
+                        ->delete();
+
+                    // set UpdateFlags
+                    $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($aliasTable);
+                    $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
+                    $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
+
                     unset($getDataAfterConvert['ID']);
                     DB::table($nameTable)->insert($getDataAfterConvert);
+
+                    $regExpManagement->updateUserUpdateFlags($getDataAfterConvert['User_ID']);
+                    
                     continue;
                 }
 
@@ -178,6 +198,7 @@ class CSVReader implements DataInputReader
                         }
                     }
                 }
+
                 $primaryKeyValue = array_get($getDataAfterConvert, $primaryKey, null);
                 if ($primaryKeyValue)
                     $data = DB::table($nameTable)->where("{$primaryKey}", $primaryKeyValue)->first();
@@ -258,6 +279,8 @@ class CSVReader implements DataInputReader
         $data = [];
         $conversions = $options['CONVERSATION'];
 
+        $regExpManagement = new RegExpsManager();
+
         foreach ($conversions as $key => $item) {
             if ($key === '' || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
                 // unset($conversions[$key]);
@@ -278,8 +301,18 @@ class CSVReader implements DataInputReader
             } elseif ($pattern === '0') {
                 $data[$col] = '0';
             } else {
+                // $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
+
+                // process with regular expressions?
+                $columnName = $regExpManagement->checkRegExpRecord($pattern);
+        
+                if (isset($columnName)) {
+                    $recValue = $dataLine[strtolower($columnName) - 1];
+                    $data[$col] = $regExpManagement->convertDataFollowSetting($pattern, $recValue);
+                } else {
                 $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
             }
+        }
         }
 
         return $data;

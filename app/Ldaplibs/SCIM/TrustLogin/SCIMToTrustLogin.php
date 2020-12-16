@@ -62,7 +62,7 @@ class SCIMToTrustLogin
             }
             Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
+            Log::error('Curl error: ' . curl_error($tuCurl));
         }
         curl_close($tuCurl);
         return null;
@@ -109,7 +109,7 @@ class SCIMToTrustLogin
             }
             Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
+            Log::error('Curl error: ' . curl_error($tuCurl));
         }
         curl_close($tuCurl);
         return null;
@@ -136,7 +136,7 @@ class SCIMToTrustLogin
             $info = curl_getinfo($tuCurl);
             Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
+            Log::error('Curl error: ' . curl_error($tuCurl));
         }
         curl_close($tuCurl);
     }

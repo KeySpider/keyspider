@@ -69,6 +69,8 @@ class DBExtractor
         $arraySelectColumns = [];
         $arrayAliasColumns = [];
 
+        ksort($settingConvention);
+
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
             // preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
@@ -131,19 +133,19 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             if ($results) {
-                //Set updateFlags for key ('ID')
-                //{"processID":0}
-                foreach ($results as $key => $item) {
-                    // update flag
-                    $keyString = $item->{"$primaryKey"};
-                    // $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = 0);
-                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = '0');
-                }
                 //Start to extract
                 $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
                 $settingOutput = $this->getContentOutputCSV($pathOutput);
                 echo("\e[0;31;46m- [$extractedId] Extracting table <$table> \e[0m to output conversion [$pathOutput]\n");
                 $this->processOutputDataExtract($settingOutput, $results, $aliasColumns, $table);
+
+                //Set updateFlags for key ('ID')
+                //{"processID":0}
+                foreach ($results as $key => $item) {
+                    // update flag
+                    $keyString = $item->{"$primaryKey"};
+                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = '0');
+                }
             }
 
             DB::commit();
@@ -282,8 +284,15 @@ class DBExtractor
             $setting = $this->setting;
             $nameTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];            
 
+            $groupDelimiter = null;
+            if ($nameTable == 'User'){
+                $groupDelimiter = $settingOutput['GroupDelimiter'];
+            }
+
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
             $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+
+            ksort($formatConvention);
 
             mkDirectory($tempPath);
 
@@ -303,6 +312,17 @@ class DBExtractor
                 // foreach ($selectColumns as $index => $column) {
                 foreach ($formatConvention as $index => $column) {
                     $line = null;
+
+                    if ($column == 'UserToGroup' || 
+                        $column == 'UserToOrganization' || 
+                        $column == 'UserToRole') {
+
+                        $aliasTable = str_replace("UserTo", "", $column);
+                        $line = $this->getUserToEloquent($uid, $aliasTable, $groupDelimiter);
+                        array_push($dataTmp, $line);
+                        continue;
+                    }
+
                     if (strpos($column, 'ELOQ;') !== false) {
                         // Get Eloquent string
                         preg_match('/\(ELOQ;(.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
@@ -348,6 +368,34 @@ class DBExtractor
         }
     }
 
+    private function getUserToEloquent($uid, $aliasTable, $groupDelimiter)
+    {
+        $eloquents = strtolower($aliasTable) . "s";
+        $retValue = "";
+
+        $user = \App\User::find($uid);
+        foreach ($user->{$eloquents} as $eloquent) {
+            if (!empty($retValue)) {
+                $retValue = $retValue . $groupDelimiter;
+            }
+
+            switch ($aliasTable) {
+            case 'Group':
+                $retValue = $retValue . $eloquent->displayName;
+                break;
+            // case 'Role':
+            //     $this->exportRoleFromKeyspider($array);
+            //     break;
+            // case 'Group':
+            //     $this->exportGroupFromKeyspider($array);
+            //     break;
+            // case 'Organization':
+            //     $this->exportOrganizationUnitFromKeyspider($array);
+            //     break;
+            }
+        }
+        return $retValue;
+    }
 
     /**
      * @param $file_name
@@ -409,7 +457,6 @@ class DBExtractor
                 $userGraph = new UserGraphAPI();
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
-
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
@@ -897,9 +944,16 @@ class DBExtractor
                     if (!empty($item['externalBOXID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
+                        if ($table == "User") {
+                            $scimLib->addMemberToGroups($item, $ext_id);
+                        }
+
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
+                        if ($table == "User") {
+                            $scimLib->addMemberToGroups($item, $ext_id);
+                        }
                     }
 
                     if ($ext_id !== null) {

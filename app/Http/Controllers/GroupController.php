@@ -141,9 +141,9 @@ class GroupController extends LaravelController
         $dataPost = $request->all();
         $importSetting = new ImportSettingsManager();
 
-        Log::info('-----------------creating role...-----------------');
-        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
+        // Log::info('-----------------creating role...-----------------');
+        // Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
+        // Log::info('--------------------------------------------------');
 
         $setting = $importSetting->getSCIMImportSettings($this->path);
 
@@ -167,11 +167,10 @@ class GroupController extends LaravelController
     public function update($id, Request $request)
     {
         // do something
-        Log::info('-----------------PATCH GROUP...-----------------');
-        Log::debug($id);
-        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
-
+        // Log::info('-----------------PATCH GROUP...-----------------');
+        // Log::debug($id);
+        // Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
+        // Log::info('--------------------------------------------------');
 
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $input = $request->input();
@@ -222,10 +221,9 @@ class GroupController extends LaravelController
     public function detail($id, Request $request)
     {
         // do something
-        Log::info('-----------------DETAIL GROUP...-----------------');
-        Log::debug($id);
-        Log::info('--------------------------------------------------');
-
+        // Log::info('-----------------DETAIL GROUP...-----------------');
+        // Log::debug($id);
+        // Log::info('--------------------------------------------------');
 
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->settingManagement->getTableKey();
@@ -342,7 +340,6 @@ class GroupController extends LaravelController
         if (!$group) {
             throw (new SCIMException('Group Not Found'))->setCode(404);
         }
-
 
         if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
             throw (new SCIMException(sprintf(

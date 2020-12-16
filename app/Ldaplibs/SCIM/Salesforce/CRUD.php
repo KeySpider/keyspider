@@ -3,6 +3,7 @@
 namespace App\Ldaplibs\SCIM\Salesforce;
 
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 class CRUD
@@ -133,6 +134,38 @@ class CRUD
         }
 
         return true;
+    }
+
+    public function addMemberToGroup($memberId, $groupId)
+    {
+        $url = "$this->instance_url/services/data/v39.0/sobjects/GroupMember/";
+        $data = json_decode(Config::get('schemas.addMemberToGroup'));
+        $data->GroupId = $groupId;
+        $data->UserOrGroupId = $memberId;
+
+        $client = new Client();
+
+        try {
+            $request = $client->request('POST', $url, [
+                'headers' => [
+                    'Authorization' => "OAuth $this->access_token",
+                    'Content-type' => 'application/json'
+                ],
+                'json' => $data
+            ]);
+
+            $status = $request->getStatusCode();
+
+            return $status;
+        } catch (\Exception $e) {
+            if ($e->getCode() == 500 && strpos($e->getMessage(),'invalid repeated password') !== false) {
+                // password not changed
+            } else {
+                Log::error($e);
+            }
+        }
+        return null;
+
     }
 
     public function getResourceDetail($object, $id = null)

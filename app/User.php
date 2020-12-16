@@ -43,6 +43,4 @@ class User extends Model
         return $this->belongsToMany('App\Role', 'UserToRole', 'User_ID', 'Role_ID')
             ->withPivot(['Role_ID'])->orderBy('Role_ID');
     }
-
-
 }

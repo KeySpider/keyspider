@@ -91,8 +91,8 @@ class LDAPExportor
             $results = $query->get()->toArray();
 
             if ($results) {
-                Log::info("Export to AD from　" . $tableMaster . " entry(".count($results).")");
-                echo "Export to AD from　" . $tableMaster . " entry(".count($results).")\n";
+                Log::info("Export to AD from " . $tableMaster . " entry(".count($results).")");
+                echo "Export to AD from " . $tableMaster . " entry(".count($results).")\n";
 
                 foreach ($results as $data) {
                     $array = json_decode(json_encode($data), true);
@@ -265,6 +265,8 @@ class LDAPExportor
             $useSSL =          $setting[self::LDAP_CONFIGRATION]['UseSSL'];
             $defaultPassword = $setting[self::EXTRACTION_CONFIGURATION]['DefaultPassword'];
 
+            $ldapBaseDn = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
+
             // Finding a record.
             try {
                 $entry = $this->provider->search()
@@ -307,6 +309,18 @@ class LDAPExportor
                 }
             }
 
+            // remove & add memberOf
+            $removeGroups = $entry->getGroups();
+            foreach ($removeGroups as $group) {
+                $entry->removeGroup($group);
+            }
+
+            $addGroups = $this->getMemberOfLDAP($user['ID']);
+            foreach ($addGroups as $index => $group) {
+                $fmt = sprintf("CN=%s,%s", $group, $ldapBaseDn);
+                $entry->addGroup($fmt);
+            }
+
             // Saving the changes to your LDAP server.
             if ($is_success) {
                 // User was saved!
@@ -319,6 +333,38 @@ class LDAPExportor
             Log::error($exception);
         }
     }
+
+    private function getMemberOfLDAP($uid)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                    ->select('Group_ID')
+                    ->where('User_ID', $uid)
+                    ->where('DeleteFlag', '0')->get();
+
+        $groupIds = [];
+        foreach ($queries as $key => $value) {
+            $groupIds[] = $value->Group_ID;
+        }
+
+        $table = 'Group';
+        $queries = DB::table($table)
+                    ->select('displayName')
+                    ->whereIn('ID', $groupIds)
+                    ->get();
+
+        $addGroupIDs = [];
+
+        foreach ($queries as $key => $value) {
+            $cnv = (array)$value;
+            foreach ($cnv as $key => $value) {
+                $addGroupIDs[] = $value;
+            }    
+        }
+        return $addGroupIDs; 
+
+    }
+
 
     public function exportGroupFromKeyspider($data)
     {

@@ -30,7 +30,15 @@ return [
     "timezone": "Asia/Tokyo"
   }',
   'createGroup' => '{
-    "name": "(Role.DeveloperName)"  
+    "name": "(Group.name)"
+  }',
+  'addGroup' => '{
+    "user": {
+      "id": "(upn)"
+    },
+    "group": {
+      "id": "(gpn)"
+    }
   }'
 ];
 

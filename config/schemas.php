@@ -19,39 +19,25 @@
  ******************************************************************************/
 
 return [
-    'addMemberToGroup' => '{
-  "schemas": [
-    "urn:ietf:params:scim:api:messages:2.0:PatchOp"
-  ],
-  "Operations": [
-    {
-      "op": "Add",
-      "value":{"members": [
-        {	
-          "$ref": null,
-          "value": "0052v00000gjmlTAAQ"
-        }
-      ]
-    }
-    }
-  ]
-}',
-    'createUser' => '{
-  "UserName": "user@keyspider.jp",
-  "IsActive": true,
-  "LastName":"LastName",
-  "FirstName":"FirstName",
-  "Email": "ks@keyspider.jp",
-  "Alias": "ks",
-  "TimeZoneSidKey": "Asia/Tokyo",
-  "LocaleSidKey": "ja_JP",
-  "EmailEncodingKey": "UTF-8",
-  "LanguageLocaleKey": "ja",
-  "ProfileId": "00e2w000001IUc1"
-}',
-
-    'createGroup' => '{
-    "Name":"G1",
-    "DeveloperName":"DEV"
-}'
+  'addMemberToGroup' => '{
+      "GroupId" : "00G2w000002vw7tEAA",
+      "UserOrGroupId" : "0052w000008PVOcAAO"
+  }',
+  'createUser' => '{
+      "UserName": "user@keyspider.jp",
+      "IsActive": true,
+      "LastName": "LastName",
+      "FirstName": "FirstName",
+      "Email": "ks@keyspider.jp",
+      "Alias": "ks",
+      "TimeZoneSidKey": "Asia/Tokyo",
+      "LocaleSidKey": "ja_JP",
+      "EmailEncodingKey": "UTF-8",
+      "LanguageLocaleKey": "ja",
+      "ProfileId": "00e2w000001hwZO"
+  }',
+  'createGroup' => '{
+      "Name":"G1",
+      "DeveloperName":"DEV"
+  }'
 ];

@@ -45,16 +45,26 @@ class AjustUpdateFlags extends Command
         $this->alterUpdateFlags('Role');
         $this->alterUpdateFlags('Group');
         $this->alterUpdateFlags('Organization');
+        $this->alterUpdateFlags('UserToGroup');
     }
 
     private function alterUpdateFlags($nameTable)
     {
+        $alterTableName = $nameTable;
+        if ($nameTable == 'UserToGroup' || 
+            $nameTable == 'UserToOrganization' || 
+            $nameTable == 'UserToRole') {
+            $alterTableName = str_replace('UserTo', '', $nameTable);
+        }
+
         // $nameTable = 'User';
         $settingManagement = new SettingsManager();
-        $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
+        // $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
+        $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($alterTableName);
         // set UpdateFlags
         // $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
-        $updateFlagsArray = $settingManagement->getAllExtractionProcessID($nameTable);
+        // $updateFlagsArray = $settingManagement->getAllExtractionProcessID($nameTable);
+        $updateFlagsArray = $settingManagement->getAllExtractionProcessID($alterTableName);
 
         $users = DB::table($nameTable)->get()->toArray();
         Log::info($nameTable . " Find out " . count($users) . " in total");

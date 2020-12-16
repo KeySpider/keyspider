@@ -214,6 +214,9 @@ class SettingsManager
      */
     public function passwordDecrypt($data, $key = null)
     {
+
+        if (empty($data)) return;
+
         try {
             $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
             // To decrypt, split the encrypted data from our IV - our unique separator used was "::"
@@ -313,6 +316,7 @@ class SettingsManager
         $updateFlagsValue = $results[1];
         $updateFlagsValue[$dataType] = $value;
         $tableKey = $this->getTableKey();
+
         return DB::table($tableQuery)->where($tableKey, $keyString)
             ->update([$columnName => json_encode($updateFlagsValue)]);
     }
@@ -496,10 +500,10 @@ class SettingsManager
     {
         $extractionProcessIDs = [];
         try {
-                $extractionFilePaths = parse_ini_file($this->pathIniConfigs.
-                    'KeySpider.ini')['extract_config'];
-                $exportFilePaths = parse_ini_file($this->pathIniConfigs.
-                'KeySpider.ini')['export_config'];
+            $extractionFilePaths = parse_ini_file(
+                $this->pathIniConfigs.'KeySpider.ini')['extract_config'];
+            $exportFilePaths = parse_ini_file(
+                $this->pathIniConfigs.'KeySpider.ini')['export_config'];
 
                 $filePaths = array_merge($extractionFilePaths, $exportFilePaths);
 
@@ -520,7 +524,6 @@ class SettingsManager
     public function makeUpdateFlagsJson($nameTable = 'User')
     {
         $updateFlagsJson = $this->getAllExtractionProcessID($nameTable);
-
         $updateFlags = [];
         if (!empty($updateFlagsJson)) {
             foreach ($updateFlagsJson as $item) {

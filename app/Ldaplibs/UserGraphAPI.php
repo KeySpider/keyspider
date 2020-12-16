@@ -320,7 +320,7 @@ class UserGraphAPI
     {
         $memberOf = [];
 
-        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID']);
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID'],'');
 
         // Role.ExternalID array
         // $roleMap = (new SettingsManager())->getRoleMapInExternalID('Role');
@@ -359,11 +359,13 @@ class UserGraphAPI
         $uPN = $userAttibutes['userPrincipalName'];
         // Now stored role info
         $groupIDListOnAD = $this->getMemberOfsAD($uPN);
+
         foreach ($memberOf as $groupID) {
             if(!in_array($groupID, $groupIDListOnAD)){
                 $this->addMemberToGroup($uPN, $groupID);
             }
         }
+
         foreach ($groupIDListOnAD as $groupID) {
             if(!in_array($groupID, $memberOf)){
                 $this->removeMemberOfGroup($uID, $groupID);
@@ -500,7 +502,7 @@ class UserGraphAPI
             }
             Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {
-            Log::debug('Curl error: ' . curl_error($tuCurl));
+            Log::error('Curl error: ' . curl_error($tuCurl));
         }
         curl_close($tuCurl);
         return null;

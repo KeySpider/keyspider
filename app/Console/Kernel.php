@@ -75,7 +75,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file import to process.');
+            Log::info('Currently, there is no CSV file import to process.');
         }
 
         // Setup schedule for RDB import
@@ -88,7 +88,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file import to process.');
+            Log::info('Currently, there is no RDB record import to process.');
         }
 
         // Setup schedule for Extract
@@ -101,7 +101,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file extracting.');
+            Log::info('Currently, there is no CSV file extracting.');
         }
 
         // Setup schedule for Extract
@@ -114,7 +114,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file extracting.');
+            Log::info('Currently, there is no Active Directory extracting.');
         }
 
         // Setup schedule for Extract
@@ -127,7 +127,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file extracting.');
+            Log::info('Currently, there is no TrustLogin extracting.');
         }
 
         // Setup schedule for Delivery
@@ -139,7 +139,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no file delivery.');
+            Log::info('Currently, there is no CSV file delivery.');
         }
 
         // Setup schedule for Export
@@ -152,7 +152,7 @@ class Kernel extends ConsoleKernel
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::debug('Currently, there is no export data.');
+            Log::info('Currently, there is no LDAP export data.');
         }
     }
 
@@ -173,6 +173,7 @@ class Kernel extends ConsoleKernel
      */
     public function importDataForTimeExecution($dataSchedule)
     {
+        Log::info('importDataForTimeExecution');
         try {
             foreach ($dataSchedule as $data) {
                 $setting = $data['setting'];
@@ -195,6 +196,7 @@ class Kernel extends ConsoleKernel
      */
     public function exportDataForTimeExecution($settings)
     {
+        Log::info('exportDataForTimeExecution');
         try {
             $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
@@ -212,6 +214,7 @@ class Kernel extends ConsoleKernel
      */
      public function rdbImportDataForTimeExecution($dataSchedule)
     {
+        Log::info('rdbImportDataForTimeExecution');
         try {
             foreach ($dataSchedule as $data) {
 
@@ -241,6 +244,7 @@ class Kernel extends ConsoleKernel
      */
     public function LDAPExportDataForTimeExecution($settings)
     {
+        Log::info('LDAPExportDataForTimeExecution');
         try {
             $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
@@ -288,6 +292,7 @@ class Kernel extends ConsoleKernel
      */
     public function deliveryDataForTimeExecution($settings)
     {
+        Log::info('deliveryDataForTimeExecution');
         try {
             $queue = new DeliveryQueueManager();
             foreach ($settings as $dataSchedule) {

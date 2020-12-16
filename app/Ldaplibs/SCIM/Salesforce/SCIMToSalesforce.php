@@ -4,10 +4,13 @@
 namespace App\Ldaplibs\SCIM\Salesforce;
 
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\SCIM\Salesforce\Authentication\PasswordAuthentication;
 use App\Ldaplibs\SCIM\Salesforce\Exception\SalesforceAuthentication;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SCIMToSalesforce
 {
@@ -212,19 +215,12 @@ class SCIMToSalesforce
         return $resourceType;
     }
 
-    public function getListOfGroupsUserBelongedTo($userAttibutes): array
+    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
     {
 //        $memberOfSF = $this->getMemberOfsSF($userAttibutes['externalSFID']);
         //TODO: getListOfGroupsUserBelongedTo
         $memberOf = [];
-        $roleMap = (new SettingsManager())->getRoleMapInExternalSFID('Role');
-        foreach ($userAttibutes as $roleFlag => $value) {
-            if ((strpos($roleFlag, 'RoleFlag-') !== false) && ($value == 1)) {
-                $temp = explode('-', $roleFlag);
-                $memberOf[] = $roleMap[(int)$temp[1]];
-
-            }
-        }
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID'], $scims);
         return $memberOf;
     }
 
@@ -244,14 +240,55 @@ class SCIMToSalesforce
     private function updateGroupMemebers($resourceType, array $data, $response): void
     {
         if (strtolower($resourceType) == 'user') {
-            $memberOf = $this->getListOfGroupsUserBelongedTo($data);
+            $memberOf = $this->getListOfGroupsUserBelongedTo($data, 'SF');
             foreach ($memberOf as $groupID) {
                 $addMemberResult = $this->addMemberToGroup($response, $groupID);
                 echo "\nAdd member to group result:\n";
                 var_dump($addMemberResult);
             }
+            $this->removeMemberToGroup($data);
         }
     }
+
+    private function removeMemberToGroup($data)
+    {
+        $uid = $data['ID'];
+        $userExtId = $data['externalSFID'];
+
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                    ->select('Group_ID')
+                    ->where('User_ID', $data['ID'])
+                    ->where('DeleteFlag', '1')->get();
+
+        foreach ($queries as $key => $value) {
+
+            $table = 'Group';
+            $queries = DB::table($table)
+                        ->select('externalSFID')
+                        ->where('ID', $value->Group_ID)
+                        ->get();
+    
+            foreach ($queries as $key => $value) {
+                $cnv = (array)$value;
+                foreach ($cnv as $key => $value) {
+                    $query = "SELECT ID FROM GroupMember "
+                            . " WHERE GroupId = '$value' "
+                            . "  AND UserOrGroupId = '$userExtId'";
+                    $groupMember = $this->crud->query($query);
+
+                    if ($groupMember['totalSize'] == 1) {
+                        $resourceId = $groupMember['records'][0]['Id'];
+                        $this->crud->delete('GroupMember', $resourceId);
+                        echo "\nRemove member to group result:\n";
+                    }
+                }    
+            }
+        }
+    }
+        
+
+
 
     public function replaceResource($resourceType, $item)
     {
@@ -275,7 +312,7 @@ class SCIMToSalesforce
         $resourceType = strtolower($this->getResourceTypeOfSF($resourceType, true));
         $resourceId = $data['externalSFID'];
         unset($data['externalSFID']);
-        if ($resourceType != 'user') {
+        if ($resourceType != 'user' || empty($data['Password'])) {
             return;
         }
         $item['NewPassword'] = $data['Password'];

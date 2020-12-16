@@ -62,7 +62,7 @@ class SCIMToZoom
             ]);
         } catch (\Exception $e) {
             if (strpos($e->getMessage(),'Only paid') !== false) {
-                // これは正常系なので無視する
+                // This is a normal system, so ignore it
             } else {
                 Log::error($exception);
             }

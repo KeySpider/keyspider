@@ -26,6 +26,7 @@ use App\Jobs\DBImporterFromScimJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Exception;
 use Illuminate\Contracts\View\Factory;
@@ -153,9 +154,9 @@ class UserController extends LaravelController
      */
     public function detail($id)
     {
-        Log::info('-----------------DETAIL USER...-----------------');
-        Log::debug($id);
-        Log::info('--------------------------------------------------');
+        // Log::info('-----------------DETAIL USER...-----------------');
+        // Log::debug($id);
+        // Log::info('--------------------------------------------------');
 
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->importSetting->getTableKey();
@@ -167,7 +168,7 @@ class UserController extends LaravelController
 //                $query->where($columnDeleted, '!=', 1);
             });
             $toSql = $query->toSql();
-            Log::info($toSql);
+            // Log::info($toSql);
             $userRecord = $query->first();
         } catch (Exception $exception) {
             throw (new SCIMException($query->toSql()))->setCode(404);
@@ -193,10 +194,10 @@ class UserController extends LaravelController
     {
         $dataPost = $request->all();
 
-        Log::info('-----------------creating user...-----------------');
-        Log::alert("[" . $request->method() . "]");
-        Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
+        // Log::info('-----------------creating user...-----------------');
+        // Log::alert("[" . $request->method() . "]");
+        // Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
+        // Log::info('--------------------------------------------------');
 
         $setting = $this->importSetting->getSCIMImportSettings($this->path);
 
@@ -212,9 +213,9 @@ class UserController extends LaravelController
     public function destroy($id, Request $request)
     {
         // do something
-        Log::info('-----------------DELETE USER...-----------------');
-        Log::debug($id);
-        Log::info('--------------------------------------------------');
+        // Log::info('-----------------DELETE USER...-----------------');
+        // Log::debug($id);
+        // Log::info('--------------------------------------------------');
 
         $this->checkToResponseErrorUserNotFound($id);
 
@@ -277,10 +278,10 @@ class UserController extends LaravelController
     public function update($id, Request $request)
     {
         // do something
-        Log::info('-----------------PATCH USER...-----------------');
-        Log::debug($id);
-        Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
-        Log::info('--------------------------------------------------');
+        // Log::info('-----------------PATCH USER...-----------------');
+        // Log::debug($id);
+        // Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
+        // Log::info('--------------------------------------------------');
 
         $input = $request->input();
 

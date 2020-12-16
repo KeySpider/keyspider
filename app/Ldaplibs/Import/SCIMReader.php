@@ -145,7 +145,7 @@ class SCIMReader
 //                Log::info($dataCreate);
                 $query = DB::table($nameTable);
                 $query->insert($dataCreate);
-                Log::info($query->toSql());
+                // Log::info($query->toSql());
             }
 
             return true;

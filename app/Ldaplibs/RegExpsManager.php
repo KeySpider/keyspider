@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs;
 
+use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -101,11 +102,13 @@ class RegExpsManager
         return $retDate;
     }
 
-    public function getGroupInExternalID($uid)
+    public function getGroupInExternalID($uid, $scims)
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                   ->select('Group_ID')->where('User_ID', $uid)->get();
+                    ->select('Group_ID')
+                    ->where('User_ID', $uid)
+                    ->where('DeleteFlag', '0')->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
@@ -114,14 +117,38 @@ class RegExpsManager
 
         $table = 'Group';
         $queries = DB::table($table)
-                   ->select('externalID')->whereIn('ID', $groupIds)->get();
+                    ->select('external' . $scims . 'ID')
+                    ->whereIn('ID', $groupIds)
+                    ->get();
 
         $externalIds = [];
+
         foreach ($queries as $key => $value) {
-            $externalIds[] = $value->externalID;
+            $cnv = (array)$value;
+            foreach ($cnv as $key => $value) {
+                $externalIds[] = $value;
+            }    
+            // $externalIds[] = $value->externalID;
         }
         return $externalIds; 
     }
+
+    public function updateUserUpdateFlags($user_id)
+    {
+        $nameTable = 'User';
+        $settingManagement = new SettingsManager();
+        $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
+        // set UpdateFlags
+        $updateFlagsArray = $settingManagement->getAllExtractionProcessID($nameTable);
+
+        foreach ($updateFlagsArray as $processId) {
+            $updateFlags[$processId] = '1';
+        }
+
+        $setValues[$colUpdateFlag] = json_encode($updateFlags);
+        DB::table($nameTable)->where("ID", $user_id)->update($setValues);
+    }
+
 
     public function eloquentItem($id, $evalStr)
     {
