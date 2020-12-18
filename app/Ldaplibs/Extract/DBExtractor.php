@@ -22,6 +22,7 @@ namespace App\Ldaplibs\Extract;
 
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SCIM\Box\SCIMToBox;
+use App\Ldaplibs\SCIM\GoogleWorkspace\SCIMToGoogleWorkspace;
 use App\Ldaplibs\SCIM\Salesforce\SCIMToSalesforce;
 use App\Ldaplibs\SCIM\Slack\SCIMToSlack;
 use App\Ldaplibs\SCIM\TrustLogin\SCIMToTrustLogin;
@@ -315,7 +316,8 @@ class DBExtractor
 
                     if ($column == 'UserToGroup' || 
                         $column == 'UserToOrganization' || 
-                        $column == 'UserToRole') {
+                        $column == 'UserToRole' || 
+                        $column == 'UserToPrivilege') {
 
                         $aliasTable = str_replace("UserTo", "", $column);
                         $line = $this->getUserToEloquent($uid, $aliasTable, $groupDelimiter);
@@ -962,6 +964,93 @@ class DBExtractor
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
                         $updateQuery->update(['externalBOXID' => $ext_id]);
+                        DB::commit();
+                    }
+                }
+            }
+        } catch (Exception $exception) {
+            Log::error($exception);
+            echo("\e[0;31;47m [$extractedId] $exception \e[0m \n");
+        }
+    }
+
+    public function processExtractToGW()
+    {
+        try {
+            $setting = $this->setting;
+            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
+            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+            $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+            //Append 'ID' to selected Columns to query and process later
+
+            $selectColumnsAndID = array_merge($aliasColumns, ['externalGWID', 'DeleteFlag', 'ID']);
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $query = DB::table($table);
+            $query = $query->select($selectColumnsAndID)
+                ->where($whereData);
+            $extractedSql = $query->toSql();
+            $results = $query->get()->toArray();
+
+            if ($results) {
+
+                $scimLib = new SCIMToGoogleWorkspace($setting);
+
+                foreach ($results as $key => $item) {
+
+                    $item = (array)$item;
+
+                    foreach ($formatConvention as $key => $value) {
+                        $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, 'default');
+                    }
+
+                    if ($item['DeleteFlag'] == '1') {
+                        $deleted = '1';
+                        if (!empty($item['externalGWID'])) {
+                            $deleted = $scimLib->deleteResource($table, $item);
+                        }
+                        if ($deleted != null) {
+                            DB::beginTransaction();
+                            $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                            $updateQuery->update(['externalGWID' => null]);
+                            DB::commit();
+                        }
+                        continue;
+                    }
+
+                    $ext_id = null;
+                    if (!empty($item['externalGWID'])) {
+                        // Update
+                        $ext_id = $scimLib->updateResource($table, $item);
+                    } else {
+                        // Create
+                        $ext_id = $scimLib->createResource($table, $item);
+                    }
+
+                    if ($ext_id !== null) {
+                        $scimLib->userGroup($table, $item, $ext_id);
+                        $scimLib->userRole($table, $item['ID'], $ext_id);
+                        DB::beginTransaction();
+                        $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                        $updateQuery->update(['externalGWID' => $ext_id]);
                         DB::commit();
                     }
                 }

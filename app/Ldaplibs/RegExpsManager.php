@@ -149,6 +149,142 @@ class RegExpsManager
         DB::table($nameTable)->where("ID", $user_id)->update($setValues);
     }
 
+    public function getUsersInGroup($id)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                   ->select('User_ID')->where('Group_ID', $id)->get();
+
+        $userIds = [];
+        foreach ($queries as $key => $value) {
+            $userIds[] = $value->User_ID;
+        }
+        return $userIds;
+    }
+
+    public function getUsersInGroups($id)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                   ->select('User_ID')->whereIn('Group_ID', $id)->get();
+
+        $userIds = [];
+        foreach ($queries as $key => $value) {
+            $userIds[] = $value->User_ID;
+        }
+        return $userIds;
+    }
+
+    public function getGroupsInUser($id)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                   ->select('Group_ID')->where('User_ID', $id)->get();
+
+        $groupIds = [];
+        foreach ($queries as $key => $value) {
+            $groupIds[] = $value->Group_ID;
+        }
+        return $groupIds;
+    }
+
+    public function getPrivilegesInRole($id, $deleteFlag = null)
+    {
+        $table = 'RoleToPrivilege';
+        $queries = DB::table($table)->select('Privilege_ID')->where('Role_ID', $id);
+        if ($deleteFlag != null) {
+            $queries = $queries->where('DeleteFlag', $deleteFlag);
+        }
+        $list = $queries->get();
+
+        $privilegeIds = [];
+        foreach ($list as $key => $value) {
+            $privilegeIds[] = $value->Privilege_ID;
+        }
+        return $privilegeIds;
+    }
+
+    public function getDeleteFlagFromUserToGroup($userId, $groupId)
+    {
+        $table = 'UserToGroup';
+        $queries = DB::table($table)
+                   ->select('DeleteFlag')
+                   ->where('User_ID', $userId)->where('Group_ID', $groupId)
+                   ->first();
+
+        return $queries->DeleteFlag;
+    }
+
+    public function getAttrs($table, $column, $ids)
+    {
+        $queries = DB::table($table)->where($column, $ids)->get();
+
+        $attrs = array();
+        foreach ($queries as $key => $value) {
+            array_push($attrs, (array) $value);
+        }
+        return $attrs;
+    }
+
+    public function getAttrFromID($table, $ids, $selectColumn)
+    {
+        $queries = DB::table($table)
+                   ->select($selectColumn)->where('ID', $ids)->get();
+
+        $attrs = [];
+        foreach ($queries as $key => $value) {
+            $attrs[] = ((array) $value)[$selectColumn];
+        }
+        return $attrs;
+    }
+
+    public function getAttrsFromID($table, $ids)
+    {
+        $queries = DB::table($table)->where('ID', $ids)->get();
+
+        $attrs = array();
+        foreach ($queries as $key => $value) {
+            array_push($attrs, (array) $value);
+        }
+        return $attrs;
+    }
+
+    public function getUpperValue($item, $key, $value, $default = null) {
+        if (strpos($value, 'ELOQ;') !== false) {
+            return $item[$key];
+        }
+        preg_match('/\((.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+        if (strpos($matches[1][0], '->') === false) {
+            return $item[$key];
+        }
+        $list = explode('->', $matches[1][0]);
+        $i = $item;
+        foreach ($list as $k => $v) {
+            $d = explode('.', $v);
+            if ($k == 0) {
+                $whereValue = $i[$d[1]];
+            } else if ($k % 2 == 1) {
+                $whereColumn = $d[1];
+                $table = $d[0];
+            } else {
+                $selectColumn = $d[1];
+                $query = DB::table($table);
+                $query = $query->select($selectColumn)
+                           ->where($whereColumn, $whereValue);
+                $extractedSql = $query->toSql();
+                $i = (array) $query->first();
+                if (empty($i) || array_key_exists($d[1], $i) === false) {
+                    return $default;
+                }
+                $whereValue = $i[$d[1]];
+            }
+        }
+        if (empty($i)) {
+            return $default;
+        } else {
+            return $i[$selectColumn];
+        }
+    }
 
     public function eloquentItem($id, $evalStr)
     {

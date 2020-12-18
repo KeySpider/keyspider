@@ -45,6 +45,7 @@ class AjustUpdateFlags extends Command
         $this->alterUpdateFlags('Role');
         $this->alterUpdateFlags('Group');
         $this->alterUpdateFlags('Organization');
+        $this->alterUpdateFlags('Privilege');
         $this->alterUpdateFlags('UserToGroup');
     }
 
@@ -53,7 +54,8 @@ class AjustUpdateFlags extends Command
         $alterTableName = $nameTable;
         if ($nameTable == 'UserToGroup' || 
             $nameTable == 'UserToOrganization' || 
-            $nameTable == 'UserToRole') {
+            $nameTable == 'UserToRole' || 
+            $nameTable == 'UserToPrivilege') {
             $alterTableName = str_replace('UserTo', '', $nameTable);
         }
 

@@ -43,4 +43,10 @@ class User extends Model
         return $this->belongsToMany('App\Role', 'UserToRole', 'User_ID', 'Role_ID')
             ->withPivot(['Role_ID'])->orderBy('Role_ID');
     }
+
+    public function privileges()
+    {
+        return $this->belongsToMany('App\Privilege', 'UserToPrivilege', 'User_ID', 'Privilege_ID')
+            ->withPivot(['Privilege_ID'])->orderBy('Privilege_ID');
+    }
 }
