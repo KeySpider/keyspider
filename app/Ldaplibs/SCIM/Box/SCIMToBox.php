@@ -45,7 +45,6 @@ class SCIMToBox
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
 
         $tuData = curl_exec($tuCurl);
-
         if(!curl_errno($tuCurl)){
             $info = curl_getinfo($tuCurl);
 

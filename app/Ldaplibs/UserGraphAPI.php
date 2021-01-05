@@ -448,7 +448,7 @@ class UserGraphAPI
         return $groups;
     }
 
-    public function removeicenseDetail($uID)
+    public function removeLicenseDetail($uID)
     {
         echo "--- RemoveUserLicense ---\n";
         // $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');

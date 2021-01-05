@@ -20,14 +20,14 @@
 
 return [
   'createUser' => '{
-    "address": "(User.joinAddress)",
-    "job_title": "(User.job_title)",
-    "language": "ja",
-    "login": "(User.login)",
     "name": "(User.name)",
+    "login": "(User.login)",
+    "language": "ja",
+    "timezone": "Asia/Tokyo",
+    "job_title": "(User.job_title)",
     "phone": "(User.phone)",
-    "status": "(User.DeleteFlag)",
-    "timezone": "Asia/Tokyo"
+    "address": "(User.joinAddress)",
+    "status": "(User.DeleteFlag)"
   }',
   'createGroup' => '{
     "name": "(Group.name)"

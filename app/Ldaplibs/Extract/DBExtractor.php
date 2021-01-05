@@ -56,7 +56,6 @@ class DBExtractor
     {
         $this->setting = $setting;
         $this->regExpManagement = new RegExpsManager();
-
     }
 
     /**
@@ -198,25 +197,42 @@ class DBExtractor
         $index = 0;
         $arraySelectColumns = [];
         $arrayAliasColumns = [];
+
         foreach ($settingConvention as $key => $value) {
             $n = strpos($value, $nameTable);
-            // preg_match('/(\w+)\.(\w+)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+
+            // process with regular expressions?
+            // set real value, after mod
+            $regColumnName = $this->regExpManagement->checkRegExpRecord($value);
+            if (isset($regColumnName)) {
+                $arrayAliasColumns[] = DB::raw("\"$regColumnName\" as \"$key\"");
+                $arraySelectColumns[] = $key;
+                continue;
+            }
+
             preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
          
             if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
-                $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");;
+                $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");
             } else {
-                $defaultColumn = "default_$index";
-                $index++;
-                $columnName = DB::raw("'$value' as \"$defaultColumn\"");
-                $arrayAliasColumns[] = $defaultColumn;
+                // $defaultColumn = "default_$index";
+                // $index++;
+                // $columnName = DB::raw("'$value' as \"$defaultColumn\"");
+                // $arrayAliasColumns[] = $defaultColumn;
+
+                $isMache = preg_match('/\((.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+                if ($isMache) {
+                    $value = $matches[1][0];
+                }
+
+                $columnName = $key;
+                $arrayAliasColumns[] = DB::raw("'$value' as \"$key\"");
             }
             $arraySelectColumns[] = $columnName;
         }
 
 //        $selectColumns = $this->convertArrayColumnsIntoString($arraySelectColumns);
-
         return [$arraySelectColumns, $arrayAliasColumns];
     }
 
@@ -409,6 +425,18 @@ class DBExtractor
         return $file;
     }
 
+    private function overlayItem($formatConvention, $item)
+    {
+        foreach ($formatConvention as $key => $value) {
+            $regColumnName = $this->regExpManagement->checkRegExpRecord($value);
+            if (isset($regColumnName)) {
+                $itemValue = $item[$key];
+                $item[$key] = $this->regExpManagement->convertDataFollowSetting($value, $itemValue);
+            }
+        }
+        return $item;
+    }
+
     public function processExtractToAD()
     {
         try {
@@ -462,13 +490,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
-
-                    foreach ($item as $kv => $iv) {
-                        $twColumn = "Azure.$kv";
-                        if (in_array($twColumn, $getEncryptedFields)) {
-                            $item[$kv] = $settingManagement->passwordDecrypt($iv);
-                        }
-                    }
+                    $item = $this->overlayItem($formatConvention, $item);
                     $item = json_decode(json_encode($item));
         
                     DB::beginTransaction();
@@ -480,7 +502,7 @@ class DBExtractor
                             //Delete resource
                             Log::info("Delete $table [$uPN] on AzureAD");
 
-                            $userGraph->removeicenseDetail($item->externalID);
+                            $userGraph->removeLicenseDetail($item->externalID);
 
                             $userGraph->deleteResource($item->externalID, $table);
 
@@ -575,6 +597,7 @@ class DBExtractor
                 //{"processID":0}
                 foreach ($results as $key => $item) {
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
@@ -603,6 +626,8 @@ class DBExtractor
                             echo "\Not found response of creating: \n";
                             var_dump($item);
                             continue;
+                        } else {
+                            $item['externalSFID'] = $userOnSF;
                         }
                         $scimLib->passwordResource($table, (array)$item);
 
@@ -668,6 +693,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalZOOMID'])) {
@@ -688,9 +714,15 @@ class DBExtractor
                     if (!empty($item['externalZOOMID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
+                        $ext_id = $item['externalZOOMID'];
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
+                    }
+                    if ($table == 'User') {
+                        $scimLib->addGroupMemebers($table, $item, $ext_id);
+                        $scimLib->addRoleMemebers($table, $item, $ext_id);
+                        
                     }
 
                     if ($ext_id !== null) {
@@ -754,6 +786,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalSlackID'])) {
@@ -778,6 +811,7 @@ class DBExtractor
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
                     }
+                    $scimLib->updateGroupMemebers($table, $item, $ext_id);
 
                     if ($ext_id !== null) {
                         DB::beginTransaction();
@@ -840,6 +874,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalTLID'])) {
@@ -926,6 +961,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalBOXID'])) {
@@ -1013,6 +1049,7 @@ class DBExtractor
                 foreach ($results as $key => $item) {
 
                     $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
 
                     foreach ($formatConvention as $key => $value) {
                         $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, 'default');

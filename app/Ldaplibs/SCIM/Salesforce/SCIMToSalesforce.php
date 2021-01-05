@@ -217,8 +217,6 @@ class SCIMToSalesforce
 
     public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
     {
-//        $memberOfSF = $this->getMemberOfsSF($userAttibutes['externalSFID']);
-        //TODO: getListOfGroupsUserBelongedTo
         $memberOf = [];
         $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID'], $scims);
         return $memberOf;
@@ -287,9 +285,6 @@ class SCIMToSalesforce
         }
     }
         
-
-
-
     public function replaceResource($resourceType, $item)
     {
         $settingManagement = new SettingsManager();

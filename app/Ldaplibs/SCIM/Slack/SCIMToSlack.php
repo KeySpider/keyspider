@@ -3,8 +3,10 @@
 
 namespace App\Ldaplibs\SCIM\Slack;
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MacsiDigital\Zoom\Facades\Zoom;
 
@@ -211,4 +213,110 @@ class SCIMToSlack
             return $tmp;
         }
     }
+
+    public function updateGroupMemebers($resourceType, $item, $externalID)
+    {
+        if (strtolower($resourceType) == 'user') {
+            $memberOf = $this->getListOfGroupsUserBelongedTo($item, 'Slack');
+            foreach ($memberOf as $groupID) {
+                $addMemberResult = $this->addMemberToGroups($externalID, $groupID, '0');
+                echo "\nAdd member to group result:\n";
+                var_dump($addMemberResult);
+            }
+            $addMemberResult = $this->removeMemberToGroup($item['ID'], $externalID);
+        }
+    }
+
+    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
+    {
+        $memberOf = [];
+        $memberOf = (new RegExpsManager())->getOrganizationInExternalID($userAttibutes['ID'], $scims);
+        return $memberOf;
+    }
+
+    public function addMemberToGroups($memberId, $groupId, $delFlag)
+    {
+        try {
+            return $this->addMemberToGroup($memberId, $groupId, $delFlag);
+        }
+        catch (\Exception $exception){
+            return [];
+        }
+
+    }
+
+    private function addMemberToGroup($memberId, $groupId, $delFlag)
+    {
+        $setting = $this->setting;
+
+        $url = $setting[self::SCIM_CONFIG]['group_url'];
+        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+        $accept = $setting[self::SCIM_CONFIG]['accept'];
+        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $return_id = '';
+
+        $tmpl = Config::get('scim-slack.patchGroup');
+        if ($delFlag == '1') {
+            $tmpl = Config::get('scim-slack.removeGroup');
+        }
+        $tmpl = str_replace("(memberOfSlack)", $memberId, $tmpl);
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, $url . $groupId);
+        // curl_setopt($tuCurl, CURLOPT_POST, 1);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
+        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
+            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+
+        $tuData = curl_exec($tuCurl);
+        $responce = json_decode($tuData, true);
+        $info = curl_getinfo($tuCurl);
+
+        if (empty($responce)) {
+            if(!curl_errno($tuCurl)) {
+                $info = curl_getinfo($tuCurl);
+                Log::info('add member ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+            } else {
+                Log::error('Curl error: ' . curl_error($tuCurl));
+}            curl_close($tuCurl);
+            return $responce['id'];
+        }
+        
+        if (array_key_exists("Errors", $responce)) {
+            $curl_status = $responce['Errors']['description'];
+            Log::error('add member faild ststus = ' . $curl_status);
+            Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
+            curl_close($tuCurl);
+            return null;
+        }
+    }
+
+    private function removeMemberToGroup($uid, $externalID)
+    {
+        $table = 'UserToOrganization';
+        $queries = DB::table($table)
+                    ->select('Organization_ID')
+                    ->where('User_ID', $uid)
+                    ->where('DeleteFlag', '1')->get();
+
+        foreach ($queries as $key => $value) {
+
+            $table = 'Organization';
+            $slackQueries = DB::table($table)
+                        ->select('externalSlackID')
+                        ->where('ID', $value->Organization_ID)
+                        ->get();
+                       
+            foreach ($slackQueries as $key => $value) {
+                $addMemberResult = $this->addMemberToGroup($externalID, $value->externalSlackID, '1');
+            }
+        }
+    }
+
+
 }
+
+
+

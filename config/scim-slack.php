@@ -72,7 +72,6 @@ return [
        "preferredLanguage": "ja_JP",
        "locale": "ja_JP",
        "groups":[
-    
        ]
     },
 }',
@@ -87,6 +86,27 @@ return [
       "created": "",
       "location": ""
   }
+}',
+'patchGroup' => '{
+   "schemas": [
+      "urn:scim:schemas:core:1.0"
+    ],
+    "members": [
+       {
+          "value": "(memberOfSlack)",
+      },      
+    ]
+  }',
+ 'removeGroup' => '{
+   "schemas": [
+     "urn:scim:schemas:core:1.0"
+   ],
+   "members": [
+      {
+         "value": "(memberOfSlack)",
+         "operation": "delete"
+     },      
+   ]
 }'
   ];
   

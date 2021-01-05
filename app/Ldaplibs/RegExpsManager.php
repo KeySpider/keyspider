@@ -133,6 +133,67 @@ class RegExpsManager
         return $externalIds; 
     }
 
+    public function getRoleInExternalID($uid, $scims)
+    {
+        $table = 'UserToRole';
+        $queries = DB::table($table)
+                    ->select('Role_ID')
+                    ->where('User_ID', $uid)
+                    ->where('DeleteFlag', '0')->get();
+
+        $groupIds = [];
+        foreach ($queries as $key => $value) {
+            $groupIds[] = $value->Role_ID;
+        }
+
+        $table = 'Role';
+        $queries = DB::table($table)
+                    ->select('external' . $scims . 'ID')
+                    ->whereIn('ID', $groupIds)
+                    ->get();
+
+        $externalIds = [];
+
+        foreach ($queries as $key => $value) {
+            $cnv = (array)$value;
+            foreach ($cnv as $key => $value) {
+                $externalIds[] = $value;
+            }    
+        }
+        return $externalIds; 
+    }
+
+    public function getOrganizationInExternalID($uid, $scims)
+    {
+        $table = 'UserToOrganization';
+        $queries = DB::table($table)
+                    ->select('Organization_ID')
+                    ->where('User_ID', $uid)
+                    ->where('DeleteFlag', '0')->get();
+
+        $organizationIds = [];
+        foreach ($queries as $key => $value) {
+            $organizationIds[] = $value->Organization_ID;
+        }
+
+        $table = 'Organization';
+        $queries = DB::table($table)
+                    ->select('external' . $scims . 'ID')
+                    ->whereIn('ID', $organizationIds)
+                    ->get();
+
+        $externalIds = [];
+
+        foreach ($queries as $key => $value) {
+            $cnv = (array)$value;
+            foreach ($cnv as $key => $value) {
+                $externalIds[] = $value;
+            }    
+            // $externalIds[] = $value->externalID;
+        }
+        return $externalIds; 
+    }
+
     public function updateUserUpdateFlags($user_id)
     {
         $nameTable = 'User';
