@@ -82,7 +82,7 @@ class SCIMToTrustLogin
         $return_id = '';
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
+        curl_setopt($tuCurl, CURLOPT_URL, $url . '/' . $externalID);
         // curl_setopt($tuCurl, CURLOPT_POST, 1);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
         curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
@@ -125,7 +125,7 @@ class SCIMToTrustLogin
         $auth = $setting[self::SCIM_CONFIG]['authorization'];
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
+        curl_setopt($tuCurl, CURLOPT_URL, $url . '/'. $externalID);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
             array("Authorization: $auth", "accept: */*"));

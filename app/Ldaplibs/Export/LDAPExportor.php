@@ -393,7 +393,15 @@ class LDAPExportor
             $is_success = false;
             if ($group) {
                // Update or Delete LDAP entry. Setting a model's attribute.
-                $is_success = $group->update($ldapGroup);
+                // $is_success = $group->update($ldapGroup);
+                try {
+                    $is_success = $group->update($ldapGroup);
+                } catch (Exception $exception) {
+                    Log::error($ldapGroup);
+                    Log::error($exception);
+                    $is_success = false;
+                }
+
                 // disble user
                 if ($data['DeleteFlag'] == '1') {
                     $group->delete();
@@ -407,7 +415,13 @@ class LDAPExportor
 
                 $is_success = $group->save();
                 if ($is_success) {
-                    $is_success = $group->update($ldapGroup);
+                    try {
+                        $is_success = $group->update($ldapGroup);
+                    } catch (Exception $exception) {
+                        Log::error($ldapGroup);
+                        Log::error($exception);
+                        $is_success = false;
+                    }
                 }
             }
 
@@ -422,6 +436,17 @@ class LDAPExportor
         } catch (Exception $exception) {
             Log::error($exception);
         }
+    }
+
+    private function unsetArrayKeys($item)
+    {
+        $retArray = [];
+        foreach ($item as $key => $value) {
+            if (!empty($value)) {
+                $retArray[$key] = $value;
+            }
+        }
+        return $retArray;
     }
 
     public function exportOrganizationUnitFromKeyspider($data)

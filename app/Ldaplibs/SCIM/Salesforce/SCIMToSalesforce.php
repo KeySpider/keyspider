@@ -39,6 +39,7 @@ class SCIMToSalesforce
         try {
             return $this->crud->create('USER', $data);  #returns id
         } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
             echo($exception->getMessage());
             return -1;
         }
@@ -84,9 +85,9 @@ class SCIMToSalesforce
             $this->updateGroupMemebers($resourceType, $data, $response);
             return $response;  #returns id
         } catch (\Exception $exception) {
-//            var_dump($exception);
+            Log::error($exception->getMessage());
             echo($exception->getMessage());
-            return $response;
+            return null;
         }
     }
 
@@ -98,6 +99,7 @@ class SCIMToSalesforce
         try {
             return $this->crud->create('GROUP', $data);  #returns id
         } catch (\Exception $exception) {
+            Log::erroe($exception->getMessage());
             echo($exception->getMessage());
             return -1;
         }
@@ -150,6 +152,7 @@ class SCIMToSalesforce
             try {
                 return ($this->crud->delete($resourceType, $resourceId));
             } catch (\Exception $exception) {
+                Log::error("\n$exception");
                 var_dump("\n$exception");
                 return false;
             }

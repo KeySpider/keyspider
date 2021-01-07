@@ -200,6 +200,10 @@ class DBExtractor
         $arrayAliasColumns = [];
 
         foreach ($settingConvention as $key => $value) {
+            if (0 < strpos($value, 'UpperID->')) {
+                $value = explode('->', $value)[0];
+                $value = $value . ')';
+            }
             $n = strpos($value, $nameTable);
 
             // process with regular expressions?

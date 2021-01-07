@@ -600,7 +600,9 @@ class SCIMToZoom
         $arrayUser = json_decode($user, true);
 
         $groupIDList = [];
-        $groupIDList[] = $arrayUser['role_id'];
+        if (!empty($arrayUser['role_name'])) {
+            $groupIDList[] = $arrayUser['role_id'];
+        }
         return $groupIDList;
     }
 

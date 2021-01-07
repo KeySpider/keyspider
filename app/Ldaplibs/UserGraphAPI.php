@@ -194,7 +194,7 @@ class UserGraphAPI
         echo "\n- \t\tcreating Group: \n";
         $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
         if (empty($ext)) {
-        $newGroup = $this->createGroupObject($groupAttributes);
+            $newGroup = $this->createGroupObject($groupAttributes);
         } else {
             $newGroup = $this->createGroupObjectExt($groupAttributes);
         }
@@ -230,7 +230,11 @@ class UserGraphAPI
     private function createGroupObjectExt($groupAttributes): Group
     {
         $storage_path = storage_path('ini_configs/extract/GroupToAzureExtraction.ini');
-        $section = 'Grpup type ' . $groupAttributes['groupTypes'];
+        if (empty($groupAttributes['groupTypes'])) {
+            // Magic word is useless...
+            $groupAttributes['groupTypes'] = 'Microsoft 365';
+        }
+        $section = 'Group type ' . $groupAttributes['groupTypes'];
         $groupConf = parse_ini_file($storage_path, true) [$section];
 
         $userJson = Config::get('GraphAPISchemas.createGroupJson');
