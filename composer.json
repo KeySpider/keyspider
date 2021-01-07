@@ -18,6 +18,7 @@
         "macsidigital/laravel-zoom": "2.*",
         "marquine/php-etl": "2.2",
         "microsoft/microsoft-graph": "^1.10",
+        "onelogin/api": "^1.6.0",
         "optimus/bruno": "~3.0",
         "prettus/laravel-request-logger": "^1.2",
         "squizlabs/php_codesniffer": "*",
