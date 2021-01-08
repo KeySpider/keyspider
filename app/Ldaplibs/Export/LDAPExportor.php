@@ -374,8 +374,8 @@ class LDAPExportor
 
             $ldapGroup = $this->conversionArrayValue($data);
 
+            $ldapGroup['groupType'] = self::GROUP_TYPE_365;
             if (!empty($data['groupTypes'])) {
-                $ldapGroup['groupType'] = self::GROUP_TYPE_365;
                 if ($data['groupTypes'] == 'Security') {
                     $ldapGroup['groupType'] = self::GROUP_TYPE_SECURITY;
                 }
