@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Import;
 
 use App\Exceptions\SCIMException;
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
@@ -162,6 +163,22 @@ class SCIMReader
             return $nowString;
         }
 
+        // process with regular expressions?
+        $regExpManagement = new RegExpsManager();
+        $columnName = $regExpManagement->checkRegExpRecord($value);
+        if (isset($columnName)) {
+            $findData = (array)(new JSONPath($dataPost))->find($columnName);
+            $array_val = array_values($findData);
+
+            // If settings is correct, return regexped SCIM attribute.
+            $ret = '';
+            if (count($array_val[0]) > 0) {
+                $scimValue = $array_val[0][0];
+                $ret = $regExpManagement->convertDataFollowSetting($value, $scimValue);
+            }
+            return $ret;
+        }
+
         // Return Enterprise attribute 
         if (strpos($value, self::SCIM_ENT) !== false) {
             $scim_ent = array_key_exists(self::SCIM_ENT, $dataPost)
@@ -188,6 +205,9 @@ class SCIMReader
                 if ($value == "(active)")
                     return isset($findData[0]) ? (string)(((int)$findData[0] + 1) % 2) : null;
                 return isset($findData[0]) ? $findData[0] : null;
+            } else {
+                // Return Fixed value
+                return $value;
             }
         } catch (\Exception $exception) {
             Log::info($exception->getMessage());

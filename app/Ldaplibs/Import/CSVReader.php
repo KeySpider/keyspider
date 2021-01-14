@@ -357,6 +357,12 @@ class CSVReader implements DataInputReader
                 if ($check) {
                     return $this->processGroup($str, $group);
                 }
+            } else {
+
+                if ( !preg_match("/\((\d)\)/", $pattern, $matchs) ) {
+                    return $pattern;
+                }
+
             }
         }
     }

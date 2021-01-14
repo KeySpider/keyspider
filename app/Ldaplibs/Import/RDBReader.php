@@ -121,6 +121,7 @@ class RDBReader
             } elseif ($item === '0') {
                 $fields[$key] = '0';
             } else {
+
                 $itemValue = $item;
 
                 $slow = strtolower($item);
@@ -143,9 +144,15 @@ class RDBReader
                         $fields[$key] = $regExpManagement->convertDataFollowSetting($itemValue, $recValue);
                     }
                 } else {
+                    if (0 === strpos($item, '(')) {
+                        preg_match('/\((.*)\)/', $item, $matches);
+                        $slow = strtolower($matches[1]);
+                        $fields[$key] = $array[$slow];
+                    } else {
                     $fields[$key] = $itemValue;
                 }
             }
+        }
         }
         return $fields;
     }
