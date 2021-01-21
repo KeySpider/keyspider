@@ -75,8 +75,10 @@ class AjustUpdateFlags extends Command
         $effectives = 0;
         foreach ($users as $user) {
             $updateFlags = json_decode($user->UpdateFlags, true);
+            $keys = array_keys($updateFlags);
+    
             foreach ($updateFlagsArray as $processId) {
-                if (empty($updateFlags[$processId])) {
+                if (!in_array($processId, $keys)) {
                     $updateFlags[$processId] = '1';
                     $effectives += 1;
                 }
