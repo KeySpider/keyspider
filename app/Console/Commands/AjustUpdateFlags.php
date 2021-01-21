@@ -59,7 +59,6 @@ class AjustUpdateFlags extends Command
             $alterTableName = str_replace('UserTo', '', $nameTable);
         }
 
-        // $nameTable = 'User';
         $settingManagement = new SettingsManager();
         // $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($alterTableName);
