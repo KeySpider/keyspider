@@ -102,6 +102,7 @@ class SCIMToBox
         if(!curl_errno($tuCurl)){
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
+
             if ( array_key_exists('id', $responce)) {
                 $return_id = $responce['id'];
                 Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);

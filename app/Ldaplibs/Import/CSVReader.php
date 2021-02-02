@@ -148,7 +148,6 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
-
                 if ($nameTable == 'UserToGroup' || 
                     $nameTable == 'UserToOrganization' || 
                     $nameTable == 'UserToRole') {

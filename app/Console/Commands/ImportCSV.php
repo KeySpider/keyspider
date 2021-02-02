@@ -91,6 +91,5 @@ class ImportCSV extends Command
                 }
             }
         }
-
     }
 }

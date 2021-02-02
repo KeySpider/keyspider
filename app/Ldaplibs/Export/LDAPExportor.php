@@ -397,7 +397,7 @@ class LDAPExportor
                 try {
                     $is_success = $group->update($ldapGroup);
                 } catch (Exception $exception) {
-                    Log::error($ldapGroup);
+                    Log::info($ldapGroup);
                     Log::error($exception);
                     $is_success = false;
                 }
@@ -418,7 +418,7 @@ class LDAPExportor
                     try {
                         $is_success = $group->update($ldapGroup);
                     } catch (Exception $exception) {
-                        Log::error($ldapGroup);
+                        Log::info($ldapGroup);
                         Log::error($exception);
                         $is_success = false;
                     }

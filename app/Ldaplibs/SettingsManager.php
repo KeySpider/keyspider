@@ -570,4 +570,53 @@ class SettingsManager
     {
         return array_get($this->masterDBConfigData, 'Role.Role');
     }
+
+    public function traceProcessInfo($backtrace, $cmd, $message)
+    {
+        // ARGV : debug_backtrace 
+        // $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        $btFunction = $backtrace[0]['function'];
+        $btClass = $backtrace[0]['class']; 
+        $epClass = explode('\\', $btClass);
+
+        $functionWithclass = $epClass[count($epClass) -1] . '.' . $btFunction;
+        $tl = sprintf("[[ KSC ]] `%s` is %s. %s", $functionWithclass, $cmd, $message);
+        Log::info($tl);
+    }
+
+
+    public function isExtractSettingsFileValid(): bool
+    {
+        $pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
+        $extractionFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
+        $exportFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['export_config'];
+
+        $inifilePaths = array_merge($extractionFilePaths, $exportFilePaths);
+
+        try {
+            $epbc = 'Extraction Process Basic Configuration';
+            foreach ($inifilePaths as $key => $inifilePath) {
+                $inifile = parse_ini_file($inifilePath, true);
+                $validate = Validator::make($inifile, [
+                    $epbc => 'required',
+                    $epbc . '.ExtractionProcessID' => 'required',
+                    $epbc . '.OutputType' => 'required',
+                    $epbc . '.ExtractionTable' => 'required',
+                ]);
+
+                if ($validate->fails()) {
+                    // Log::error('There is an error in the configuration file.' 
+                    // . "\n" . $inifilePath . "\n". $validate->getMessageBag() . "\n");
+                    throw new Exception('[[ KSC ]] There is an error in the configuration file.' 
+                        . "\n" . $inifilePath . "\n". $validate->getMessageBag() . "\n");
+                    return false;
+                }
+            }
+            return true;
+        } catch (Exception $exception) {
+            Log::error($exception->getMessage());
+            return false;
+        }
+    }
+    
 }
