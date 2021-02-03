@@ -113,6 +113,7 @@ class SCIMReader
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
             $dataCreate = [];
+
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
@@ -121,8 +122,10 @@ class SCIMReader
                 if ($keyWithoutTableName == config('const.JOB_TITLE')) {
                     $dataCreate = $settingManagement->resetRoleFlagX($dataCreate);
                     $xIndex = $settingManagement->getRoleFlagX($scimValue, $roleMaps);
+                    if (!empty($xIndex)) {
                     $keyValue = sprintf("RoleFlag-%d", $xIndex);
                     $dataCreate[$keyValue] = '1';
+                }
                 }
 
                 if ($keyWithoutTableName && isset($scimValue)) {
@@ -196,8 +199,19 @@ class SCIMReader
 
         $pattern = "/\((.*?)\)/";
         $isMatched = preg_match($pattern, $value, $matchedValue);
+
         try {
             if ($isMatched) {
+                if ($matchedValue[1] == 'phoneNumbers.value') {
+                    $findData = (new JSONPath($dataPost))->find('phoneNumbers[1].value');
+                    return isset($findData[0]) ? $findData[0] : null;
+                }
+
+                if ($matchedValue[1] == 'mobile.value') {
+                    $findData = (new JSONPath($dataPost))->find('phoneNumbers[0].value');
+                    return isset($findData[0]) ? $findData[0] : null;
+                }
+
                 $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
                 //If get data from SCIM: DeleteFlag = (active)
                 //active = false -> DeleteFlag =1
@@ -249,6 +263,10 @@ class SCIMReader
                 }
             }
         }
+        // Bugfix : UpdateDate column not updated
+        $nowString = Carbon::now()->format('Y/m/d');
+        $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
+
         return true;
     }
 
@@ -412,7 +430,19 @@ class SCIMReader
 //New format of operations is no bracket in the path
         //This is my smart way to compare with scim ini config
         $formattedOperations = array_map(function ($operation) {
+            // $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
+
+            $pattern = "/phoneNumbers\[type eq \"(.*)\"\].value/";
+            $isMatched = preg_match($pattern, $operation['path'], $matchedValue);
+            if (!empty($isMatched)) {
+                if ($matchedValue[1] == 'mobile') {
+                    $operation['path'] = 'mobile.value';
+                } else {
             $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
+                }
+            } else {
+            $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
+            }
             return $operation;
         }, $operations);
         //When deleteing user, ignore changing other things.
