@@ -358,7 +358,7 @@ class CSVReader implements DataInputReader
                 }
             } else {
 
-                if ( !preg_match("/\((\d)\)/", $pattern, $matchs) ) {
+                if ( !preg_match("/\((\d+)\)/", $pattern, $matchs) ) {
                     return $pattern;
                 }
 

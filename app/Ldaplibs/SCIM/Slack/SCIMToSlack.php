@@ -29,12 +29,11 @@ class SCIMToSlack
     {
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
+        $url = $scimOptions['url'] . $resourceType . 's/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tuCurl = curl_init();
@@ -84,12 +83,11 @@ class SCIMToSlack
         $tmpl = $this->replaceResource($resourceType, $item);
         $externalID = $item['externalSlackID'];
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
+        $url = $scimOptions['url'] . $resourceType . 's/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tuCurl = curl_init();
@@ -139,10 +137,9 @@ class SCIMToSlack
     {
         $externalID = $item['externalSlackID'];
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
+        $url = $scimOptions['url'] . $resourceType . 's/';
+        $auth = $scimOptions['authorization'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
@@ -247,12 +244,11 @@ class SCIMToSlack
 
     private function addMemberToGroup($memberId, $groupId, $delFlag)
     {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['group_url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
+        $url = $scimOptions['url'] . 'Groups/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tmpl = Config::get('scim-slack.patchGroup');

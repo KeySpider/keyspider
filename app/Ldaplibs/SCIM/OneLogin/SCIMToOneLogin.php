@@ -23,11 +23,10 @@ class SCIMToOneLogin
      */
     public function __construct($setting)
     {
-        $this->setting = $setting;
-
-        $clientId = $this->setting[self::SCIM_CONFIG]['clientId'];
-        $clientSecret = $this->setting[self::SCIM_CONFIG]['clientSecret'];
-        $region = $this->setting[self::SCIM_CONFIG]['region'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['OneLogin Keys'];
+        $clientId = $scimOptions['clientId'];
+        $clientSecret = $scimOptions['clientSecret'];
+        $region = $scimOptions['region'];
         $this->client = new Client($clientId, $clientSecret, $region);
     }
 

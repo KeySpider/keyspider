@@ -45,9 +45,12 @@ class ExtractSettingsManager extends SettingsManager
 //        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
         if($extract_config_tag==null){
             $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
-        }
-        else{
-            $this->iniExportSettingsFiles = $this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG];
+        } else {
+            if (empty($this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG])) {
+                $this->iniExportSettingsFiles = [];
+            } else {
+                $this->iniExportSettingsFiles = $this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG];
+            }
         }
     }
 

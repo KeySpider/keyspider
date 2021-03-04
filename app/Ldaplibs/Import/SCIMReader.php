@@ -367,7 +367,7 @@ class SCIMReader
     
             if ($column === $this->deleteFlagColumnName) {//If this is patch of deleting user, reset all roleFlags to 0
                 $roleFlagColumns = $this->settingImport->getRoleFlags();
-                if ($value === "False") {
+                if ($value === "False" || $value === "1") {
                     $setValues[$column] = 1;
 //                    $setValues[$column] = $value==="False"?1:0;
                     foreach ($roleFlagColumns as $roleFlagColumn) {

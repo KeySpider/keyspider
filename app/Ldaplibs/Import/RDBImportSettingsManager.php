@@ -62,6 +62,12 @@ class RDBImportSettingsManager extends SettingsManager
             Log::error('Wrong key spider! Do nothing.');
             return [];
         }
+
+        if (empty($this->keySpider[self::RDB_IMPORT_PROCESS_CONFIGRATION])) {
+            Log::info('nothing to do.');
+            return [];
+        }
+        
         $this->iniImportSettingsFiles = $this->keySpider[self::RDB_IMPORT_PROCESS_CONFIGRATION]['import_config'];
 
         $rule = $this->getRuleOfImport();

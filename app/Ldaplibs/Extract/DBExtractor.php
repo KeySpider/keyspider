@@ -1108,7 +1108,13 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
+            // $selectColumnsAndID = array_merge($aliasColumns, ['externalTLID', 'DeleteFlag']);
+            if ($table == 'User') {
             $selectColumnsAndID = array_merge($aliasColumns, ['externalTLID', 'DeleteFlag']);
+            } else {
+                $selectColumnsAndID = $aliasColumns;
+            }
+
             if ($table == 'User') {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);

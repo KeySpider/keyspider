@@ -83,9 +83,9 @@ class SettingsManager
             $validate = Validator::make($this->keySpider, [
                 'Master DB Configurtion' => 'required',
                 'CSV Import Process Configration' => 'required',
-                'SCIM Input Process Configration' => 'required',
+                // 'SCIM Input Process Configration' => 'required',
                 'CSV Extract Process Configration' => 'required',
-                'Azure Extract Process Configration' => 'required',
+                // 'Azure Extract Process Configration' => 'required',
                 'CSV Output Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
@@ -500,12 +500,12 @@ class SettingsManager
     {
         $extractionProcessIDs = [];
         try {
-            $extractionFilePaths = parse_ini_file(
-                $this->pathIniConfigs.'KeySpider.ini')['extract_config'];
-            $exportFilePaths = parse_ini_file(
-                $this->pathIniConfigs.'KeySpider.ini')['export_config'];
+            // $extractionFilePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['extract_config'];
+            // $exportFilePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['export_config'];
 
-                $filePaths = array_merge($extractionFilePaths, $exportFilePaths);
+            // $filePaths = array_merge($extractionFilePaths, $exportFilePaths);
+
+            $filePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['extract_config'];
 
                 foreach($filePaths as $filePath) {
                 if (is_file($filePath)) {
@@ -588,10 +588,12 @@ class SettingsManager
     public function isExtractSettingsFileValid(): bool
     {
         $pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
-        $extractionFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
-        $exportFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['export_config'];
+        // $extractionFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
+        // $exportFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['export_config'];
 
-        $inifilePaths = array_merge($extractionFilePaths, $exportFilePaths);
+        // $inifilePaths = array_merge($extractionFilePaths, $exportFilePaths);
+
+        $inifilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
 
         try {
             $epbc = 'Extraction Process Basic Configuration';

@@ -28,12 +28,11 @@ class SCIMToBox
     {
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tuCurl = curl_init();
@@ -81,12 +80,11 @@ class SCIMToBox
         $tmpl = $this->replaceResource($resourceType, $item);
         $externalID = $item['externalBOXID'];
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tuCurl = curl_init();
@@ -128,10 +126,9 @@ class SCIMToBox
     {
         $externalID = $item['externalBOXID'];
 
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $auth = $scimOptions['authorization'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
@@ -215,12 +212,11 @@ class SCIMToBox
 
     public function getMemberOfsBOX($uPN)
     {
-        $setting = $this->setting;
-
-        $url = $setting[self::SCIM_CONFIG]['url'];
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $url = $scimOptions['url'] . 'users/';
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url . $uPN . '/memberships/');
@@ -252,8 +248,6 @@ class SCIMToBox
 
     private function addMemberToGroup($uPCN, $groupId): void
     {
-        $setting = $this->setting;
-
         $settingManagement = new SettingsManager();
         $getEncryptedFields = $settingManagement->getEncryptedFields();
 
@@ -262,9 +256,11 @@ class SCIMToBox
         $tmpl = str_replace('(gpn)', $groupId, $tmpl);
             
         $url = 'https://api.box.com/2.0/group_memberships';
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
-        $accept = $setting[self::SCIM_CONFIG]['accept'];
-        $contentType = $setting[self::SCIM_CONFIG]['ContentType'];
+
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $auth = $scimOptions['authorization'];
+        $accept = $scimOptions['accept'];
+        $contentType = $scimOptions['ContentType'];
         $return_id = '';
 
         $tuCurl = curl_init();
@@ -298,11 +294,12 @@ class SCIMToBox
         curl_close($tuCurl);
     }
 
-    public function removeMemberOfGroup($uPCN, $groupId){
-        $setting = $this->setting;
-
+    public function removeMemberOfGroup($uPCN, $groupId)
+    {
         $url = 'https://api.box.com/2.0/group_memberships/' . $groupId .'/';
-        $auth = $setting[self::SCIM_CONFIG]['authorization'];
+
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $auth = $scimOptions['authorization'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url);
