@@ -165,18 +165,27 @@ class LDAPExportor
         $whereData = [];
         foreach ($extractCondition as $key => &$condition) {
             if (!is_array($condition)) {
+                // Add/Sub EffectiveDate
                 if (strpos((string)$condition, 'TODAY()') !== false) {
                     $condition = $this->regExpManagement->getEffectiveDate($condition);
                     array_push($whereData, [$key, '<=', $condition]);
                     continue;
                 }
+
+                // Logical operation setting or Regular expressions?
+                $match = $this->regExpManagement->hasLogicalOperation($condition);
+                if (!empty($match)) {
+                    $whereData = $this->regExpManagement->makeExpLOCondition($key, $match, $whereData);
+                    continue;
+                }
             }
 
-            // condition
+            // make standard condition
             if ($condition === 'TODAY() + 7') {
                 $condition = Carbon::now()->addDay(7)->format('Y/m/d');
                 array_push($whereData, [$key, '<=', $condition]);
             } elseif (is_array($condition)) {
+                // JSON Columns(Use UpdateFlags)
                 foreach ($condition as $keyJson => $valueJson) {
                     array_push($whereData, ["{$nameColumnUpdate}->$keyJson", '=', "{$valueJson}"]);
                 }

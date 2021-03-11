@@ -246,7 +246,6 @@ class RDBReader
      */
     private function doCudOperation($mode, $setting, $sarray)
     {
-        $addFlagName = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['ExtractionProcessID'];
         $diffTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
         $itemTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
 
@@ -265,7 +264,7 @@ class RDBReader
                     //var_dump(DB::getQueryLog());
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($id, $itemTable, $addFlagName);
+                    $this->setUpdateFlags($id, $itemTable);
                     DB::commit();
                 }
                 return;
@@ -285,7 +284,7 @@ class RDBReader
                     }
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($rdbRecord['ID'], $itemTable, $addFlagName);
+                    $this->setUpdateFlags($rdbRecord['ID'], $itemTable);
                     DB::commit();
                 }
             }
@@ -299,7 +298,7 @@ class RDBReader
      * Update flag reset process
      * 
      */
-    private function setUpdateFlags($id, $itemTable, $addFlagName)
+    private function setUpdateFlags($id, $itemTable)
     {
         $settingManagement = new SettingsManager();
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($itemTable);

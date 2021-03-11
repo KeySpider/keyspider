@@ -3,6 +3,7 @@
 
 namespace App\Ldaplibs\SCIM\TrustLogin;
 
+use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,7 @@ class SCIMToTrustLogin
     const SCIM_CONFIG = 'SCIM Authentication Configuration';
 
     protected $setting;
+    protected $regExpManagement;
 
     /**
      * SCIMToTrustLogin constructor.
@@ -21,6 +23,7 @@ class SCIMToTrustLogin
     public function __construct($setting)
     {
         $this->setting = $setting;
+        $this->regExpManagement = new RegExpsManager();
     }
 
     public function createResource($resourceType, $item)
@@ -55,6 +58,8 @@ class SCIMToTrustLogin
 
             if ( array_key_exists('status', $responce)) {
                 $curl_status = $responce['status'];
+                Log::error($info);
+                Log::error($responce);
                 Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
                 return null;
@@ -101,6 +106,7 @@ class SCIMToTrustLogin
 
             if ( array_key_exists('status', $responce)) {
                 $curl_status = $responce['status'];
+                Log::error($responce);
                 Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
                 return null;
@@ -150,6 +156,19 @@ class SCIMToTrustLogin
             if ($key === 'locked') {
                 if ( $value == '1') $isActive = 'false';
                 $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
+                continue;
+            }
+
+            if (strpos($value, 'ELOQ;') !== false) {
+                if (empty($item['OrganizationID1'])) {
+                    $tmp = str_replace("(User.Organization.displayName)", '', $tmp);
+                    continue;
+                }
+                // Get Eloquent string
+                preg_match('/ELOQ;(.*)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+                $line = $this->regExpManagement->eloquentItem($item['ID'], $matches[1][0]);
+
+                $tmp = str_replace("(User.Organization.displayName)", $line, $tmp);
                 continue;
             }
 

@@ -140,11 +140,6 @@ class GroupController extends LaravelController
     {
         $dataPost = $request->all();
         $importSetting = new ImportSettingsManager();
-
-        // Log::info('-----------------creating role...-----------------');
-        // Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        // Log::info('--------------------------------------------------');
-
         $setting = $importSetting->getSCIMImportSettings($this->path);
 
         // save user resources model
@@ -166,12 +161,6 @@ class GroupController extends LaravelController
      */
     public function update($id, Request $request)
     {
-        // do something
-        // Log::info('-----------------PATCH GROUP...-----------------');
-        // Log::debug($id);
-        // Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
-        // Log::info('--------------------------------------------------');
-
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $input = $request->input();
 

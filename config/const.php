@@ -36,5 +36,5 @@ return [
     'JOB_TITLE' => 'jobTitle',
     'ROLE_ID' => 'RoleID',
     'ROLE_FLAG' => 'RoleFlag-',
-    'KSC_VERSION' => '20210303',
+    'KSC_VERSION' => '20210311',
 ];

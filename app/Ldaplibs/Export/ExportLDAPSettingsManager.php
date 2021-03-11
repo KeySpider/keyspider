@@ -36,14 +36,14 @@ class ExportLDAPSettingsManager extends SettingsManager
      * ExtractSettingsManager constructor.
      * @param null $iniSettingsFiles
      */
-    const LDAP_EXPORT_PROCESS_CONFIGRATION = 'LDAP Export Process Configration';
+    const LDAP_EXTRACT_PROCESS_CONFIGRATION = 'LDAP Export Process Configration';
 
     const EXTRACT_CONFIG = 'extract_config';
 
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
-        if (!empty($this->keySpider[self::LDAP_EXPORT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG])) {
+        if (!empty($this->keySpider[self::LDAP_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG])) {
             $this->iniExportSettingsFiles = $this->keySpider[self::LDAP_EXPORT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
         }
     }

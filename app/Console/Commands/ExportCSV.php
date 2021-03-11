@@ -56,6 +56,7 @@ class ExportCSV extends Command
         foreach ($extractSetting as $ex) {
             $arrayOfSetting = array_merge($arrayOfSetting, $ex);
         }
+
         if ($extractSetting) {
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                 $this->exportDataForTimeExecution($settingOfTimeExecution);

@@ -500,11 +500,6 @@ class SettingsManager
     {
         $extractionProcessIDs = [];
         try {
-            // $extractionFilePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['extract_config'];
-            // $exportFilePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['export_config'];
-
-            // $filePaths = array_merge($extractionFilePaths, $exportFilePaths);
-
             $filePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['extract_config'];
 
                 foreach($filePaths as $filePath) {
@@ -588,11 +583,6 @@ class SettingsManager
     public function isExtractSettingsFileValid(): bool
     {
         $pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
-        // $extractionFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
-        // $exportFilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['export_config'];
-
-        // $inifilePaths = array_merge($extractionFilePaths, $exportFilePaths);
-
         $inifilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
 
         try {

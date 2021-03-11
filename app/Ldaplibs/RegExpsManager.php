@@ -34,10 +34,35 @@ use App\UserToGroup;
 
 class RegExpsManager
 {
+    const OPERATIONS = array(
+        'EQ'=>'=',  // EQual
+        'GE'=>'>=', // Greater Equal
+        'GT'=>'>',  // Greater Than
+        'LE'=>'<=', // Lesser Equal
+        'LT'=>'<',  // Lesser Than
+        'NE'=>'!=', // Not Equal
+        'RG'=>'~'   // ReGular expressions
+    );
 
     public function __construct()
     {
 
+    }
+
+    public function hasLogicalOperation($convertData)
+    {
+        $success = preg_match('/^\(([A-Z]{2}),(.*)\)/', $convertData, $match);
+
+        if ($success) {
+            return $match;
+        }
+        return null;
+    }
+
+    public function makeExpLOCondition($key, $match, $whereData)
+    {
+        array_push($whereData, [$key, (string)self::OPERATIONS[$match[1]], (string)$match[2]]);
+        return $whereData;
     }
 
     public function checkRegExpRecord($convertData){

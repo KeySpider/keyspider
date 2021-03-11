@@ -54,7 +54,7 @@ return [
         "streetAddress": "(User.streetAddress)"
       }
     ],
-    "organization": "string",
+    "organization": "(User.Organization.displayName)",
     "department": "(User.department)",
     "groups": [
       {

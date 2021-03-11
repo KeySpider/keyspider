@@ -125,10 +125,6 @@ class TablesBuilder
     {
         $defaultUpdateFlagsData = [];
         $keySpider = $this->settingsManager->keySpider;
-        // $csvExtractConfig = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
-        // $adExtractConfig = array_get($keySpider['Azure Extract Process Configration'], 'extract_config', []);
-        // $sfExtractConfig = array_get($keySpider['SF Extract Process Configration'], 'extract_config', []);
-        // $extractConfigFilesPath = array_merge($csvExtractConfig, $adExtractConfig, $sfExtractConfig);
         $extractConfigFilesPath = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
 
         foreach ($extractConfigFilesPath as $extractConfigFile) {

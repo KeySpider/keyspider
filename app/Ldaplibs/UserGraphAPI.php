@@ -43,7 +43,7 @@ class UserGraphAPI
         $this->user_attributes = json_decode(Config::get('GraphAPISchemas.userAttributes'), true);
         $this->group_attributes = json_decode(Config::get('GraphAPISchemas.groupAttributes'), true);
 
-        $this->licenses = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'),
+        $this->licenses = parse_ini_file(storage_path('office365license/365Licenses.ini'),
          true) ['Microsoft Office 365 Licenses'];
 
         $settingManagement = new SettingsManager();
@@ -76,7 +76,7 @@ class UserGraphAPI
             Log::info("Create user: ".json_encode($userAttibutes));
             echo "\n- \t\tcreating User: \n";
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
-            $newUser->setPasswordProfile(["password" => 'test1234A!',
+            $newUser->setPasswordProfile(["password" => 'Can1234A!B!C!',
                 "forceChangePasswordNextSignIn" => false
             ]);
 
@@ -350,7 +350,6 @@ class UserGraphAPI
                 ->execute();
             echo "\nadd member to group: $uPCN\n\n";
             var_dump($response);
-            echo "-------";
     }
 
     /**

@@ -35,6 +35,10 @@ class SCIMReader
     private const SCIM_ENT = 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User';
     private const SCIM_MNG = 'manager';
 
+    private const USER_ENTERPRISE_ATTRS = array (
+        '(department)', '(employeeNumber)',
+    );
+
     public function __construct()
     {
         $this->settingImport = new ImportSettingsManager();
@@ -183,18 +187,13 @@ class SCIMReader
         }
 
         // Return Enterprise attribute 
-        if (strpos($value, self::SCIM_ENT) !== false) {
-            $scim_ent = array_key_exists(self::SCIM_ENT, $dataPost)
-                ? $dataPost[self::SCIM_ENT] : '';
+        if (in_array($value, self::USER_ENTERPRISE_ATTRS)) {
+            $entAttr = $dataPost[self::SCIM_ENT];
 
         $pattern = "/\((.*?)\)/";
-            $isMatched = preg_match($pattern, $value, $matchedValue);
-            if ($isMatched) {
-                $entAttribute = explode(':', $matchedValue[1]);
-                $ret = $this->chooseAtributeValue($scim_ent, 
-                            $entAttribute[count($entAttribute) - 1]);
-                return $ret;
-            }
+            preg_match($pattern, $value, $matchedValue);
+
+            return $entAttr[$matchedValue[1]];
         }
 
         $pattern = "/\((.*?)\)/";
@@ -230,27 +229,26 @@ class SCIMReader
         return null;
     }
 
-    private function chooseAtributeValue($scim_ent, $attr)
-    {
-        $attrValue = '';
-        if ( $attr !== self::SCIM_MNG ) {
-            $attrValue = $scim_ent[$attr];
-        } else {
-            $attrValue = $scim_ent[$attr]['displayName'];
-        }
-        return $attrValue;
-    }
-
     public function updateRsource($memberId, $inputRequest, $setting)
     {
         $resourceType = $this->getTableName($setting);
         $operations = $inputRequest['Operations'];
         $pathToColumn = $this->getScimPathToColumnMap($setting);
 
+        // Bug fix: UpdateUserID not contain SCIM Object
+        $UpdateUserID = null;
+        foreach ($pathToColumn as $keyValue => $transform) {
+            if ($transform[0] == 'UpdateUserID') {
+                $UpdateUserID = $keyValue;
+            }
+        }
+
         if (count($pathToColumn) < 1) {
             return false;
         }
+
         $formattedOperations = $this->getFormatedOperationsFromRequest($operations);
+
         foreach ($formattedOperations as $operation) {
             //Update user attribute. Replace or Add is both ok.
             if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))//
@@ -260,13 +258,20 @@ class SCIMReader
                     foreach ($mapColumnsInDB as $column) {
                         $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                     }
+                } else {
+                    // Enterprise:User:attribute
+                    $entAttr = array_get($operation, 'path');
+                    $entAttr = str_replace(self::SCIM_ENT. ':', '', $entAttr);
+                    $this->updateSCIMResource($memberId, [$entAttr => $operation['value']], $resourceType);
                 }
             }
         }
-        // Bugfix : UpdateDate column not updated
+        // Bugfix : UpdateDate and UpdateUserID columns not updated
         $nowString = Carbon::now()->format('Y/m/d');
         $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
-
+        if (!empty($UpdateUserID)) {
+            $this->updateSCIMResource($memberId, ['UpdateUserID' => $UpdateUserID], $resourceType);
+        }
         return true;
     }
 

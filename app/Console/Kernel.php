@@ -26,6 +26,10 @@ use App\Jobs\DBToADExtractorJob;
 use App\Jobs\DBToGWExtractorJob;
 use App\Jobs\DBToOLExtractorJob;
 use App\Jobs\DBToTLExtractorJob;
+use App\Jobs\DBToBoxExtractorJob;
+use App\Jobs\DBToSFExtractorJob;
+use App\Jobs\DBToZoomExtractorJob;
+use App\Jobs\DBToSlacKExtractorJob;
 use App\Jobs\DeliveryJob;
 use App\Jobs\DBImporterFromRDBJob;
 use App\Jobs\LDAPExportorJob;
@@ -47,9 +51,13 @@ class Kernel extends ConsoleKernel
 {
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
     public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
+    public const EXPORT_SF_CONFIG = 'SF Extract Process Configration';
     public const EXPORT_GW_CONFIG = 'GW Extract Process Configration';
     public const EXPORT_OL_CONFIG = 'OL Extract Process Configration';
+    public const EXPORT_BOX_CONFIG = 'BOX Extract Process Configration';
     public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
+    public const EXPORT_ZOOM_CONFIG = 'ZOOM Extract Process Configration';
+    public const EXPORT_SLACK_CONFIG = 'SLACK Extract Process Configration';
     public const DATABASE_INFO = 'RDB Import Database Configuration';
 
     /**
@@ -122,16 +130,16 @@ class Kernel extends ConsoleKernel
         }
 
         // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_SF_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
             foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
-                    $this->exportDataToTLForTimeExecution($settingOfTimeExecution);
+                    $this->exportDataToSFForTimeExecution($settingOfTimeExecution);
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no TrustLogin extracting.');
+            Log::info('Currently, there is no Salesforce extracting.');
         }
 
         // Setup schedule for Extract
@@ -158,6 +166,58 @@ class Kernel extends ConsoleKernel
             }
         } else {
             Log::info('Currently, there is no OneLogin extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_BOX_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToBoxForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no BOX extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToTLForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no TrustLogin extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_ZOOM_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToZoomForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no Zoom extracting.');
+        }
+
+        // Setup schedule for Extract
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_SLACK_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToSlackForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no Slack extracting.');
         }
 
         // Setup schedule for Delivery
@@ -194,7 +254,6 @@ class Kernel extends ConsoleKernel
     protected function commands()
     {
         $this->load(__DIR__ . '/Commands');
-
         require base_path('routes/console.php');
     }
 
@@ -319,6 +378,7 @@ class Kernel extends ConsoleKernel
 
     public function exportDataToGWForTimeExecution($settings)
     {
+        Log::info('exportDataToGWForTimeExecution');
         try {
             $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
@@ -333,11 +393,72 @@ class Kernel extends ConsoleKernel
 
     public function exportDataToOLForTimeExecution($settings)
     {
+        Log::info('exportDataToOLForTimeExecution');
         try {
             $queue = new ExtractQueueManager();
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBToOLExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToBoxForTimeExecution($settings)
+    {
+        Log::info('exportDataToBoxForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToBoxExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToSFForTimeExecution($settings)
+    {
+        Log::info('exportDataToSFForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToSFExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToZoomForTimeExecution($settings)
+    {
+        Log::info('exportDataToZoomForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToZoomExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToSlackForTimeExecution($settings)
+    {
+        Log::info('exportDataToSlackForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToSlackExtractorJob($setting);
                 $queue->push($extractor);
             }
         } catch (Exception $e) {
