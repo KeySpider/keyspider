@@ -470,7 +470,7 @@ class DBExtractor
 
             fclose($file);
         } catch (Exception $exception) {
-            echo("Extract to failed: \e[0;31;46m[$e]\e[0m\n");
+            echo("Extract to failed: \e[0;31;46m[$exception]\e[0m\n");
             Log::debug($exception);
 
             // Traceing
