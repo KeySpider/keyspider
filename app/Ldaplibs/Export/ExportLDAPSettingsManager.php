@@ -44,7 +44,7 @@ class ExportLDAPSettingsManager extends SettingsManager
     {
         parent::__construct($iniSettingsFiles);
         if (!empty($this->keySpider[self::LDAP_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG])) {
-            $this->iniExportSettingsFiles = $this->keySpider[self::LDAP_EXPORT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+            $this->iniExportSettingsFiles = $this->keySpider[self::LDAP_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
         }
     }
 
