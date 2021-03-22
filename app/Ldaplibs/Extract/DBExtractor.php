@@ -647,12 +647,17 @@ class DBExtractor
                     } //Not found resource, create it!
                     else {
                         if ($item->DeleteFlag == 1) {
+                            $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                             Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
                             DB::commit();
                             continue;
                         }
                         $userOnAD = $userGraph->createResource((array)$item, $table);
-                        if ($userOnAD == null) continue;
+                        if ($userOnAD == null) {
+                            $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
+                            DB::commit();
+                            continue;
+                        }
                         // TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);

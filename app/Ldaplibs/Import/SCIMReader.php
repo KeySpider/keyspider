@@ -199,16 +199,31 @@ class SCIMReader
         $pattern = "/\((.*?)\)/";
         $isMatched = preg_match($pattern, $value, $matchedValue);
 
+        $phoneStr = "phoneNumbers";
+        $addressStr = "addresses";
+        $emailStr = "emails";
+
         try {
             if ($isMatched) {
-                if ($matchedValue[1] == 'phoneNumbers.value') {
-                    $findData = (new JSONPath($dataPost))->find('phoneNumbers[1].value');
-                    return isset($findData[0]) ? $findData[0] : null;
+
+                // take a phone number
+                if (strncmp($matchedValue[1], $phoneStr, strlen($phoneStr)) === 0 ) {
+                    return $this->getPhoneNumber($matchedValue[1], $dataPost[$phoneStr]);
                 }
 
-                if ($matchedValue[1] == 'mobile.value') {
-                    $findData = (new JSONPath($dataPost))->find('phoneNumbers[0].value');
-                    return isset($findData[0]) ? $findData[0] : null;
+                // take a address info
+                if (strncmp($matchedValue[1], $addressStr, strlen($addressStr)) === 0) {
+                    return $this->getAddressInfo($matchedValue[1], $dataPost[$addressStr]);
+                }
+
+                // take a email address
+                if (strncmp($matchedValue[1], $emailStr, strlen($emailStr)) === 0 ) {
+                    return $this->getMailAddress($matchedValue[1], $dataPost[$emailStr]);
+                }
+
+                // take a enterprise attribute
+                if (strncmp($matchedValue[1], self::SCIM_ENT, strlen(self::SCIM_ENT)) === 0 ) {
+                    return $this->getEnterpriseAttribute($matchedValue[1], $dataPost[self::SCIM_ENT]);
                 }
 
                 $findData = (new JSONPath($dataPost))->find($matchedValue[1]);
@@ -229,6 +244,61 @@ class SCIMReader
         return null;
     }
 
+    public function getPhoneNumber($phoneType, $phones)
+    {
+        $pattern = "/phoneNumbers\[type eq '(.*)'\]\.(.*)/";
+        $isMatched = preg_match($pattern, $phoneType, $matchedValue);
+
+        $retValue = null;
+        if ($isMatched) {
+            foreach ($phones as $phone) {
+                if ($phone['type'] === $matchedValue[1]) {
+                    $retValue = $phone[$matchedValue[2]];
+                }
+            }
+        }
+        return $retValue;
+    }
+
+    public function getAddressInfo($addressType, $addresses)
+    {
+        $pattern = "/addresses\[type eq '(.*)'\]\.(.*)/";
+        $isMatched = preg_match($pattern, $addressType, $matchedValue);
+
+        $retValue = null;
+        if ($isMatched) {
+            foreach ($addresses as $address) {
+                if ($address['type'] === $matchedValue[1]) {
+                    $retValue = $address[$matchedValue[2]];
+                }
+            }
+        }
+        return $retValue;
+    }
+
+    public function getMailAddress($emailType, $emails)
+    {
+        $pattern = "/emails\[type eq '(.*)'\]\.(.*)/";
+        $isMatched = preg_match($pattern, $emailType, $matchedValue);
+
+        $retValue = null;
+        if ($isMatched) {
+            foreach ($emails as $email) {
+                if ($email['type'] === $matchedValue[1]) {
+                    $retValue = $email[$matchedValue[2]];
+                }
+            }
+        }
+        return $retValue;
+    }
+
+    public function getEnterpriseAttribute($entAttrType, $entAttrs)
+    {
+        $entAttr = str_replace(self::SCIM_ENT. ':', '', $entAttrType);
+        $retValue = $entAttrs[$entAttr];
+        return $retValue;
+    }
+    
     public function updateRsource($memberId, $inputRequest, $setting)
     {
         $resourceType = $this->getTableName($setting);
@@ -236,10 +306,11 @@ class SCIMReader
         $pathToColumn = $this->getScimPathToColumnMap($setting);
 
         // Bug fix: UpdateUserID not contain SCIM Object
+        $formatConversions = $setting['SCIM Input Format Conversion'];
         $UpdateUserID = null;
-        foreach ($pathToColumn as $keyValue => $transform) {
-            if ($transform[0] == 'UpdateUserID') {
-                $UpdateUserID = $keyValue;
+        foreach ($formatConversions as $fcKey => $fcValue) {
+            if ($fcKey == 'User.UpdateUserID') {
+                $UpdateUserID = $fcValue;
             }
         }
 
@@ -253,16 +324,14 @@ class SCIMReader
             //Update user attribute. Replace or Add is both ok.
             if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))//
             {
+                // Convert Operation double coat to single coat
+                $operation['path'] = str_replace('"', "'", $operation['path']);
+        
                 if (isset($pathToColumn[array_get($operation, 'path')])) {
                     $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
                     foreach ($mapColumnsInDB as $column) {
                         $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                     }
-                } else {
-                    // Enterprise:User:attribute
-                    $entAttr = array_get($operation, 'path');
-                    $entAttr = str_replace(self::SCIM_ENT. ':', '', $entAttr);
-                    $this->updateSCIMResource($memberId, [$entAttr => $operation['value']], $resourceType);
                 }
             }
         }
@@ -408,13 +477,18 @@ class SCIMReader
                 $shortColumnName = explode('.', $column)[1];
                 $isMatched = preg_match($pattern, $scimFormat, $matchedValue);
                 if ($isMatched) {
-                    //Remove everything between []
-                    $newKey = preg_replace("/\[[^)]+\]/", "", $matchedValue[1]);
-                    if (array_key_exists($newKey, $results)) {
-                        array_push($results[$newKey], $shortColumnName);
-                    } else {
-                        $results[$newKey] = [$shortColumnName];
-                    }
+
+                    // //Remove everything between []
+                    // $newKey = preg_replace("/\[[^)]+\]/", "", $matchedValue[1]);
+                    // if (array_key_exists($newKey, $results)) {
+                    //     array_push($results[$newKey], $shortColumnName);
+                    // } else {
+                    //     $results[$newKey] = [$shortColumnName];
+                    // }
+
+                        $results[$matchedValue[1]] = [$shortColumnName];
+
+                    
                 }
             }
 
@@ -436,23 +510,11 @@ class SCIMReader
         //This is my smart way to compare with scim ini config
         $formattedOperations = array_map(function ($operation) {
             // $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
-
-            $pattern = "/phoneNumbers\[type eq \"(.*)\"\].value/";
-            $isMatched = preg_match($pattern, $operation['path'], $matchedValue);
-            if (!empty($isMatched)) {
-                if ($matchedValue[1] == 'mobile') {
-                    $operation['path'] = 'mobile.value';
-                } else {
-            $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
-                }
-            } else {
-            $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
-            }
             return $operation;
         }, $operations);
         //When deleteing user, ignore changing other things.
-        $deleteUserPatch =
-            ['op' => "Replace",
+        $deleteUserPatch = [
+            'op' => "Replace",
                 'path' => "active",
                 'value' => "False"];
         foreach ($formattedOperations as $op) {
