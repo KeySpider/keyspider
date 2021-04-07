@@ -60,11 +60,7 @@ class AjustUpdateFlags extends Command
         }
 
         $settingManagement = new SettingsManager();
-        // $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($alterTableName);
-        // set UpdateFlags
-        // $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
-        // $updateFlagsArray = $settingManagement->getAllExtractionProcessID($nameTable);
         $updateFlagsArray = $settingManagement->getAllExtractionProcessID($alterTableName);
 
         $users = DB::table($nameTable)->get()->toArray();

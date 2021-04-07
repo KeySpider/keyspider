@@ -41,7 +41,7 @@ class QueueManager
     public function push(JobInterface $job): void
     {
         dispatch($job);
-        Log::alert('---------------Job logger---------------');
+        Log::info('---------------Job logger---------------');
         Log::info('Job type: ' . $job->getJobName());
         Log::info('Job details:');
 //        Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));

@@ -152,6 +152,81 @@ class GroupController extends LaravelController
         return $this->response($dataResponse, 201);
     }
 
+    public function destroy($id, Request $request)
+    {
+        // do something
+        // Log::info('-----------------DELETE USER...-----------------');
+        // Log::debug($id);
+        // Log::info('--------------------------------------------------');
+
+        $this->checkToResponseErrorGroupNotFound($id);
+
+        $this->logicalDeleteGroup($id);
+
+        $jsonResponse = [
+            "schemas" => [
+                "urn:ietf:params:scim:api:messages:2.0:Success"
+            ],
+            "detail" => "Delete Group success",
+            "id" => $id,
+            "meta" => [
+                "resourceType" => "Group"
+            ],
+            "status" => 200
+        ];
+
+        return $this->response($jsonResponse);
+    }
+
+    private function checkToResponseErrorGroupNotFound($id)
+    {
+        $keyTable = $this->importSetting->getTableKey();
+
+        $sqlQuery = DB::table($this->importSetting->getTableRole());
+        $where = [
+            "{$keyTable}" => $id,
+        ];
+
+        if (is_exits_columns($this->masterDB, $where)) {
+            $user = $sqlQuery->where($where)->first();
+        } else {
+            $user = null;
+        }
+
+        if (!$user) {
+            throw (new SCIMException('Group Not Found'))->setCode(404);
+        }
+    }
+
+    /**
+     * logicalDeleteUser
+     *
+     * @param $id
+     * @return Bool
+     * @throws SCIMException
+     */
+    private function logicalDeleteGroup($id) {
+        $deleteFlagColumnName = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
+        $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
+
+        $setValues = [];
+        $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
+        $setValues[$updateFlagsColumnName] = $this->importSetting->makeUpdateFlagsJson();
+
+        $keyTable = $this->importSetting->getTableKey();
+        $query = DB::table($this->importSetting->getTableRole());
+        $data = $query->where($keyTable, $id)->first();
+
+        if ($data) {
+            DB::table($this->importSetting->getTableRole())
+                ->where($keyTable, $id)->update($setValues);
+        } else {
+            throw (new SCIMException('Group Not Found'))->setCode(404);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Update
      *

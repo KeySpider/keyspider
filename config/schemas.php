@@ -36,7 +36,6 @@ return [
       "Fax": "Fax",
       "MobilePhone": "MobilePhone",
       "PostalCode": "PostalCode",
-      "Country": = "Country",
       "State": "State",
       "City": "City",
       "Street": "Street",

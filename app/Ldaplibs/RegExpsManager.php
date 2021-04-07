@@ -153,7 +153,6 @@ class RegExpsManager
             foreach ($cnv as $key => $value) {
                 $externalIds[] = $value;
             }    
-            // $externalIds[] = $value->externalID;
         }
         return $externalIds; 
     }

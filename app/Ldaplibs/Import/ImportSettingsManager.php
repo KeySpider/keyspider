@@ -191,7 +191,7 @@ class ImportSettingsManager extends SettingsManager
         // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
         if ($validate === null) {
-            Log::info('Please create the folder in your server');
+            Log::error('Please create the folder in your server');
             return false;
         }
         if ($validate->fails()) {

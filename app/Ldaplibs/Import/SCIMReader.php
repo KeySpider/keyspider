@@ -238,7 +238,7 @@ class SCIMReader
                 return $value;
             }
         } catch (\Exception $exception) {
-            Log::info($exception->getMessage());
+            Log::error($exception->getMessage());
         }
 
         return null;
@@ -330,6 +330,14 @@ class SCIMReader
                 if (isset($pathToColumn[array_get($operation, 'path')])) {
                     $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
                     foreach ($mapColumnsInDB as $column) {
+                        // Bugfix : logical delete flag value is not boolean
+                        if ($column == 'LockFlag') {
+                            if ( $operation['value'] == 'False' ) {
+                                $operation['value'] = 1;
+                            } else {
+                                $operation['value'] = 0;
+                            }
+                        }
                         $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                     }
                 }

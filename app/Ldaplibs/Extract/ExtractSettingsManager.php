@@ -80,7 +80,7 @@ class ExtractSettingsManager extends SettingsManager
             return $timeArray;
         }
 
-        Log::info('Error in Extract INI file');
+        Log::error('Error in Extract INI file');
         return [];
     }
 

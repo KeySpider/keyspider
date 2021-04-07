@@ -141,6 +141,11 @@ class CSVReader implements DataInputReader
 
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
+            // Configuration file validation
+            if (!$settingManagement->isExtractSettingsFileValid()) {
+                return;
+            }
+
             // get data from csv file
             $csv = Reader::createFromPath($fileCSV);
             $stmt = new Statement();

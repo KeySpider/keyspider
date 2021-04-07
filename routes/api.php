@@ -29,7 +29,8 @@ Route::middleware('azure')->group(function () {
 
     // Groups
     Route::get('Groups', 'GroupController@index');
-    Route::get('Groups/{id}', 'GroupController@detail');
     Route::post('Groups', 'GroupController@store');
     Route::patch('Groups/{id}', 'GroupController@update');
+    Route::delete('Groups/{id}', 'GroupController@destroy');
+    Route::get('Groups/{id}', 'GroupController@detail');
 });

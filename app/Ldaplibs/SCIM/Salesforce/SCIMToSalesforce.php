@@ -241,43 +241,32 @@ class SCIMToSalesforce
     private function updateGroupMemebers($resourceType, array $data, $response): void
     {
         if (strtolower($resourceType) == 'user') {
+            $userExtId = $data['externalSFID'];
+            $this->removeMemberToSFGroup($userExtId);
+
             $memberOf = $this->getListOfGroupsUserBelongedTo($data, 'SF');
             foreach ($memberOf as $groupID) {
                 $addMemberResult = $this->addMemberToGroup($response, $groupID);
                 echo "\nAdd member to group result:\n";
                 var_dump($addMemberResult);
             }
-            $this->removeMemberToGroup($data);
+            // $this->removeMemberToGroup($data);
         }
     }
 
-    private function removeMemberToGroup($data)
+    private function removeMemberToSFGroup($sfUid)
     {
-        $uid = $data['ID'];
-        $userExtId = $data['externalSFID'];
 
-        $table = 'UserToGroup';
-        $queries = DB::table($table)
-                    ->select('Group_ID')
-                    ->where('User_ID', $data['ID'])
-                    ->where('DeleteFlag', '1')->get();
+        $query = sprintf("SELECT GroupId FROM GroupMember WHERE UserOrGroupId = '%s'", $sfUid);
+        $groupMembers = $this->crud->query($query);
 
-        foreach ($queries as $key => $value) {
-
-            $table = 'Group';
-            $queries = DB::table($table)
-                        ->select('externalSFID')
-                        ->where('ID', $value->Group_ID)
-                        ->get();
     
-            foreach ($queries as $key => $value) {
-                $cnv = (array)$value;
-                foreach ($cnv as $key => $value) {
-                    $query = "SELECT ID FROM GroupMember "
-                            . " WHERE GroupId = '$value' "
-                            . "  AND UserOrGroupId = '$userExtId'";
-                    $groupMember = $this->crud->query($query);
+        if ((int)$groupMembers['totalSize'] > 0) {
+            foreach ($groupMembers['records'] as $record) {
+                $subQuery = sprintf("SELECT ID FROM GroupMember WHERE GroupId = '%s' AND UserOrGroupId = '%s'",
+                    $record['GroupId'], $sfUid);
 
+                $groupMember = $this->crud->query($subQuery);
                     if ($groupMember['totalSize'] == 1) {
                         $resourceId = $groupMember['records'][0]['Id'];
                         $this->crud->delete('GroupMember', $resourceId);
@@ -286,7 +275,6 @@ class SCIMToSalesforce
                 }    
             }
         }
-    }
         
     public function replaceResource($resourceType, $item)
     {
