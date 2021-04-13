@@ -94,6 +94,8 @@ class RegExpsManager
             $check = preg_match("/{$regx}/", $recordValue, $str);
             if ($check) {
                 return $this->processRegexp($str, $group);
+            } else {
+                return $recordValue;
             }
         }
 
