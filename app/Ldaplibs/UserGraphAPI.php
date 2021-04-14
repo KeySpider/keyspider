@@ -229,7 +229,7 @@ class UserGraphAPI
 
     private function createGroupObjectExt($groupAttributes): Group
     {
-        $storage_path = storage_path('ini_configs/extract/GroupToAzureExtraction.ini');
+        $storage_path = storage_path('office365license/365Licenses.ini');
         if (empty($groupAttributes['groupTypes'])) {
             // Magic word is useless...
             $groupAttributes['groupTypes'] = 'Microsoft 365';
