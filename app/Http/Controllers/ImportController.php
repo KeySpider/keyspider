@@ -50,7 +50,7 @@ class ImportController extends Controller
         echo '<pre>';
         $export_settings = new ExtractSettingsManager();
         $user_rule = $export_settings->getRuleOfDataExtract();
-        print (json_encode($user_rule, JSON_PRETTY_PRINT));
+        print(json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
     }
 
@@ -62,9 +62,8 @@ class ImportController extends Controller
         echo '<pre>';
         $import_settings = new ImportSettingsManager();
         $user_rule = $import_settings->getScheduleImportExecution();
-
         echo '<p><h2>.INI to .JSON adapter:</h2></p>';
-        print (json_encode($user_rule, JSON_PRETTY_PRINT));
+        print(json_encode($user_rule, JSON_PRETTY_PRINT));
         echo '</pre>';
         Artisan::call('command:import', array());
     }

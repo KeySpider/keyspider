@@ -39,6 +39,38 @@ return [
             'channels' => ['daily'],
         ],
 
+        'summary' => [
+            'driver' => 'custom',
+            'via' => App\Logging\CreateSummaryLogger::class,
+            'path' => storage_path('logs/summary.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+
+        'detail' => [
+            'driver' => 'custom',
+            'via' => App\Logging\CreateDetailLogger::class,
+            'path' => storage_path('logs/detail.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+
+        'validation' => [
+            'driver' => 'custom',
+            'via' => App\Logging\CreateValidationLogger::class,
+            'path' => storage_path('logs/validation.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+
+        'faild' => [
+            'driver' => 'custom',
+            'via' => App\Logging\CreateFaildLogger::class,
+            'path' => storage_path('logs/error.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

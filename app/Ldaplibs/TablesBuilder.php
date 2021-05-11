@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Schema;
 
@@ -18,7 +17,6 @@ class TablesBuilder
 
     public function buildTables()
     {
-
         $tablesMap = $this->settingsManager->masterDBConfigData;
         foreach ($tablesMap as $tableDesc) {
             $tableName = null;
@@ -36,10 +34,8 @@ class TablesBuilder
             if ($tableName and count($columns)) {
                 $destinationTable = ['table_name' => $tableName, 'columns' => $columns];
                 $this->migrateTable($destinationTable);
-
             }
         }
-
     }
 
     /**
@@ -52,50 +48,52 @@ class TablesBuilder
         $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
         $deleteFlagColumnName = $this->settingsManager->getDeleteFlagColumnName($table->getTable());
         $roleFlagColumnName = $this->settingsManager->getBasicRoleFlagColumnName();
-        $allRoleFlags = [] ;
+        $allRoleFlags = [];
         if ($column === $updateFlagColumnName) {
             $table->json($column)->default($defaultUpdateFlagsData);
         } elseif ($column === $deleteFlagColumnName) {
             $table->string($column)->default("0");
         } elseif ($column === $roleFlagColumnName) {
             $roleMapCount = isset($this->readIniFile()['RoleMap']['RoleID']) ? count($this->readIniFile()['RoleMap']['RoleID']) : 0;
+
             for ($i = 0; $i < $roleMapCount; $i++) {
                 $table->string("$column-$i")->default("0");
                 $allRoleFlags[] = "$column-$i";
             }
+
             $this->settingsManager->setRoleFlags($allRoleFlags);
         } else {
             $table->string($column)->nullable();
         }
     }
 
-
     /**
      * @param array $destinationTable
      */
     private function migrateTable(array $destinationTable): void
     {
-
         $tableName = $destinationTable['table_name'];
         $columns = $destinationTable['columns'];
         $defaultUpdateFlagsData = $this->getDefaultUpdateFlagsJson($tableName);
         $columnsInString = implode("|", $columns);
         $roleFlagColumnName = $this->settingsManager->getBasicRoleFlagColumnName();
-//      Create many User.RoleFlag
-//        $this->buildColumnsWithMultiRoleFlag($columns);
+
+        // Create many User.RoleFlag
+        // $this->buildColumnsWithMultiRoleFlag($columns);
         if (Schema::hasTable($tableName)) {
             echo "- Update table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
-//            Update table
+
+            // Update table
             Schema::table($tableName, function ($table) use ($tableName, $columns, $defaultUpdateFlagsData, $roleFlagColumnName) {
                 foreach ($columns as $column) {
-                    if (!Schema::hasColumn($tableName, $column) and $column!==$roleFlagColumnName) {
+                    if (!Schema::hasColumn($tableName, $column) and $column !== $roleFlagColumnName) {
                         echo "    + add Column: [$column]\n";
                         $this->addColumnTotable($table, $column, $defaultUpdateFlagsData);
                     }
-
                 }
             });
-//          Create table
+
+            // Create table
         } else {
             echo "- Build table: \e[1;31;47m<<<$tableName>>>: [$columnsInString]\e[0m\n";
             Schema::create($tableName, function ($table) use ($columns, $defaultUpdateFlagsData) {
@@ -105,16 +103,9 @@ class TablesBuilder
             });
         }
 
-//        Schema::table($tableName, function ($table) use ($tableName, $defaultUpdateFlagsData) {
-//            $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($table->getTable());
-//            if (Schema::hasColumn($tableName, $updateFlagColumnName)) {
-//                $table->json($updateFlagColumnName)->default($defaultUpdateFlagsData)->change();
-//            }
-//        });
         $updateFlagColumnName = $this->settingsManager->getUpdateFlagsColumnName($tableName);
         DB::statement("ALTER TABLE \"$tableName\" ALTER COLUMN \"$updateFlagColumnName\" SET DEFAULT '$defaultUpdateFlagsData';");
     }
-
 
     /**
      * @return array|false|string
@@ -124,19 +115,12 @@ class TablesBuilder
     private function getDefaultUpdateFlagsJson($tableName)
     {
         $defaultUpdateFlagsData = [];
-        $keySpider = $this->settingsManager->keySpider;
-        $extractConfigFilesPath = array_get($keySpider['CSV Extract Process Configration'], 'extract_config', []);
 
-        foreach ($extractConfigFilesPath as $extractConfigFile) {
-            try {
-                $extractConfigContent = parse_ini_file($extractConfigFile);
-                $extractProcessID = $extractConfigContent['ExtractionProcessID'];
-                if ($tableName == $extractConfigContent['ExtractionTable']) {//check if table name is matched.
-                    $defaultUpdateFlagsData[$extractProcessID] = 1;
-                }
-            } catch (Exception $exception) {
+        // テーブル名をもとに出力処理ID(ExtractionProcessID)を取得します。
+        $extractProcessIDs = $this->settingsManager->getAllExtractionProcessID($tableName);
 
-            }
+        foreach ($extractProcessIDs as $extractProcessID) {
+            $defaultUpdateFlagsData[$extractProcessID] = 1;
         }
         return json_encode($defaultUpdateFlagsData);
     }

@@ -34,7 +34,8 @@ class SCIMToGoogleWorkspace
         $this->client = $this->getClient();
     }
 
-    private function getClient() {
+    private function getClient()
+    {
         $client = new Client();
         $client->setAuthConfig(storage_path(self::JSON_PATH . $this->setting[self::SCIM_CONFIG]['credentialJson']));
 
@@ -330,10 +331,12 @@ class SCIMToGoogleWorkspace
                 if (empty($extRoleId) || empty($extRoleId[0])) {
                     continue;
                 }
+
                 // update
                 if (in_array($extRoleId[0], $items) === true) {
                     continue;
                 }
+
                 // insert
                 try {
                     $ra = $roleAssignment->insert($externalId, $extRoleId[0]);
@@ -362,9 +365,9 @@ class SCIMToGoogleWorkspace
             }
             DB::beginTransaction();
             $query = DB::table('UserToRole')
-                         ->where('User_ID', $value['User_ID'])
-                         ->where('Role_ID', $value['Role_ID'])
-                         ->update(['Name' => $roleAssignmentId]);
+                ->where('User_ID', $value['User_ID'])
+                ->where('Role_ID', $value['Role_ID'])
+                ->update(['Name' => $roleAssignmentId]);
             DB::commit();
         }
     }
@@ -395,10 +398,12 @@ class SCIMToGoogleWorkspace
                 if (empty($extUserId) || empty($extUserId[0])) {
                     continue;
                 }
+
                 // update
                 if (in_array($extUserId[0], $items) === true) {
                     continue;
                 }
+
                 // insert
                 try {
                     $ra = $roleAssignment->insert($extUserId[0], $externalId);
@@ -425,13 +430,13 @@ class SCIMToGoogleWorkspace
                 // update or deleted
                 continue;
             }
+
             DB::beginTransaction();
             $query = DB::table('UserToRole')
-                         ->where('User_ID', $value['User_ID'])
-                         ->where('Role_ID', $value['Role_ID'])
-                         ->update(['Name' => $roleAssignmentId]);
+                ->where('User_ID', $value['User_ID'])
+                ->where('Role_ID', $value['Role_ID'])
+                ->update(['Name' => $roleAssignmentId]);
             DB::commit();
         }
     }
-
 }

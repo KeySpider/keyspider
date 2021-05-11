@@ -15,10 +15,6 @@ class PasswordAuthentication implements AuthenticationInterface
 
     public function __construct(array $options)
     {
-//        if (session_status() === PHP_SESSION_NONE) {
-//            session_start();
-//        }
-
         $this->endPoint = 'https://login.salesforce.com/';
         $this->options = $options;
     }
@@ -55,5 +51,3 @@ class PasswordAuthentication implements AuthenticationInterface
         return $this->instance_url;
     }
 }
-
-?>

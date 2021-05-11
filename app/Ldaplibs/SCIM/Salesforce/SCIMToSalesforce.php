@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Ldaplibs\SCIM\Salesforce;
-
 
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
@@ -16,7 +14,7 @@ class SCIMToSalesforce
 {
     public function __construct()
     {
-        $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Salesforce Keys'];
+        $options = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['Salesforce Keys'];
         $salesforce = new PasswordAuthentication($options);
         try {
             $salesforce->authenticate();
@@ -40,7 +38,7 @@ class SCIMToSalesforce
             return $this->crud->create('USER', $data);  #returns id
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            echo($exception->getMessage());
+            echo ($exception->getMessage());
             return -1;
         }
     }
@@ -48,7 +46,6 @@ class SCIMToSalesforce
     public function createResource($resourceType, array $data = null)
     {
         $data = $this->replaceResource($resourceType, $data);
-
         $resourceType = strtolower($resourceType);
 
         if ($resourceType == 'user') {
@@ -58,12 +55,11 @@ class SCIMToSalesforce
             foreach ($dataSchema as $key => $value) {
                 if (in_array($key, array_keys($data))) {
                     if ($key == 'Alias') {
-                        $data[$key] = substr($data[$key], 0, 7);
+                        $data[$key] = substr($data[$key], 0, 8);
                     }
                     $dataSchema[$key] = $data[$key];
                 }
             }
-
         } elseif (($resourceType == 'role') || (strtolower($resourceType) == 'group')) {
             $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
             foreach ($dataSchema as $key => $value) {
@@ -74,11 +70,11 @@ class SCIMToSalesforce
                     $dataSchema[$key] = $data[$key];
                 }
             }
-//                $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
+            // $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
             $resourceType = 'GROUP';
         }
-        echo("Create [$resourceType] with data: \n");
-        echo(json_encode($dataSchema, JSON_PRETTY_PRINT));
+        echo ("Create [$resourceType] with data: \n");
+        echo (json_encode($dataSchema, JSON_PRETTY_PRINT));
         try {
             $response = $this->crud->create($resourceType, $dataSchema);
             echo "\nCreate user Response: [$response]\n";
@@ -86,7 +82,7 @@ class SCIMToSalesforce
             return $response;  #returns id
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            echo($exception->getMessage());
+            echo ($exception->getMessage());
             return null;
         }
     }
@@ -100,7 +96,7 @@ class SCIMToSalesforce
             return $this->crud->create('GROUP', $data);  #returns id
         } catch (\Exception $exception) {
             Log::erroe($exception->getMessage());
-            echo($exception->getMessage());
+            echo ($exception->getMessage());
             return -1;
         }
     }
@@ -133,13 +129,11 @@ class SCIMToSalesforce
 
     public function addMemberToGroup($memberId, $groupId)
     {
-        try{
+        try {
             return ($this->crud->addMemberToGroup($memberId, $groupId));
-        }
-        catch (\Exception $exception){
+        } catch (\Exception $exception) {
             return [];
         }
-
     }
 
     public function deleteResource($resourceType, $data)
@@ -157,7 +151,6 @@ class SCIMToSalesforce
                 return false;
             }
         }
-
     }
 
     public function updateResource($resourceType, $data)
@@ -169,7 +162,7 @@ class SCIMToSalesforce
         $resourceId = $data['externalSFID'];
         unset($data['externalSFID']);
         if ($resourceType == 'user') {
-//            $data['IsActive'] = $data['IsActive']?false:true;
+            // $data['IsActive'] = $data['IsActive']?false:true;
             if (!isset($data['IsActive'])) {
                 $data['IsActive'] = true;
             } else {
@@ -187,7 +180,6 @@ class SCIMToSalesforce
                 }
             }
         } elseif (($resourceType == 'group') || ($resourceType == 'role')) {
-
             $dataSchema = json_decode(Config::get('schemas.createGroup'), true);
             foreach ($data as $key => $value) {
                 if (!in_array($key, array_keys($dataSchema))) {
@@ -195,12 +187,16 @@ class SCIMToSalesforce
                 }
             }
         }
-        echo("\nUpdate $resourceType with data: \n");
-        echo(json_encode($data, JSON_PRETTY_PRINT));
+        echo ("\nUpdate $resourceType with data: \n");
+        echo (json_encode($data, JSON_PRETTY_PRINT));
 
         $update = $this->crud->update($resourceType, $resourceId, $data);
+        if (empty($update)) {
+            return null;
+        }
+
         $this->updateGroupMemebers($resourceType, $oriData, $resourceId);
-        echo("\nUpdate: $update");
+        echo ("\nUpdate: $update");
         return $update;
     }
 
@@ -250,32 +246,29 @@ class SCIMToSalesforce
                 echo "\nAdd member to group result:\n";
                 var_dump($addMemberResult);
             }
-            // $this->removeMemberToGroup($data);
         }
     }
 
     private function removeMemberToSFGroup($sfUid)
     {
-
         $query = sprintf("SELECT GroupId FROM GroupMember WHERE UserOrGroupId = '%s'", $sfUid);
         $groupMembers = $this->crud->query($query);
 
-    
         if ((int)$groupMembers['totalSize'] > 0) {
             foreach ($groupMembers['records'] as $record) {
                 $subQuery = sprintf("SELECT ID FROM GroupMember WHERE GroupId = '%s' AND UserOrGroupId = '%s'",
                     $record['GroupId'], $sfUid);
 
                 $groupMember = $this->crud->query($subQuery);
-                    if ($groupMember['totalSize'] == 1) {
-                        $resourceId = $groupMember['records'][0]['Id'];
-                        $this->crud->delete('GroupMember', $resourceId);
-                        echo "\nRemove member to group result:\n";
-                    }
-                }    
+                if ($groupMember['totalSize'] == 1) {
+                    $resourceId = $groupMember['records'][0]['Id'];
+                    $this->crud->delete('GroupMember', $resourceId);
+                    echo "\nRemove member to group result:\n";
+                }
             }
         }
-        
+    }
+
     public function replaceResource($resourceType, $item)
     {
         $settingManagement = new SettingsManager();
@@ -302,7 +295,6 @@ class SCIMToSalesforce
             return;
         }
         $item['NewPassword'] = $data['Password'];
-
         $this->crud->password($resourceType, $resourceId, $item);
     }
 }

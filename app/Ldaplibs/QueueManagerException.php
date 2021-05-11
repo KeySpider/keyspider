@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -21,5 +22,4 @@ namespace App\Ldaplibs;
 
 class QueueManagerException extends \Exception
 {
-
 }

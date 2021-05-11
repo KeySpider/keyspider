@@ -76,7 +76,6 @@ class DeliveryJob implements ShouldQueue, JobInterface
         return $this->setting;
     }
 
-
     /**
      * Determine the time at which the job should timeout.
      *

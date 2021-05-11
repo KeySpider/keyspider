@@ -42,8 +42,8 @@ class ExtractSettingsManager extends SettingsManager
     public function __construct($extract_config_tag = null)
     {
         parent::__construct();
-//        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
-        if($extract_config_tag==null){
+        //        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+        if ($extract_config_tag == null) {
             $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
         } else {
             if (empty($this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG])) {
@@ -66,9 +66,11 @@ class ExtractSettingsManager extends SettingsManager
             foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
                 $tableContent = parse_ini_file($iniExportSettingsFile, true);
                 $masterDB = $this->masterDBConfigData;
-                $tableContent = $this->convertFollowingDbMaster($tableContent,
+                $tableContent = $this->convertFollowingDbMaster(
+                    $tableContent,
                     self::EXTRACTION_CONDITION,
-                    $masterDB);
+                    $masterDB
+                );
 
                 $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
                 foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
@@ -79,7 +81,6 @@ class ExtractSettingsManager extends SettingsManager
             ksort($timeArray);
             return $timeArray;
         }
-
         Log::error('Error in Extract INI file');
         return [];
     }
@@ -127,7 +128,7 @@ class ExtractSettingsManager extends SettingsManager
             self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
             self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
-//            self::OUTPUT_PROCESS_CONVERSION => 'required'
+            // self::OUTPUT_PROCESS_CONVERSION => 'required'
         ];
 
         $validate = Validator::make($iniArray, $rules);
@@ -143,8 +144,9 @@ class ExtractSettingsManager extends SettingsManager
             return false;
         }
 
-        if(!isset($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion']))
+        if (!isset($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
             return true;
+        }
 
         if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
             return true;
@@ -205,10 +207,8 @@ class ExtractSettingsManager extends SettingsManager
             $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
-//            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce'],
-//            'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);

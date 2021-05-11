@@ -13,7 +13,6 @@ class Client extends OneLoginClient
     const ADD_USER_TO_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s/users';
     const DELETE_USER_TO_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s/users';
 
-
     public function createRole($roleParams)
     {
         $this->cleanError();
@@ -119,6 +118,7 @@ class Client extends OneLoginClient
                     'headers' => $headers
                 )
             );
+
             $data = json_decode($response->getBody());
             return $data;
         } catch (ClientException $e) {
@@ -147,6 +147,7 @@ class Client extends OneLoginClient
                     'headers' => $headers
                 )
             );
+
             $data = json_decode($response->getBody());
             return $data;
         } catch (ClientException $e) {
@@ -177,6 +178,7 @@ class Client extends OneLoginClient
                     'headers' => $headers
                 )
             );
+
             $data = json_decode($response->getBody());
             return $data;
         } catch (ClientException $e) {
@@ -190,5 +192,4 @@ class Client extends OneLoginClient
         }
         return false;
     }
-
 }

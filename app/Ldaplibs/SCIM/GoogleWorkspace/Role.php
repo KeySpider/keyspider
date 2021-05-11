@@ -9,7 +9,6 @@ use Google_Service_Directory_RoleRolePrivileges;
 
 class Role
 {
-
     private $service;
     private $role;
     private $customerId;
@@ -23,7 +22,8 @@ class Role
         $this->reg = new RegExpsManager();
     }
 
-    public function setPrivilegeAttrs($item) {
+    public function setPrivilegeAttrs($item)
+    {
         $privilegeIds = $this->reg->getPrivilegesInRole($item['ID'], '0');
         if (empty($privilegeIds)) {
             return $item;
@@ -42,35 +42,43 @@ class Role
         return $item;
     }
 
-    public function getRole() {
+    public function getRole()
+    {
         return $this->role;
     }
 
-    public function getPrimaryKey($role) {
+    public function getPrimaryKey($role)
+    {
         return $role['roleId'];
     }
 
-    public function setResource($role) {
+    public function setResource($role)
+    {
         return $this->role = $role;
     }
 
-    public function insert() {
+    public function insert()
+    {
         return $this->service->roles->insert($this->customerId, $this->role);
     }
 
-    public function update($id) {
+    public function update($id)
+    {
         return $this->service->roles->update($this->customerId, $id, $this->role);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->service->roles->delete($this->customerId, $id);
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->service->roles->get($this->customerId, $id);
     }
 
-    public function setAttributes($values) {
+    public function setAttributes($values)
+    {
         $values = $this->setPrivilegeAttrs($values);
         foreach ($values as $key => $value) {
             $this->setAttribute($key, $value);
@@ -92,16 +100,18 @@ class Role
         }
     }
 
-    private function setRoleName($value) {
+    private function setRoleName($value)
+    {
         $this->role->setRoleName($value);
     }
 
-    private function setRolePrivileges($value) {
+    private function setRolePrivileges($value)
+    {
         $this->role->setRolePrivileges($value);
     }
 
-    private function setRoleDescription($value) {
+    private function setRoleDescription($value)
+    {
         $this->role->setRoleDescription($value);
     }
-
 }

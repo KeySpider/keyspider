@@ -84,7 +84,6 @@ class DBToSlackExtractorJob extends DBExtractor implements ShouldQueue, JobInter
         return $details;
     }
 
-
     /**
      * Determine the time at which the job should timeout.
      *

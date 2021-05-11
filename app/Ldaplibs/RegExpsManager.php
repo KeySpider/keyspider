@@ -35,18 +35,17 @@ use App\UserToGroup;
 class RegExpsManager
 {
     const OPERATIONS = array(
-        'EQ'=>'=',  // EQual
-        'GE'=>'>=', // Greater Equal
-        'GT'=>'>',  // Greater Than
-        'LE'=>'<=', // Lesser Equal
-        'LT'=>'<',  // Lesser Than
-        'NE'=>'!=', // Not Equal
-        'RG'=>'~'   // ReGular expressions
+        'EQ' => '=',  // EQual
+        'GE' => '>=', // Greater Equal
+        'GT' => '>',  // Greater Than
+        'LE' => '<=', // Lesser Equal
+        'LT' => '<',  // Lesser Than
+        'NE' => '!=', // Not Equal
+        'RG' => '~'   // ReGular expressions
     );
 
     public function __construct()
     {
-
     }
 
     public function hasLogicalOperation($convertData)
@@ -65,16 +64,17 @@ class RegExpsManager
         return $whereData;
     }
 
-    public function checkRegExpRecord($convertData){
+    public function checkRegExpRecord($convertData)
+    {
         $needle = '[$';
-        if ( strpos( $convertData, $needle ) === false ) {
+        if (strpos($convertData, $needle) === false) {
             return null;
         }
 
         $success = preg_match('/\(\s*(?<exp1>[a-zA-Z0-9_\-\.]+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $convertData, $match);
         if ($success) {
             $retArray = explode('.', $match['exp1']);
-            return $retArray[count($retArray) -1];
+            return $retArray[count($retArray) - 1];
         }
         return null;
     }
@@ -84,7 +84,7 @@ class RegExpsManager
         $stt = null;
         $group = null;
         $regx = null;
-    
+
         $success = preg_match('/\(\s*(?<exp1>[a-zA-Z0-9_\-\.]+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $convertData, $match);
         if ($success) {
             $stt = $match['exp1'];
@@ -95,26 +95,25 @@ class RegExpsManager
             if ($check) {
                 return $this->processRegexp($str, $group);
             } else {
-                return $recordValue;
+                return $recordValue = '';
             }
         }
-
         return $convertData;
     }
 
     public function processRegexp($str, $format): string
     {
         foreach ($str as $index => $value) {
-            $format = str_replace('[$'.$index.']', $value, $format);
+            $format = str_replace('[$' . $index . ']', $value, $format);
         }
         return $format;
     }
 
     public function getEffectiveDate($item)
     {
-        $pattern = '/(TODAY\(\))\s*([\+|-])\s*([0-9]*)/';  
+        $pattern = '/(TODAY\(\))\s*([\+|-])\s*([0-9]*)/';
         $retDate = Carbon::now()->format('Y/m/d');
-      
+
         if (strpos($item, 'TODAY()') !== false) {
             if ($item != 'TODAY()') {
                 if (preg_match($pattern, $item, $matchs)) {
@@ -133,9 +132,9 @@ class RegExpsManager
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                    ->select('Group_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '0')->get();
+            ->select('Group_ID')
+            ->where('User_ID', $uid)
+            ->where('DeleteFlag', '0')->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
@@ -144,9 +143,9 @@ class RegExpsManager
 
         $table = 'Group';
         $queries = DB::table($table)
-                    ->select('external' . $scims . 'ID')
-                    ->whereIn('ID', $groupIds)
-                    ->get();
+            ->select('external' . $scims . 'ID')
+            ->whereIn('ID', $groupIds)
+            ->get();
 
         $externalIds = [];
 
@@ -154,18 +153,18 @@ class RegExpsManager
             $cnv = (array)$value;
             foreach ($cnv as $key => $value) {
                 $externalIds[] = $value;
-            }    
+            }
         }
-        return $externalIds; 
+        return $externalIds;
     }
 
     public function getRoleInExternalID($uid, $scims)
     {
         $table = 'UserToRole';
         $queries = DB::table($table)
-                    ->select('Role_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '0')->get();
+            ->select('Role_ID')
+            ->where('User_ID', $uid)
+            ->where('DeleteFlag', '0')->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
@@ -174,9 +173,9 @@ class RegExpsManager
 
         $table = 'Role';
         $queries = DB::table($table)
-                    ->select('external' . $scims . 'ID')
-                    ->whereIn('ID', $groupIds)
-                    ->get();
+            ->select('external' . $scims . 'ID')
+            ->whereIn('ID', $groupIds)
+            ->get();
 
         $externalIds = [];
 
@@ -184,18 +183,18 @@ class RegExpsManager
             $cnv = (array)$value;
             foreach ($cnv as $key => $value) {
                 $externalIds[] = $value;
-            }    
+            }
         }
-        return $externalIds; 
+        return $externalIds;
     }
 
     public function getOrganizationInExternalID($uid, $scims)
     {
         $table = 'UserToOrganization';
         $queries = DB::table($table)
-                    ->select('Organization_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '0')->get();
+            ->select('Organization_ID')
+            ->where('User_ID', $uid)
+            ->where('DeleteFlag', '0')->get();
 
         $organizationIds = [];
         foreach ($queries as $key => $value) {
@@ -204,9 +203,9 @@ class RegExpsManager
 
         $table = 'Organization';
         $queries = DB::table($table)
-                    ->select('external' . $scims . 'ID')
-                    ->whereIn('ID', $organizationIds)
-                    ->get();
+            ->select('external' . $scims . 'ID')
+            ->whereIn('ID', $organizationIds)
+            ->get();
 
         $externalIds = [];
 
@@ -214,10 +213,10 @@ class RegExpsManager
             $cnv = (array)$value;
             foreach ($cnv as $key => $value) {
                 $externalIds[] = $value;
-            }    
+            }
             // $externalIds[] = $value->externalID;
         }
-        return $externalIds; 
+        return $externalIds;
     }
 
     public function updateUserUpdateFlags($user_id)
@@ -240,7 +239,7 @@ class RegExpsManager
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                   ->select('User_ID')->where('Group_ID', $id)->get();
+            ->select('User_ID')->where('Group_ID', $id)->get();
 
         $userIds = [];
         foreach ($queries as $key => $value) {
@@ -253,7 +252,7 @@ class RegExpsManager
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                   ->select('User_ID')->whereIn('Group_ID', $id)->get();
+            ->select('User_ID')->whereIn('Group_ID', $id)->get();
 
         $userIds = [];
         foreach ($queries as $key => $value) {
@@ -266,7 +265,7 @@ class RegExpsManager
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                   ->select('Group_ID')->where('User_ID', $id)->get();
+            ->select('Group_ID')->where('User_ID', $id)->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
@@ -295,9 +294,9 @@ class RegExpsManager
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                   ->select('DeleteFlag')
-                   ->where('User_ID', $userId)->where('Group_ID', $groupId)
-                   ->first();
+            ->select('DeleteFlag')
+            ->where('User_ID', $userId)->where('Group_ID', $groupId)
+            ->first();
 
         return $queries->DeleteFlag;
     }
@@ -316,7 +315,7 @@ class RegExpsManager
     public function getAttrFromID($table, $ids, $selectColumn)
     {
         $queries = DB::table($table)
-                   ->select($selectColumn)->where('ID', $ids)->get();
+            ->select($selectColumn)->where('ID', $ids)->get();
 
         $attrs = [];
         foreach ($queries as $key => $value) {
@@ -336,7 +335,8 @@ class RegExpsManager
         return $attrs;
     }
 
-    public function getUpperValue($item, $key, $value, $default = null) {
+    public function getUpperValue($item, $key, $value, $default = null)
+    {
         if (strpos($value, 'ELOQ;') !== false) {
             return $item[$key];
         }
@@ -357,7 +357,7 @@ class RegExpsManager
                 $selectColumn = $d[1];
                 $query = DB::table($table);
                 $query = $query->select($selectColumn)
-                           ->where($whereColumn, $whereValue);
+                    ->where($whereColumn, $whereValue);
                 $extractedSql = $query->toSql();
                 $i = (array) $query->first();
                 if (empty($i) || array_key_exists($d[1], $i) === false) {

@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -29,23 +30,23 @@ class SCIMException extends Exception
     protected $httpCode = 404;
 
     protected $errors = [];
-    
+
     public function __construct($message)
     {
         parent::__construct($message);
     }
-    
-    public function setScimType($scimType) : SCIMException
+
+    public function setScimType($scimType): SCIMException
     {
         $this->scimType = $scimType;
-        
+
         return $this;
     }
-    
-    public function setCode($code) : SCIMException
+
+    public function setCode($code): SCIMException
     {
         $this->httpCode = $code;
-        
+
         return $this;
     }
 
@@ -55,7 +56,7 @@ class SCIMException extends Exception
 
         return $this;
     }
-    
+
     public function report()
     {
         Log::error(sprintf(
@@ -66,13 +67,12 @@ class SCIMException extends Exception
         ));
     }
 
-    
     public function render($request)
     {
         return response((new Error(
             $this->getMessage(),
             $this->httpCode,
             $this->scimType
-        ))->setErrors($this->errors), $this->httpCode) ;
+        ))->setErrors($this->errors), $this->httpCode);
     }
 }

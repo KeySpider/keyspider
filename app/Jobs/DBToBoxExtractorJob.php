@@ -84,7 +84,6 @@ class DBToBoxExtractorJob extends DBExtractor implements ShouldQueue, JobInterfa
         return $details;
     }
 
-
     /**
      * Determine the time at which the job should timeout.
      *

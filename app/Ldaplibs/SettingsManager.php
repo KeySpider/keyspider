@@ -35,6 +35,7 @@ class SettingsManager
     public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
     public const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
     public const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
+    public const KEYSPIDER_INI = 'KeySpider.ini';
     public $iniMasterDBFile;
     public $masterDBConfigData;
     public $generalKeys;
@@ -44,30 +45,58 @@ class SettingsManager
 
     public function __construct()
     {
-        $this->pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
+        $this->pathIniConfigs = config('const.PATH_INI_CONFIGS') . config('const.INI_CONFIGS');
 
         if (!$this->validateKeySpider()) {
             $this->keySpider = null;
         } elseif ($this->isGeneralSettingsFileValid()) {
             $this->iniMasterDBFile = $this->keySpider['Master DB Configurtion']['master_db_config'];
             $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
-
-            $this->isGeneralSettingsFileValid();
         }
     }
 
-    public function setRoleFlags($flags){
+    /**
+     * keyspider.ini の設定を全て取得します。
+     */
+    public function getAllConfigsFromKeyspiderIni(Bool $bool = true)
+    {
+        // 引数として false を渡すとセクション名無しの配列を返します。
+        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI, $bool);
+        return $keyspider;
+    }
+
+    /**
+     * keyspider.ini の import_config に設定されているファイルパスを全て取得します。
+     */
+    public function getImportConfigsFromKeyspiderIni()
+    {
+        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI);
+        return $keyspider['import_config'];
+    }
+
+    /**
+     * keyspider.ini の extract_config に設定されているファイルパスを全て取得します。
+     */
+    public function getExtractConfigsFromKeyspiderIni()
+    {
+        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI);
+        return $keyspider['extract_config'];
+    }
+
+    public function setRoleFlags($flags)
+    {
         $this->roleFlags = $flags;
     }
-    
-    public function getRoleFlags(){
+
+    public function getRoleFlags()
+    {
         $allRoleFlags = [];
-        $roleMapCount = isset($this->masterDBConfigData['RoleMap']['RoleID']) ? count($this->masterDBConfigData['RoleMap']['RoleID']) : 0;
+        $roleMapCount = isset($this->masterDBConfigData['RoleMap']['RoleID']) ?
+            count($this->masterDBConfigData['RoleMap']['RoleID']) : 0;
         $roleBasicName = $this->getBasicRoleFlagColumnName();
         for ($i = 0; $i < $roleMapCount; $i++) {
             $allRoleFlags[] = "$roleBasicName-$i";
         }
-
         return $allRoleFlags;
     }
     /**
@@ -76,17 +105,10 @@ class SettingsManager
     public function validateKeySpider(): ?bool
     {
         try {
-            $this->keySpider = parse_ini_file(
-                storage_path(self::INI_CONFIGS . '/KeySpider.ini'),
-                true);
+            $this->keySpider = $this->getAllConfigsFromKeyspiderIni();
 
             $validate = Validator::make($this->keySpider, [
                 'Master DB Configurtion' => 'required',
-                'CSV Import Process Configration' => 'required',
-                // 'SCIM Input Process Configration' => 'required',
-                'CSV Extract Process Configration' => 'required',
-                // 'Azure Extract Process Configration' => 'required',
-                'CSV Output Process Configration' => 'required'
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
@@ -98,18 +120,22 @@ class SettingsManager
         }
 
         try {
-            $filesPath = parse_ini_file(storage_path(self::INI_CONFIGS .
-                '/KeySpider.ini'));
+            $filesPath = $this->getAllConfigsFromKeyspiderIni(false);
 
-            $allFilesInKeySpider = array_merge($filesPath['import_config'],
+            $allFilesInKeySpider = array_merge(
+                $filesPath['import_config'],
                 $filesPath['extract_config'],
-                [$filesPath['master_db_config']]);
-            array_walk($allFilesInKeySpider,
+                [$filesPath['master_db_config']]
+            );
+
+            array_walk(
+                $allFilesInKeySpider,
                 function ($filePath) {
                     if (!file_exists($filePath)) {
                         throw new RuntimeException("[KeySpider validation error] The file: <$filePath> is not existed!");
                     }
-                });
+                }
+            );
         } catch (Exception $exception) {
             Log::error('Error on file KeySpider.ini');
             Log::error($exception->getMessage());
@@ -155,7 +181,6 @@ class SettingsManager
     {
         $officeLicenseFields = $this->generalKeys['KeySettings']['Office_license_field'];
         return $officeLicenseFields;
-        // return array_values($officeLicenseFields);
     }
 
     /**
@@ -168,19 +193,21 @@ class SettingsManager
 
         return array_values($encryptedFields);
 
-//        Compare for each encrypt key
+        // Compare for each encrypt key
         foreach ($encryptedFields as $encryptedField) {
-//            Master DB Config has Tags, so traverse each tag
+
+            // Master DB Config has Tags, so traverse each tag
             foreach ($this->masterDBConfigData as $masterWithTag) {
-                $filterdArray = array_filter($masterWithTag,
+                $filterdArray = array_filter(
+                    $masterWithTag,
                     function ($k) use ($encryptedField) {
                         return $k === $encryptedField;
                     },
-                    ARRAY_FILTER_USE_BOTH);
+                    ARRAY_FILTER_USE_BOTH
+                );
                 if ($filterdArray) {
                     $result = array_merge($result, $filterdArray);
                 }
-
             }
         }
         return array_values($result);
@@ -195,13 +222,18 @@ class SettingsManager
     public function passwordEncrypt($data, $key = null)
     {
         $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
+
         // Generate an initialization vector
         $initializationVector = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPT_STANDARD_METHOD));
+
         // Encrypt the data using AES 256 encryption in CBC mode using our encryption key and initialization vector.
-        $encrypted = openssl_encrypt($data, self::ENCRYPT_STANDARD_METHOD,
+        $encrypted = openssl_encrypt(
+            $data,
+            self::ENCRYPT_STANDARD_METHOD,
             $encryptionKey,
             0,
-            $initializationVector);
+            $initializationVector
+        );
 
         // The $iv is just as important as the key for decrypting, so save it with our encrypted data using a unique separator (::)
         return base64_encode($encrypted . '::' . $initializationVector);
@@ -214,18 +246,19 @@ class SettingsManager
      */
     public function passwordDecrypt($data, $key = null)
     {
-
         if (empty($data)) return;
 
         try {
             $encryptionKey = $key ? $key : $this->generalKeys['KeySettings']['Encryption_key'];
             // To decrypt, split the encrypted data from our IV - our unique separator used was "::"
             list($encryptedData, $initializationVector) = explode('::', base64_decode($data), 2);
-            return openssl_decrypt($encryptedData,
+            return openssl_decrypt(
+                $encryptedData,
                 self::ENCRYPT_STANDARD_METHOD,
                 $encryptionKey,
                 0,
-                $initializationVector);
+                $initializationVector
+            );
         } catch (Exception $exception) {
             Log::error($exception);
         }
@@ -264,7 +297,7 @@ class SettingsManager
                 try {
                     return [$columnName, json_decode($results[$columnName], true)];
                 } catch (Exception $exception) {
-//                    TODO: $result is array, so this is a bug
+                    // TODO: $result is array, so this is a bug
                     Log::error("Data [$results] is not correct!");
                     Log::error($exception->getMessage());
                     return null;
@@ -278,18 +311,21 @@ class SettingsManager
         $deleteFlags = [];
         $updateFlags = [];
         foreach ($this->masterDBConfigData as $table) {
-            $deleteFlags = array_merge($deleteFlags, array_filter($table,
+            $deleteFlags = array_merge($deleteFlags, array_filter(
+                $table,
                 function ($k) {
                     return strpos($k, '.DeleteFlag') !== false;
                 },
-                ARRAY_FILTER_USE_KEY));
+                ARRAY_FILTER_USE_KEY
+            ));
 
-            $updateFlags = array_merge($updateFlags, array_filter($table,
+            $updateFlags = array_merge($updateFlags, array_filter(
+                $table,
                 function ($k) {
                     return strpos($k, '.UpdateFlags') !== false;
                 },
-                ARRAY_FILTER_USE_KEY));
-
+                ARRAY_FILTER_USE_KEY
+            ));
         }
         return [
             'deleteFlags' => array_values($deleteFlags),
@@ -325,7 +361,6 @@ class SettingsManager
     {
         $nameColumnUpdate = null;
         $getFlags = $this->getFlags();
-
         $updatedFlags = $getFlags['updateFlags'];
         foreach ($updatedFlags as $data) {
             $arrayColumn = explode('.', $data);
@@ -334,7 +369,6 @@ class SettingsManager
                 break;
             }
         }
-
         return $nameColumnUpdate;
     }
 
@@ -352,7 +386,6 @@ class SettingsManager
     {
         $nameColumnUpdate = null;
         $getFlags = $this->getFlags();
-
         $updatedFlags = $getFlags['updateFlags'];
         foreach ($updatedFlags as $data) {
             $arrayColumn = explode('.', $data);
@@ -361,7 +394,6 @@ class SettingsManager
                 break;
             }
         }
-
         return $nameColumnUpdate;
     }
 
@@ -369,7 +401,6 @@ class SettingsManager
     {
         $column = null;
         $getFlags = $this->getFlags();
-
         $deleteFlags = $getFlags['deleteFlags'];
         foreach ($deleteFlags as $data) {
             $arrayColumn = explode('.', $data);
@@ -378,16 +409,15 @@ class SettingsManager
                 break;
             }
         }
-
         return $column;
     }
 
     public function getBasicRoleFlagColumnName()
     {
-        $fullColummnName = $this->masterDBConfigData['User']['User.RoleFlag']??null;
-        if($fullColummnName ){
+        $fullColummnName = $this->masterDBConfigData['User']['User.RoleFlag'] ?? null;
+        if ($fullColummnName) {
             $arrayColumn = explode('.', $fullColummnName);
-            return isset($arrayColumn[1])?$arrayColumn[1]:null;
+            return isset($arrayColumn[1]) ? $arrayColumn[1] : null;
         }
         return null;
     }
@@ -410,18 +440,17 @@ class SettingsManager
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
 
-            foreach ($roleMap as $role){
-                $item['Name']= $role;
-                $item['ID']=null;
+            foreach ($roleMap as $role) {
+                $item['Name'] = $role;
+                $item['ID'] = null;
                 foreach ($allRoleRecords as $record) {
                     $record = (array)$record;
-                    if($record['Name']==$role){
+                    if ($record['Name'] == $role) {
                         $item['ID'] = $record['ID'];
                     }
                 }
                 $arrayIdUserMap[] = $item;
             }
-
             return $arrayIdUserMap;
         }
         return null;
@@ -436,14 +465,12 @@ class SettingsManager
             $query = DB::table($tableName)->select('ID', 'externalID');
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
-                foreach ($allRoleRecords as $record) {
-                    $record = (array)$record;
-                    $arrayIdUserMap[] = $record['externalID'];
-                }
-
+            foreach ($allRoleRecords as $record) {
+                $record = (array)$record;
+                $arrayIdUserMap[] = $record['externalID'];
+            }
             return $arrayIdUserMap;
         }
-
         return null;
     }
     public function getRoleMapInExternalSFID($tableName = null)
@@ -456,14 +483,12 @@ class SettingsManager
             $query = DB::table($tableName)->select('ID', 'externalSFID');
             $allRoleRecords = $query->get()->toArray();
             $arrayIdUserMap = [];
-                foreach ($allRoleRecords as $record) {
-                    $record = (array)$record;
-                    $arrayIdUserMap[] = $record['externalSFID'];
-                }
-
+            foreach ($allRoleRecords as $record) {
+                $record = (array)$record;
+                $arrayIdUserMap[] = $record['externalSFID'];
+            }
             return $arrayIdUserMap;
         }
-
         return null;
     }
 
@@ -472,22 +497,22 @@ class SettingsManager
      * @param null $tableName
      * @return the Order of group that have name (from groupId) in the RoleMap in MasterDBconf.ini
      */
-    public function getRoleFlagIDColumnNameFromGroupId(string $groupId, $tableName=null)
+    public function getRoleFlagIDColumnNameFromGroupId(string $groupId, $tableName = null)
     {
         if ($tableName == null) {
             $tableName = 'Role';
         }
         if (isset($this->masterDBConfigData['RoleMap'])) {
             $roleMap = $this->masterDBConfigData['RoleMap']['RoleID'];
-//            Find the Name of group has groupId
+            // Find the Name of group has groupId
             $query = DB::table($tableName);
             $query->select('Name');
             $query->where('ID', $groupId);
             $result = $query->first();
-            if($result){
+            if ($result) {
                 $groupName = $result->Name;
                 foreach ($roleMap as $index => $item) {
-                    if($groupName == $item){
+                    if ($groupName == $item) {
                         return $index;
                     }
                 }
@@ -500,9 +525,9 @@ class SettingsManager
     {
         $extractionProcessIDs = [];
         try {
-            $filePaths = parse_ini_file($this->pathIniConfigs.'KeySpider.ini')['extract_config'];
+            $filePaths = parse_ini_file($this->pathIniConfigs . 'KeySpider.ini')['extract_config'];
 
-                foreach($filePaths as $filePath) {
+            foreach ($filePaths as $filePath) {
                 if (is_file($filePath)) {
                     $file = parse_ini_file($filePath);
                     if ($tableName == $file['ExtractionTable'] ?? '') {
@@ -548,7 +573,7 @@ class SettingsManager
     public function getRoleFlagX($scimValue, $roleMaps)
     {
         $index = null;
-        foreach($roleMaps as $key => $value) {
+        foreach ($roleMaps as $key => $value) {
             if ($value['Name'] == $scimValue) {
                 $index =  $key;
                 break;
@@ -561,6 +586,7 @@ class SettingsManager
     {
         return array_get($this->masterDBConfigData, 'User.User');
     }
+
     public function getTableRole()
     {
         return array_get($this->masterDBConfigData, 'Role.Role');
@@ -571,19 +597,18 @@ class SettingsManager
         // ARGV : debug_backtrace 
         // $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
         $btFunction = $backtrace[0]['function'];
-        $btClass = $backtrace[0]['class']; 
+        $btClass = $backtrace[0]['class'];
         $epClass = explode('\\', $btClass);
 
-        $functionWithclass = $epClass[count($epClass) -1] . '.' . $btFunction;
+        $functionWithclass = $epClass[count($epClass) - 1] . '.' . $btFunction;
         $tl = sprintf("[[ KSC ]] `%s` is %s. %s", $functionWithclass, $cmd, $message);
         Log::info($tl);
     }
 
-
     public function isExtractSettingsFileValid(): bool
     {
-        $pathIniConfigs = config('const.PATH_INI_CONFIGS').config('const.INI_CONFIGS');
-        $inifilePaths = parse_ini_file($pathIniConfigs.'KeySpider.ini')['extract_config'];
+        $pathIniConfigs = config('const.PATH_INI_CONFIGS') . config('const.INI_CONFIGS');
+        $inifilePaths = parse_ini_file($pathIniConfigs . 'KeySpider.ini')['extract_config'];
 
         try {
             $epbc = 'Extraction Process Basic Configuration';
@@ -597,10 +622,8 @@ class SettingsManager
                 ]);
 
                 if ($validate->fails()) {
-                    // Log::error('There is an error in the configuration file.' 
-                    // . "\n" . $inifilePath . "\n". $validate->getMessageBag() . "\n");
-                    throw new Exception('[[ KSC ]] There is an error in the configuration file.' 
-                        . "\n" . $inifilePath . "\n". $validate->getMessageBag() . "\n");
+                    throw new Exception('[[ KSC ]] There is an error in the configuration file.'
+                        . "\n" . $inifilePath . "\n" . $validate->getMessageBag() . "\n");
                     return false;
                 }
             }
@@ -610,5 +633,76 @@ class SettingsManager
             return false;
         }
     }
-    
+
+    public function faildLogger($scimInfo)
+    {
+        // provisoning	table	id	name	scimMethod	message
+        $logStr = sprintf(
+            "%s\t%s\t%s\t%s\t%s\t%s",
+            $scimInfo['provisoning'],
+            $scimInfo['table'],
+            $scimInfo['itemId'],
+            $scimInfo['itemName'],
+            $scimInfo['scimMethod'],
+            $scimInfo['message']
+        );
+
+        Log::channel('faild')->error($logStr);
+    }
+
+    public function validationLogger($scimInfo)
+    {
+        // provisoning	table	id	name	scimMethod	message
+        $logStr = sprintf(
+            "%s\t%s\t%s\t%s\t%s\t%s",
+            $scimInfo['provisoning'],
+            $scimInfo['table'],
+            $scimInfo['itemId'],
+            $scimInfo['itemName'],
+            $scimInfo['scimMethod'],
+            $scimInfo['message']
+        );
+
+        Log::channel('validation')->warning($logStr);
+    }
+
+    public function detailLogger($scimInfo)
+    {
+        // provisoning	table	id	name	scimMethod	message
+        $logStr = sprintf(
+            "%s\t%s\t%s\t%s\t%s\t%s",
+            $scimInfo['provisoning'],
+            $scimInfo['table'],
+            $scimInfo['itemId'],
+            $scimInfo['itemName'],
+            $scimInfo['scimMethod'],
+            $scimInfo['message']
+        );
+        Log::channel('detail')->info($logStr);
+    }
+
+    public function summaryLogger($scimInfo)
+    {
+        $casesProcessed = (int)$scimInfo['createCount']
+            + (int)$scimInfo['updateCount']
+            + (int)$scimInfo['deleteCount'];
+
+        // provisoning	table	cases_handle	create	update	delete	cases_processed
+        $logStr = sprintf(
+            "%s\t%s\t%d\t%d\t%d\t%d\t%d",
+            $scimInfo['provisoning'],
+            $scimInfo['table'],
+            $scimInfo['casesHandle'],
+            $scimInfo['createCount'],
+            $scimInfo['updateCount'],
+            $scimInfo['deleteCount'],
+            $casesProcessed
+        );
+
+        if ($casesProcessed != $scimInfo['casesHandle']) {
+            Log::channel('summary')->notice($logStr);
+        } else {
+            Log::channel('summary')->info($logStr);
+        }
+    }
 }

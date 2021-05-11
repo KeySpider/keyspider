@@ -53,10 +53,10 @@ class UserController extends LaravelController
     {
         $this->importSetting = new ImportSettingsManager();
 
-        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config']??[];
-        foreach ($SCIMImportSettingFiles as $file){
+        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config'] ?? [];
+        foreach ($SCIMImportSettingFiles as $file) {
             $fileContent = parse_ini_file($file);
-            if($fileContent['ImportTable']=='User'){
+            if ($fileContent['ImportTable'] == 'User') {
                 $this->path = $file;
                 break;
             }
@@ -83,10 +83,9 @@ class UserController extends LaravelController
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
 
         $sqlQuery = DB::table($this->importSetting->getTableUser());
-//        $sqlQuery->where($columnDeleted, '!=', '1');
-
         $scimQuery = $request->input('filter', null);
         $keyTable = $this->importSetting->getTableKey();
+
         if ($request->has('filter')) {
             if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
@@ -96,12 +95,9 @@ class UserController extends LaravelController
                 $filterValue = null;
             }
             $sqlQuery->where($keyTable, $filterValue);
-//            $where[$keyTable] = $filterValue;
         }
 
         $dataConvert = [];
-
-//        $sqlQuery->where($columnDeleted, '!=', '1');
         $sqlString = $sqlQuery->toSql();
         $dataQuery = $sqlQuery->get();
 
@@ -110,10 +106,8 @@ class UserController extends LaravelController
                 $dataFormat = $this->importSetting->formatDBToSCIMStandard((array)$data, $this->path);
                 $dataFormat['id'] = $dataFormat['userName'];
                 $dataFormat['externalId'] = $dataFormat['userName'];
-                $dataFormat['userName'] =
-                    $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
+                $dataFormat['userName'] = $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
                 unset($dataFormat[0]);
-
                 array_push($dataConvert, $dataFormat);
             }
         }
@@ -154,10 +148,6 @@ class UserController extends LaravelController
      */
     public function detail($id)
     {
-        // Log::info('-----------------DETAIL USER...-----------------');
-        // Log::debug($id);
-        // Log::info('--------------------------------------------------');
-
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->importSetting->getTableKey();
 
@@ -165,7 +155,6 @@ class UserController extends LaravelController
             $query = DB::table($this->importSetting->getTableUser());
             $query = $query->where(function ($query) use ($keyTable, $columnDeleted, $id) {
                 $query->where($keyTable, $id);
-//                $query->where($columnDeleted, '!=', 1);
             });
             $toSql = $query->toSql();
             // Log::info($toSql);
@@ -179,7 +168,6 @@ class UserController extends LaravelController
         }
 
         $jsonData = $this->getResponseFromUserRecord($userRecord, $columnDeleted);
-
         return $this->response($jsonData, $code = 200);
     }
 
@@ -193,12 +181,6 @@ class UserController extends LaravelController
     public function store(Request $request)
     {
         $dataPost = $request->all();
-
-        // Log::info('-----------------creating user...-----------------');
-        // Log::alert("[" . $request->method() . "]");
-        // Log::info(json_encode($dataPost, JSON_PRETTY_PRINT));
-        // Log::info('--------------------------------------------------');
-
         $setting = $this->importSetting->getSCIMImportSettings($this->path);
 
         // save user resources model
@@ -212,13 +194,7 @@ class UserController extends LaravelController
 
     public function destroy($id, Request $request)
     {
-        // do something
-        // Log::info('-----------------DELETE USER...-----------------');
-        // Log::debug($id);
-        // Log::info('--------------------------------------------------');
-
         $this->checkToResponseErrorUserNotFound($id);
-
         $this->logicalDeleteUser($id);
 
         $jsonResponse = [
@@ -243,11 +219,10 @@ class UserController extends LaravelController
      * @return Bool
      * @throws SCIMException
      */
-    private function logicalDeleteUser($id) {
+    private function logicalDeleteUser($id)
+    {
         $deleteFlagColumnName = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
         $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
-
-        // $updateFlags = $this->importSetting->getAllExtractionProcessID($this->masterDB);
 
         $setValues = [];
         $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
@@ -277,12 +252,6 @@ class UserController extends LaravelController
      */
     public function update($id, Request $request)
     {
-        // do something
-        // Log::info('-----------------PATCH USER...-----------------');
-        // Log::debug($id);
-        // Log::debug(json_encode($request->all(), JSON_PRETTY_PRINT));
-        // Log::info('--------------------------------------------------');
-
         $input = $request->input();
 
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
@@ -321,6 +290,7 @@ class UserController extends LaravelController
             ],
             'Resources' => $dataArray,
         ];
+
         return $arr;
     }
 
@@ -332,8 +302,8 @@ class UserController extends LaravelController
     private function getResponseFromUserRecord($userRecord, $columnDeleted): array
     {
         $dataFormat = [];
+
         if ($userRecord) {
-//            $userResouce = $userRecord->toArray();
             $userResouce = (array)$userRecord;
             $dataFormat = $this->importSetting->formatDBToSCIMStandard($userResouce, $this->path);
             $dataFormat['id'] = $dataFormat['userName'];
@@ -356,17 +326,16 @@ class UserController extends LaravelController
                     "familyName" => $userRecord->Name,
                     "givenName" => $userRecord->givenName,
                 ],
-                "emails"=> [[
-                    "value"=> $userRecord->mail,
-                    "type"=> "work",
-                    "primary"=> true
+                "emails" => [[
+                    "value" => $userRecord->mail,
+                    "type" => "work",
+                    "primary" => true
                 ]],
                 "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
                     "department" => array_get($dataFormat, 'department', "")
                 ],
             ];
         }
-
 
         return $jsonData;
     }
@@ -404,7 +373,6 @@ class UserController extends LaravelController
         $sqlQuery = DB::table($this->importSetting->getTableUser());
         $where = [
             "{$keyTable}" => $id,
-//            "{$columnDeleted}" => '0'
         ];
 
         if (is_exits_columns($this->masterDB, $where)) {
@@ -428,6 +396,7 @@ class UserController extends LaravelController
             $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
             unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
         }
+
         return $input;
     }
 }

@@ -19,7 +19,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Queue::before(function (JobProcessing $event) {
             Log::info('-------------------------------before processing task-------------------------------');
-//            Log::debug(json_encode($event->job->payload(), JSON_PRETTY_PRINT));
         });
 
         Queue::after(function (JobProcessed $event) {

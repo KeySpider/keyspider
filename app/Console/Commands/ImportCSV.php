@@ -20,7 +20,9 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use App\Jobs\DBImporterJob;
+use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use Illuminate\Console\Command;
@@ -29,12 +31,15 @@ use Illuminate\Support\Facades\Log;
 class ImportCSV extends Command
 {
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+    public const IMPORT_CSV_CONFIG = 'CSV Import Process Configration';
+
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
     protected $signature = 'command:import';
+
     /**
      * The console command description.
      *
@@ -50,16 +55,23 @@ class ImportCSV extends Command
      */
     public function handle()
     {
-        $importSettingsManager = new ImportSettingsManager();
-        $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if ($timeExecutionList) {
-            (new \TablesBuilder($importSettingsManager))->buildTables();
-            foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
-                $this->importDataForTimeExecution($settingOfTimeExecution);
+        $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
+
+        if (array_key_exists(self::IMPORT_CSV_CONFIG, $keyspider)) {
+            $importSettingsManager = new ImportSettingsManager();
+            $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
+
+            if ($timeExecutionList) {
+                (new \TablesBuilder($importSettingsManager))->buildTables();
+                foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
+                    $this->importDataForTimeExecution($settingOfTimeExecution);
+                }
+            } else {
+                echo ("\e[0;31;47mNothing to import!\e[0m\n");
+                Log::error('Can not run import schedule, getting error from config ini files');
             }
         } else {
-            echo("\e[0;31;47mNothing to import!\e[0m\n");
-            Log::error('Can not run import schedule, getting error from config ini files');
+            Log::Info('nothing to do.');
         }
         return null;
     }
@@ -79,7 +91,7 @@ class ImportCSV extends Command
             }
 
             if (empty($files)) {
-                echo("Nothing to import");
+                echo ("Nothing to import");
                 $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
                 Log::info($infoSetting . ' WITH FILES EMPTY');
             } else {

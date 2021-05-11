@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    //
     protected $table = 'Role';
     protected $primaryKey = "ID";
 
@@ -23,12 +22,11 @@ class Role extends Model
     {
         return $this->belongsToMany('App\User', 'UserToRole', 'Role_ID', 'User_ID')
             ->withPivot(['User_ID'])->orderBy('User_ID');
-    }    
+    }
 
     public function privilege()
     {
         return $this->belongsToMany('App\Privilege', 'RoleToPrivilege', 'Role_ID', 'Privilege_ID')
             ->withPivot(['Privilege_ID'])->orderBy('Privilege_ID');
     }
-
 }

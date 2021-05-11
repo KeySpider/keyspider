@@ -19,11 +19,11 @@
  ******************************************************************************/
 
 return [
-  'addMemberToGroup' => '{
+    'addMemberToGroup' => '{
       "GroupId" : "00G2w000002vw7tEAA",
       "UserOrGroupId" : "0052w000008PVOcAAO"
   }',
-  'createUser' => '{
+    'createUser' => '{
       "UserName": "user@keyspider.jp",
       "IsActive": true,
       "LastName": "LastName",
@@ -34,7 +34,9 @@ return [
       "Title": "Title",
       "Phone": "Phone",
       "Fax": "Fax",
+      "CompanyName": "CompanyName",
       "MobilePhone": "MobilePhone",
+      "Country": "Country",
       "PostalCode": "PostalCode",
       "State": "State",
       "City": "City",
@@ -46,7 +48,7 @@ return [
       "LanguageLocaleKey": "ja",
       "ProfileId": "00e2w000001hwZO"
   }',
-  'createGroup' => '{
+    'createGroup' => '{
       "Name":"G1",
       "DeveloperName":"DEV"
   }'

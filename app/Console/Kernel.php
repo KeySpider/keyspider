@@ -41,6 +41,7 @@ use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\RDBImportSettingsManager;
 use App\Ldaplibs\Export\ExportLDAPSettingsManager;
+use App\Ldaplibs\SettingsManager;
 use Exception;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -49,7 +50,11 @@ use Illuminate\Support\Facades\DB;
 
 class Kernel extends ConsoleKernel
 {
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+    public const MASTER_DB_CONFIG = 'Master DB Configurtion';
+    public const IMPORT_CSV_CONFIG = 'CSV Import Process Configration';
+    public const CONFIGURATION = 'CSV Import Process Basic Configration';
+    public const IMPORT_SCIM_CONFIG = 'SCIM Input Process Configration';
+    public const EXPORT_CSV_CONFIG = 'CSV Extract Process Configration';
     public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
     public const EXPORT_SF_CONFIG = 'SF Extract Process Configration';
     public const EXPORT_GW_CONFIG = 'GW Extract Process Configration';
@@ -58,29 +63,76 @@ class Kernel extends ConsoleKernel
     public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
     public const EXPORT_ZOOM_CONFIG = 'ZOOM Extract Process Configration';
     public const EXPORT_SLACK_CONFIG = 'SLACK Extract Process Configration';
+    public const IMPORT_RDB_CONFIG = 'RDB Import Process Configration';
     public const DATABASE_INFO = 'RDB Import Database Configuration';
+    public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
+    public const DELIVERY_CSV_CONFIG = 'CSV Output Process Configration';
+
+
+    // [Master DB Configurtion] と [SCIM Input Process Configration] は 実行時間を定義しないため voidFunction() を実行します。
+    public const OPERATIONS = array(
+        self::MASTER_DB_CONFIG => 'voidFunction',
+        self::IMPORT_CSV_CONFIG => 'importDataFromCsv',
+        self::IMPORT_SCIM_CONFIG => 'voidFunction',
+        self::IMPORT_RDB_CONFIG => 'importDataFromRdb',
+        self::EXPORT_CSV_CONFIG => 'exportDataToCsv',
+        self::EXPORT_AD_CONFIG => 'exportDataToAD',
+        self::EXPORT_SF_CONFIG => 'exportDataToSF',
+        self::EXPORT_TL_CONFIG => 'exportDataToTL',
+        self::EXPORT_BOX_CONFIG => 'exportDataToBox',
+        self::EXPORT_ZOOM_CONFIG => 'exportDataToZoom',
+        self::EXPORT_GW_CONFIG => 'exportDataToGW',
+        self::EXPORT_SLACK_CONFIG => 'exportDataToSlack',
+        self::EXPORT_OL_CONFIG => 'exportDataToOL',
+        self::DELIVERY_CSV_CONFIG => 'deliveryCsv',
+        self::EXPORT_LDAP_CONFIG => 'exportDataToLdap'
+    );
 
     /**
      * The Artisan commands provided by your application.
      *
      * @var array
      */
-    protected $commands = [
-        //
-    ];
+    protected $commands = [];
 
     /**
      * Define the application's command schedule.
+     * keyspider.ini に設定したセクション名を取得し、セクション名に紐づく処理を実行します。
      *
      * @param  \Illuminate\Console\Scheduling\Schedule $schedule
      * @return void
      */
     protected function schedule(Schedule $schedule)
     {
-        // Setup schedule for import
+        // keyspider.ini の設定内容を全て取得します。
+        $keyspiderIni = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
+        $sections = array_keys($keyspiderIni);
+        foreach ($sections as $section) {
+            try {
+                $function = self::OPERATIONS[$section];
+                $this->$function($schedule);
+            } catch (Exception $exception) {
+                // セクション名が間違っている場合はログを出力して後続処理をおこないます。
+                Log::error("There is a mistake in [$section] of keyspider.ini.");
+            }
+        }
+    }
+
+    /**
+     * 実行時間を定義しないセクションのための処理です。
+     */
+    public function voidFunction(Schedule $schedule)
+    {
+    }
+
+    /**
+     * CSV インポート用の実行時間チェック処理です。
+     */
+    public function importDataFromCsv(Schedule $schedule)
+    {
         $importSettingsManager = new ImportSettingsManager();
         $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
-        if (count($timeExecutionList)>0) {
+        if (count($timeExecutionList) > 0) {
             foreach ($timeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->importDataForTimeExecution($settingOfTimeExecution);
@@ -89,11 +141,16 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no CSV file import to process.');
         }
+    }
 
-        // Setup schedule for RDB import
+    /**
+     * RDB インポート用の実行時間チェック処理です。
+     */
+    public function importDataFromRdb(Schedule $schedule)
+    {
         $rdbImportSettingsManager = new RDBImportSettingsManager();
         $rdbTimeExecutionList = $rdbImportSettingsManager->getScheduleImportExecution();
-        if (count($rdbTimeExecutionList)>0) {
+        if (count($rdbTimeExecutionList) > 0) {
             foreach ($rdbTimeExecutionList as $timeExecutionString => $settingOfTimeExecution) {
                 $schedule->call(function () use ($settingOfTimeExecution) {
                     $this->rdbImportDataForTimeExecution($settingOfTimeExecution);
@@ -102,8 +159,13 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no RDB record import to process.');
         }
+    }
 
-        // Setup schedule for Extract
+    /**
+     * CSV エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToCsv(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager();
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -115,8 +177,13 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no CSV file extracting.');
         }
+    }
 
-        // Setup schedule for Extract
+    /**
+     * Azure AD エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToAD(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager(self::EXPORT_AD_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -128,8 +195,13 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no Active Directory extracting.');
         }
+    }
 
-        // Setup schedule for Extract
+    /**
+     * Salesforce エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToSF(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager(self::EXPORT_SF_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -141,47 +213,13 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no Salesforce extracting.');
         }
+    }
 
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_GW_CONFIG);
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function () use ($settingOfTimeExecution) {
-                    $this->exportDataToGWForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
-            }
-        } else {
-            Log::info('Currently, there is no GoogleWorkspace extracting.');
-        }
-
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_OL_CONFIG);
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function () use ($settingOfTimeExecution) {
-                    $this->exportDataToOLForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
-            }
-        } else {
-            Log::info('Currently, there is no OneLogin extracting.');
-        }
-
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_BOX_CONFIG);
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $schedule->call(function () use ($settingOfTimeExecution) {
-                    $this->exportDataToBoxForTimeExecution($settingOfTimeExecution);
-                })->dailyAt($timeExecutionString);
-            }
-        } else {
-            Log::info('Currently, there is no BOX extracting.');
-        }
-
-        // Setup schedule for Extract
+    /**
+     * TrustLogin エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToTL(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -193,8 +231,31 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no TrustLogin extracting.');
         }
+    }
 
-        // Setup schedule for Extract
+    /**
+     * Box エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToBox(Schedule $schedule)
+    {
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_BOX_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToBoxForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no BOX extracting.');
+        }
+    }
+
+    /**
+     * Zoom エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToZoom(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager(self::EXPORT_ZOOM_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -206,8 +267,31 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no Zoom extracting.');
         }
+    }
 
-        // Setup schedule for Extract
+    /**
+     * Google Workspace エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToGW(Schedule $schedule)
+    {
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_GW_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToGWForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no GoogleWorkspace extracting.');
+        }
+    }
+
+    /**
+     * Slack エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToSlack(Schedule $schedule)
+    {
         $extractSettingManager = new ExtractSettingsManager(self::EXPORT_SLACK_CONFIG);
         $extractSetting = $extractSettingManager->getRuleOfDataExtract();
         if ($extractSetting) {
@@ -219,8 +303,31 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no Slack extracting.');
         }
+    }
 
-        // Setup schedule for Delivery
+    /**
+     * One Login エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToOL(Schedule $schedule)
+    {
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_OL_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToOLForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no OneLogin extracting.');
+        }
+    }
+
+    /**
+     * CSV アウトプット用の実行時間チェック処理です。
+     */
+    public function deliveryCsv(Schedule $schedule)
+    {
         $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
         if ($scheduleDeliveryExecution) {
             foreach ($scheduleDeliveryExecution as $timeExecutionString => $settingOfTimeExecution) {
@@ -231,8 +338,13 @@ class Kernel extends ConsoleKernel
         } else {
             Log::info('Currently, there is no CSV file delivery.');
         }
+    }
 
-        // Setup schedule for Export
+    /**
+     * LDAP エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToLdap(Schedule $schedule)
+    {
         $exportSettingManager = new ExportLDAPSettingsManager();
         $exportSetting = $exportSettingManager->getRuleOfDataExport();
         if ($exportSetting) {
@@ -301,7 +413,7 @@ class Kernel extends ConsoleKernel
     /**
      * @param $dataSchedule
      */
-     public function rdbImportDataForTimeExecution($dataSchedule)
+    public function rdbImportDataForTimeExecution($dataSchedule)
     {
         Log::info('rdbImportDataForTimeExecution');
         try {
@@ -311,7 +423,7 @@ class Kernel extends ConsoleKernel
 
                 $con = $setting[self::DATABASE_INFO]['Connection'];
                 $sql = sprintf("select count(*) as cnt from %s", $setting[self::DATABASE_INFO]['ImportTable']);
-    
+
                 $rows = DB::connection($con)->select($sql);
                 $array = json_decode(json_encode($rows), true);
                 $cnt = (int)$array[0]['cnt'];

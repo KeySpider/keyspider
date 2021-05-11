@@ -32,6 +32,7 @@ class DBImporter
      */
     public const CONVERSION = 'CSV Import Process Format Conversion';
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+
     /**
      * @var array $setting
      * @var string $fileName
@@ -69,7 +70,7 @@ class DBImporter
             $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
 
             $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
-//            $this->csvReader->createTable($nameTableBase, $columns);
+            // $this->csvReader->createTable($nameTableBase, $columns);
 
             $params = [
                 'CONVERSATION' => $this->setting[self::CONVERSION],
@@ -85,7 +86,7 @@ class DBImporter
             );
         } catch (Exception $e) {
             Log::error($e);
-            echo("\e[0;31;47m$e \e[0m \n");
+            echo ("\e[0;31;47m$e \e[0m \n");
         }
     }
 }

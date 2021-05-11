@@ -26,6 +26,4 @@ class Privilege extends Model
         return $this->belongsToMany('App\Role', 'RoleToPrivilege', 'Privilege_ID', 'Role_ID')
             ->withPivot(['Role_ID'])->orderBy('Role_ID');
     }
-
 }
-

@@ -38,13 +38,10 @@ class DBImporterFromScimData
     public function importToDBFromDataPost(): bool
     {
         $scimReader = new SCIMReader();
-
         $isSave = $scimReader->importFromSCIMData($this->dataPost, $this->setting);
-
         if ($isSave) {
             return true;
         }
-
         Log::error('Error of insert user to database');
         return false;
     }

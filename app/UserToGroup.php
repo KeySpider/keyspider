@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserToGroup extends Model
 {
-    //
     protected $table = 'UserToGroup';
     // protected $primaryKey = "ID";
 
@@ -28,5 +27,4 @@ class UserToGroup extends Model
     // {
     //     return $this->belongsToMany('App\Group')->withDefault();
     // }    
-
 }

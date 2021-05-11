@@ -4,7 +4,6 @@ namespace App\Ldaplibs\SCIM\OneLogin;
 
 class User
 {
-
     private $client;
     private $user = array();
 
@@ -13,59 +12,73 @@ class User
         $this->client = $client;
     }
 
-    public function getUser() {
+    public function getUser()
+    {
         return $this->user;
     }
 
-    public function getPrimaryKey($user) {
+    public function getPrimaryKey($user)
+    {
         return $user->id;
     }
 
-    public function setResource($user) {
+    public function setResource($user)
+    {
         return $this->user = $user;
     }
 
-    public function create() {
+    public function create()
+    {
         return $this->client->createUser($this->user);
     }
 
-    public function update($id) {
+    public function update($id)
+    {
         return $this->client->updateUser($id, $this->user);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->client->deleteUser($id);
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->client->getUser($id);
     }
 
-    public function password($id, $password) {
+    public function password($id, $password)
+    {
         return $this->client->setPasswordUsingClearText($id, $password, $password);
     }
 
-    public function getUserRoles($id) {
+    public function getUserRoles($id)
+    {
         return $this->client->getUserRoles($id);
     }
 
-    public function assignRoleToUser($id, $roleIds) {
+    public function assignRoleToUser($id, $roleIds)
+    {
         return $this->client->assignRoleToUser($id, $roleIds);
     }
 
-    public function removeRoleFromUser($id, $roleIds) {
+    public function removeRoleFromUser($id, $roleIds)
+    {
         return $this->client->removeRoleFromUser($id, $roleIds);
     }
 
-    public function getError() {
+    public function getError()
+    {
         return $this->client->getError();
     }
 
-    public function getErrorDescription() {
+    public function getErrorDescription()
+    {
         return $this->client->getErrorDescription();
     }
 
-    public function setAttributes($values) {
+    public function setAttributes($values)
+    {
         foreach ($values as $key => $value) {
             $this->setAttribute($key, $value);
         }
@@ -86,18 +99,18 @@ class User
             case $key == 'username':
                 $this->setValue($key, $value);
                 break;
-//            case $key == 'password':
-//                $this->setValue($key, $value);
-//                break;
-//            case $key == 'password_confirmation':
-//                $this->setValue($key, $value);
-//                break;
-//            case $key == 'password_algorithm':
-//                $this->setValue($key, $value);
-//                break;
-//            case $key == 'salt':
-//                $this->setValue($key, $value);
-//                break;
+                //            case $key == 'password':
+                //                $this->setValue($key, $value);
+                //                break;
+                //            case $key == 'password_confirmation':
+                //                $this->setValue($key, $value);
+                //                break;
+                //            case $key == 'password_algorithm':
+                //                $this->setValue($key, $value);
+                //                break;
+                //            case $key == 'salt':
+                //                $this->setValue($key, $value);
+                //                break;
             case $key == 'title':
                 $this->setValue($key, $value);
                 break;
@@ -152,8 +165,8 @@ class User
         }
     }
 
-    private function setValue($key, $value) {
+    private function setValue($key, $value)
+    {
         $this->user[$key] = $value;
     }
-
 }

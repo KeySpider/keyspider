@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Ldaplibs\SCIM\Zoom;
 
 use App\Ldaplibs\RegExpsManager;
@@ -21,7 +20,8 @@ class SCIMToZoom
         $this->setting = $setting;
     }
 
-    function urlsafe_base64_encode($str){
+    function urlsafe_base64_encode($str)
+    {
         return str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode($str));
     }
 
@@ -29,12 +29,12 @@ class SCIMToZoom
     {
         $zoom_api_key = env('ZOOM_CLIENT_KEY');
         $zoom_api_secret = env('ZOOM_CLIENT_SECRET');
-         
+
         $expiration = time() + (60 * 60 * 24); // Token expiration date(SEC)
-         
+
         $header = $this->urlsafe_base64_encode('{"alg":"HS256","typ":"JWT"}');
         $payload = $this->urlsafe_base64_encode('{"iss":"' . $zoom_api_key . '","exp":' . $expiration . '}');
-        $signature = $this->urlsafe_base64_encode(hash_hmac('sha256', "$header.$payload", $zoom_api_secret , TRUE));
+        $signature = $this->urlsafe_base64_encode(hash_hmac('sha256', "$header.$payload", $zoom_api_secret, TRUE));
         $token = "$header.$payload.$signature";
 
         Log::debug($token);
@@ -91,17 +91,20 @@ class SCIMToZoom
                   ]    
         }';
         $json = str_replace("(Role.name)", $tmpl['name'], $json);
-        
+
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/');
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -134,17 +137,20 @@ class SCIMToZoom
                 "name": "(Group.displayName)"
         }';
         $json = str_replace("(Group.displayName)", $tmpl['name'], $json);
-        
+
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/');
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -200,15 +206,18 @@ class SCIMToZoom
         $json = str_replace("(User.job_title)", $tmpl['job_title'], $json);
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/'.$tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $tmpl['externalZOOMID']);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -246,17 +255,20 @@ class SCIMToZoom
                   ]    
         }';
         $json = str_replace("(Role.name)", $tmpl['name'], $json);
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/'. $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl['externalZOOMID']);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -271,7 +283,6 @@ class SCIMToZoom
                 curl_close($tuCurl);
                 return $return_id;
             }
-            
         } else {
             Log::error('Curl error: ' . curl_error($tuCurl));
         }
@@ -290,17 +301,20 @@ class SCIMToZoom
                 "name": "(Group.disylayName)"
         }';
         $json = str_replace("(Group.disylayName)", $tmpl['name'], $json);
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/'. $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl['externalZOOMID']);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -315,7 +329,6 @@ class SCIMToZoom
                 curl_close($tuCurl);
                 return $return_id;
             }
-            
         } else {
             Log::error('Curl error: ' . curl_error($tuCurl));
         }
@@ -351,16 +364,19 @@ class SCIMToZoom
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/'. $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl['externalZOOMID']);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -388,16 +404,19 @@ class SCIMToZoom
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/'. $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl['externalZOOMID']);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -444,13 +463,13 @@ class SCIMToZoom
         $groupIDListOnZOOM = $this->getGroupMemberOfsZOOM($item, $table);
 
         foreach ($memberOf as $groupID) {
-            if(!in_array($groupID, $groupIDListOnZOOM)){
+            if (!in_array($groupID, $groupIDListOnZOOM)) {
                 $this->addMemberToGroup($item, $groupID);
             }
         }
 
         foreach ($groupIDListOnZOOM as $groupID) {
-            if(!in_array($groupID, $memberOf)){
+            if (!in_array($groupID, $memberOf)) {
                 $this->removeMemberOfGroup($item, $groupID);
             }
         }
@@ -465,14 +484,14 @@ class SCIMToZoom
         $RoleIDOnZOOM = $this->getRoleMemberOfsZOOM($item, $table);
 
         foreach ($memberOf as $roleID) {
-            if(!in_array($roleID, $RoleIDOnZOOM)){
+            if (!in_array($roleID, $RoleIDOnZOOM)) {
                 $this->assignMemberToRole($item, $roleID);
             }
         }
 
         /* No need to use */
         foreach ($RoleIDOnZOOM as $roleID) {
-            if(!in_array($roleID, $memberOf)){
+            if (!in_array($roleID, $memberOf)) {
                 if (!is_numeric($roleID)) {
                     $this->unassignMemberOfRole($item, $roleID);
                 }
@@ -501,7 +520,7 @@ class SCIMToZoom
 
     public function addMemberToGroup($item, $groupID)
     {
-        Log::info('Zoom add member to Group -> ' . $item['first_name'] . ' ' .$item['last_name']);
+        Log::info('Zoom add member to Group -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
@@ -516,17 +535,20 @@ class SCIMToZoom
         }';
         $json = str_replace("(User.externalZOOMID)", $item['externalZOOMID'], $json);
         $json = str_replace("(User.mail)", $item['email'], $json);
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/'.$groupID.'/members');
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $groupID . '/members');
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -550,21 +572,27 @@ class SCIMToZoom
 
     private function removeMemberOfGroup($item, $groupID)
     {
-        Log::info('Zoom remove member of Group -> ' . $item['first_name'] . ' ' .$item['last_name']);
+        Log::info('Zoom remove member of Group -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 
-            'https://api.zoom.us/v2/groups/'. $groupID . '/members/' . $item['externalZOOMID']);
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_URL,
+            'https://api.zoom.us/v2/groups/' . $groupID . '/members/' . $item['externalZOOMID']
+        );
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -584,7 +612,6 @@ class SCIMToZoom
         }
         curl_close($tuCurl);
         return null;
-
     }
 
     public function getListOfRoleUserBelongedTo($userAttibutes, $scims = ''): array
@@ -608,7 +635,7 @@ class SCIMToZoom
 
     public function assignMemberToRole($item, $roleID)
     {
-        Log::info('Zoom add member to Role -> ' . $item['first_name'] . ' ' .$item['last_name']);
+        Log::info('Zoom add member to Role -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
@@ -621,17 +648,20 @@ class SCIMToZoom
             ]
         }';
         $json = str_replace("(User.externalZOOMID)", $item['externalZOOMID'], $json);
-        
+
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/'.$roleID.'/members');
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $roleID . '/members');
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
@@ -652,21 +682,27 @@ class SCIMToZoom
     /* No need to use */
     private function unassignMemberOfRole($item, $roleID)
     {
-        Log::info('Zoom remove member of Role -> ' . $item['first_name'] . ' ' .$item['last_name']);
+        Log::info('Zoom remove member of Role -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
         $auth = sprintf("Bearer %s", $this->makeToken());
         $accept = 'application/json';
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 
-            'https://api.zoom.us/v2/roles/'. $roleID . '/members/' . $item['externalZOOMID']);
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_URL,
+            'https://api.zoom.us/v2/roles/' . $roleID . '/members/' . $item['externalZOOMID']
+        );
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $accept", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 

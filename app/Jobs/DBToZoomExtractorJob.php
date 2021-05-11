@@ -84,7 +84,6 @@ class DBToZoomExtractorJob extends DBExtractor implements ShouldQueue, JobInterf
         return $details;
     }
 
-
     /**
      * Determine the time at which the job should timeout.
      *

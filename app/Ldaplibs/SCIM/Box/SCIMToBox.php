@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Ldaplibs\SCIM\Box;
 
 use App\Ldaplibs\RegExpsManager;
@@ -28,7 +27,7 @@ class SCIMToBox
     {
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
         $auth = $scimOptions['authorization'];
         $accept = $scimOptions['accept'];
@@ -38,13 +37,16 @@ class SCIMToBox
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url);
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
 
             if ($info['http_code'] >= 300) {
@@ -54,14 +56,14 @@ class SCIMToBox
 
             $responce = json_decode($tuData, true);
 
-            if ( array_key_exists('id', $responce)) {
+            if (array_key_exists('id', $responce)) {
                 $return_id = $responce['id'];
                 Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
                 return $return_id;
             };
 
-            if ( array_key_exists('status', $responce)) {
+            if (array_key_exists('status', $responce)) {
                 $curl_status = $responce['status'];
                 Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
@@ -80,7 +82,7 @@ class SCIMToBox
         $tmpl = $this->replaceResource($resourceType, $item);
         $externalID = $item['externalBOXID'];
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
         $auth = $scimOptions['authorization'];
         $accept = $scimOptions['accept'];
@@ -91,24 +93,27 @@ class SCIMToBox
         curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
         // curl_setopt($tuCurl, CURLOPT_POST, 1);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
-            if ( array_key_exists('id', $responce)) {
+            if (array_key_exists('id', $responce)) {
                 $return_id = $responce['id'];
                 Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
                 return $return_id;
             };
 
-            if ( array_key_exists('status', $responce)) {
+            if (array_key_exists('status', $responce)) {
                 $curl_status = $responce['status'];
                 Log::error('Replace faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
@@ -126,19 +131,22 @@ class SCIMToBox
     {
         $externalID = $item['externalBOXID'];
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
         $auth = $scimOptions['authorization'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "accept: */*"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "accept: */*")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)) {
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {
@@ -160,15 +168,18 @@ class SCIMToBox
         $isActive = 'active';
         foreach ($item as $key => $value) {
             if ($key === 'state') {
-                $address = sprintf("%s, %s, %s", 
-                    $item['state'], $item['city'], $item['streetAddress']);
+                $address = sprintf(
+                    "%s, %s, %s",
+                    $item['state'],
+                    $item['city'],
+                    $item['streetAddress']
+                );
                 $tmp = str_replace("(User.joinAddress)", $address, $tmp);
                 continue;
-
             }
 
             if ($key === 'locked') {
-                if ( $value == '1') $isActive = 'inactive';
+                if ($value == '1') $isActive = 'inactive';
                 $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
                 continue;
             }
@@ -191,18 +202,18 @@ class SCIMToBox
         $groupIDListOnAD = $this->getMemberOfsBOX($uPN);
 
         foreach ($memberOf as $groupID) {
-            if(!array_key_exists($groupID, $groupIDListOnAD)){
+            if (!array_key_exists($groupID, $groupIDListOnAD)) {
                 $this->addMemberToGroup($uPN, $groupID);
             }
         }
 
         foreach ($groupIDListOnAD as $key => $groupID) {
-            if(!in_array($key, $memberOf)){
+            if (!in_array($key, $memberOf)) {
                 $this->removeMemberOfGroup($uPN, $groupID);
             }
         }
     }
-    
+
     public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
     {
         $memberOf = [];
@@ -212,7 +223,7 @@ class SCIMToBox
 
     public function getMemberOfsBOX($uPN)
     {
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $url = $scimOptions['url'] . 'users/';
         $auth = $scimOptions['authorization'];
         $accept = $scimOptions['accept'];
@@ -220,20 +231,23 @@ class SCIMToBox
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url . $uPN . '/memberships/');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $groupIDList = [];
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             $responce = json_decode($tuData, true);
 
-            if ( array_key_exists('total_count', $responce)) {
+            if (array_key_exists('total_count', $responce)) {
                 $groupIDList = [];
-                for($i = 0; $i < $responce['total_count']; $i++){
+                for ($i = 0; $i < $responce['total_count']; $i++) {
                     $groupIDList[$responce['entries'][$i]['group']['id']] = $responce['entries'][$i]['id'];
                 }
                 curl_close($tuCurl);
@@ -254,10 +268,10 @@ class SCIMToBox
         $tmpl = Config::get('scim-box.addGroup');
         $tmpl = str_replace('(upn)', $uPCN, $tmpl);
         $tmpl = str_replace('(gpn)', $groupId, $tmpl);
-            
+
         $url = 'https://api.box.com/2.0/group_memberships';
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $auth = $scimOptions['authorization'];
         $accept = $scimOptions['accept'];
         $contentType = $scimOptions['ContentType'];
@@ -266,14 +280,17 @@ class SCIMToBox
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url);
         curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
 
         $tuData = curl_exec($tuCurl);
 
-        if(!curl_errno($tuCurl)){
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
 
             if ($info['http_code'] >= 300) {
@@ -282,7 +299,7 @@ class SCIMToBox
 
             $responce = json_decode($tuData, true);
 
-            if ( array_key_exists('status', $responce)) {
+            if (array_key_exists('status', $responce)) {
                 $curl_status = $responce['status'];
                 Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                 curl_close($tuCurl);
@@ -296,20 +313,23 @@ class SCIMToBox
 
     public function removeMemberOfGroup($uPCN, $groupId)
     {
-        $url = 'https://api.box.com/2.0/group_memberships/' . $groupId .'/';
+        $url = 'https://api.box.com/2.0/group_memberships/' . $groupId . '/';
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
         $auth = $scimOptions['authorization'];
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, $url);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($tuCurl, CURLOPT_HTTPHEADER, 
-            array("Authorization: $auth", "accept: */*"));
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "accept: */*")
+        );
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $tuData = curl_exec($tuCurl);
-        if(!curl_errno($tuCurl)) {
+        if (!curl_errno($tuCurl)) {
             $info = curl_getinfo($tuCurl);
             Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
         } else {

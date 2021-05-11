@@ -23,7 +23,7 @@ class SCIMToOneLogin
      */
     public function __construct($setting)
     {
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['OneLogin Keys'];
+        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['OneLogin Keys'];
         $clientId = $scimOptions['clientId'];
         $clientSecret = $scimOptions['clientSecret'];
         $region = $scimOptions['region'];
@@ -44,7 +44,7 @@ class SCIMToOneLogin
 
         if (empty($this->data->getError()) === false) {
             Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] create was failed.'
-            . ' reason "' . $this->data->getErrorDescription() . '"');
+                . ' reason "' . $this->data->getErrorDescription() . '"');
             return null;
         }
 
@@ -80,7 +80,7 @@ class SCIMToOneLogin
 
         if (empty($this->data->getError()) === false) {
             Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] update was failed.'
-            . ' reason "' . $this->data->getErrorDescription() . '"');
+                . ' reason "' . $this->data->getErrorDescription() . '"');
             return null;
         }
 
@@ -107,9 +107,10 @@ class SCIMToOneLogin
 
         if (empty($this->data->getError()) === false) {
             Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] delete was failed.'
-            . ' reason "' . $this->data->getErrorDescription() . '"');
+                . ' reason "' . $this->data->getErrorDescription() . '"');
             return null;
         }
+
         return $item['externalOLID'];
     }
 
@@ -132,7 +133,7 @@ class SCIMToOneLogin
         $result = $this->data->get($resourceId);
         if (empty($this->data->getError()) === false) {
             Log::critical('OneLogin::' . $resourceType . ' [' . $resourceId . '] was not found.'
-            . ' reason "' . $this->data->getErrorDescription() . '"');
+                . ' reason "' . $this->data->getErrorDescription() . '"');
             return null;
         }
 
@@ -151,7 +152,7 @@ class SCIMToOneLogin
         $this->data->password($primary, $password);
         if (empty($this->data->getError()) === false) {
             Log::critical('OneLogin::User [' . $item['ID'] . '] password set was failed.'
-            . ' reason "' . $this->data->getErrorDescription() . '"');
+                . ' reason "' . $this->data->getErrorDescription() . '"');
         }
     }
 
@@ -182,14 +183,15 @@ class SCIMToOneLogin
             $this->data->assignRoleToUser($primary, $addRoleIds);
             if (empty($this->data->getError()) === false) {
                 Log::critical('OneLogin::User [' . $item['ID'] . '] assign role was failed.'
-                . ' reason "' . $this->data->getErrorDescription() . '"');
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
             }
         }
+
         if (empty($deleteRoleIds) === false) {
             $this->data->removeRoleFromUser($primary, $deleteRoleIds);
             if (empty($this->data->getError()) === false) {
                 Log::critical('OneLogin::User [' . $item['ID'] . '] remove role was failed.'
-                . ' reason "' . $this->data->getErrorDescription() . '"');
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
             }
         }
     }
@@ -228,16 +230,16 @@ class SCIMToOneLogin
             $this->data->assignUserToRole($primary, $addUserIds);
             if (empty($this->data->getError()) === false) {
                 Log::critical('OneLogin::Role [' . $item['ID'] . '] assign user was failed.'
-                . ' reason "' . $this->data->getErrorDescription() . '"');
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
             }
         }
+
         if (empty($deleteUserIds) === false) {
             $this->data->removeUserFromRole($primary, $deleteUserIds);
             if (empty($this->data->getError()) === false) {
                 Log::critical('OneLogin::Role [' . $item['ID'] . '] remove role was failed.'
-                . ' reason "' . $this->data->getErrorDescription() . '"');
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
             }
         }
     }
-
 }

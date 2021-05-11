@@ -38,10 +38,9 @@ class VerifyAzureADToken
     {
         $settingManagement = new SettingsManager();
         $token = $settingManagement->getAzureADAPItoken();
-
         $authorization = $request->header('authorization');
 
-        if ($authorization !== "Bearer ".$token) {
+        if ($authorization !== "Bearer " . $token) {
             throw (new SCIMException('The Authorization token header not found'))->setCode(401);
         }
 

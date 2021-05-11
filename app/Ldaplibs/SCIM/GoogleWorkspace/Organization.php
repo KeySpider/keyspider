@@ -7,7 +7,6 @@ use Google_Service_Directory_OrgUnit;
 
 class Organization
 {
-
     private $service;
     private $organization;
     private $customerId;
@@ -19,35 +18,43 @@ class Organization
         $this->customerId = $customerId;
     }
 
-    public function getOrganization() {
+    public function getOrganization()
+    {
         return $this->organization;
     }
 
-    public function getPrimaryKey($organization) {
+    public function getPrimaryKey($organization)
+    {
         return $organization['orgUnitId'];
     }
 
-    public function setResource($organization) {
+    public function setResource($organization)
+    {
         return $this->organization = $organization;
     }
 
-    public function insert() {
+    public function insert()
+    {
         return $this->service->orgunits->insert($this->customerId, $this->organization);
     }
 
-    public function update($id) {
+    public function update($id)
+    {
         return $this->service->orgunits->update($this->customerId, $id, $this->organization);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->service->orgunits->delete($this->customerId, $id);
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->service->orgunits->get($this->customerId, $id);
     }
 
-    public function setAttributes($values) {
+    public function setAttributes($values)
+    {
         foreach ($values as $key => $value) {
             $this->setAttribute($key, $value);
         }
@@ -86,35 +93,43 @@ class Organization
         }
     }
 
-    private function setBlockInheritance($value) {
+    private function setBlockInheritance($value)
+    {
         $this->organization->setBlockInheritance($value);
     }
 
-    private function setDescription($value) {
+    private function setDescription($value)
+    {
         $this->organization->setDescription($value);
     }
 
-    private function setEtag($value) {
+    private function setEtag($value)
+    {
         $this->organization->setEtag($value);
     }
 
-    private function setKind($value) {
+    private function setKind($value)
+    {
         $this->organization->setKind($value);
     }
 
-    private function setName($value) {
+    private function setName($value)
+    {
         $this->organization->setName($value);
     }
 
-    private function setOrgUnitId($value) {
+    private function setOrgUnitId($value)
+    {
         $this->organization->setOrgUnitId($value);
     }
 
-    private function setOrgUnitPath($value) {
+    private function setOrgUnitPath($value)
+    {
         $this->organization->setOrgUnitPath($value);
     }
 
-    private function setParentOrgUnitId($value) {
+    private function setParentOrgUnitId($value)
+    {
         if ($value == 'default') {
             $this->organization->setParentOrgUnitPath('/');
         } else {
@@ -122,8 +137,8 @@ class Organization
         }
     }
 
-    private function setParentOrgUnitPath($value) {
+    private function setParentOrgUnitPath($value)
+    {
         $this->organization->setParentOrgUnitPath($value);
     }
-
 }

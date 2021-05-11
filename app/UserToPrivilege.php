@@ -14,7 +14,7 @@ class UserToPrivilege extends Model
     public $timestamps = false;
 
     // belongsTo設定
-    public function getUser()
+    // public function getUser()
     // {
     //     return $this->belongsTo('App\User')->withDefault();
     // }    
@@ -23,6 +23,4 @@ class UserToPrivilege extends Model
     // {
     //     return $this->belongsToMany('App\Privilege')->withDefault();
     // }
-
 }
-

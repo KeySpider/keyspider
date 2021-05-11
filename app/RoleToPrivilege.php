@@ -10,4 +10,3 @@ class RoleToPrivilege extends Model
 
     public $timestamps = false;
 }
-

@@ -41,7 +41,6 @@ class DBImporterFromRDBData
         if ($isSave) {
             return true;
         }
-
         Log::error('Error of insert user to database');
         return false;
     }

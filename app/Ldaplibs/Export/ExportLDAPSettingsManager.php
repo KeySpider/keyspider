@@ -37,7 +37,6 @@ class ExportLDAPSettingsManager extends SettingsManager
      * @param null $iniSettingsFiles
      */
     const LDAP_EXTRACT_PROCESS_CONFIGRATION = 'LDAP Export Process Configration';
-
     const EXTRACT_CONFIG = 'extract_config';
 
     public function __construct($iniSettingsFiles = null)
@@ -56,15 +55,15 @@ class ExportLDAPSettingsManager extends SettingsManager
     {
         $timeArray = [];
         if ($this->areAllExtractIniFilesValid()) {
-
-//echo "in proc =====\n";
+            // echo "in proc =====\n";
             foreach ($this->iniExportSettingsFiles as $iniExportSettingsFile) {
                 $tableContent = parse_ini_file($iniExportSettingsFile, true);
                 $masterDB = $this->masterDBConfigData;
-                $tableContent = $this->convertFollowingDbMaster($tableContent,
+                $tableContent = $this->convertFollowingDbMaster(
+                    $tableContent,
                     self::EXTRACTION_CONDITION,
-                    $masterDB);
-//              $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
+                    $masterDB
+                );
                 foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
                     $filesArray['setting'] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
@@ -73,7 +72,6 @@ class ExportLDAPSettingsManager extends SettingsManager
             ksort($timeArray);
             return $timeArray;
         }
-
         Log::error('Error in Extract INI file');
         return [];
     }
@@ -120,8 +118,8 @@ class ExportLDAPSettingsManager extends SettingsManager
         $rules = [
             self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
             self::EXTRACTION_CONDITION => 'required',
-//            self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
-//            self::OUTPUT_PROCESS_CONVERSION => 'required'
+            // self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
+            // self::OUTPUT_PROCESS_CONVERSION => 'required'
             self::EXTRACTION_LDAP_CONNECTING_CONFIGRATION => 'required',
         ];
 
@@ -187,12 +185,8 @@ class ExportLDAPSettingsManager extends SettingsManager
         $tempIniArray = [];
         $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] =
             $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
-//      $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
-//          'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExtractionTable' => ['required', 'in:User,Role,Organization'],
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-//          'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM'],
-//          'OUTPUT_PROCESS_CONVERSION.output_conversion' => 'required'
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);

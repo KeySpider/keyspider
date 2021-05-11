@@ -1,0 +1,194 @@
+[User]
+User=User
+User.ID = User.ID
+User.Name = User.Name
+User.displayName = User.displayName
+User.mail = User.mail
+User.Password = User.Password
+User.employeeNumber = User.employeeNumber
+User.givenName = User.givenName
+User.surname = User.surname
+User.department = User.department
+User.jobTitle = User.jobTitle
+User.telephone-Number = User.telephone-Number
+User.Facsimile-TelephoneNumber = User.Facsimile-TelephoneNumber
+User.mobile = User.mobile
+User.postalCode = User.postalCode
+User.country = User.country
+User.state = User.state
+User.city = User.city
+User.streetAddress = User.streetAddress
+User.Organization = User.Organization
+User.OfficeLicense = User.OfficeLicense
+User.LockFlag = User.LockFlag
+User.DeleteFlag = User.DeleteFlag
+User.UpdateUserID = User.UpdateUserID
+User.UpdateDate = User.UpdateDate
+User.externalID = User.externalID
+User.externalSFID = User.externalSFID
+User.externalTLID = User.externalTLID
+User.EffectiveDate = User.EffectiveDate
+User.RoleFlag = User.RoleFlag
+User.UpdateFlags = User.UpdateFlags
+
+[Group]
+Group = Group
+Group.ID = Group.ID
+Group.Name = Group.Name
+Group.displayName = Group.displayName
+Group.description = Group.description
+Group.groupTypes = Group.groupTypes
+Group.EffectiveDate = Group.EffectiveDate
+Group.UpdateFlags = Group.UpdateFlags
+Group.DeleteFlag = Group.DeleteFlag
+Group.UpdateDate = Group.UpdateDate
+Group.UpdateUserID = Group.UpdateUserID
+Group.externalID = Group.externalID
+Group.externalSFID = Group.externalSFID
+Group.externalTLID = Group.externalTLID
+
+[Group]
+Group = Group
+Group.ID = Group.ID
+Group.Name = Group.Name
+Group.displayName = Group.displayName
+Group.description = Group.description
+Group.groupTypes = Group.groupTypes
+Group.EffectiveDate = Group.EffectiveDate
+Group.UpdateFlags = Group.UpdateFlags
+Group.DeleteFlag = Group.DeleteFlag
+Group.UpdateDate = Group.UpdateDate
+Group.UpdateUserID = Group.UpdateUserID
+Group.externalID = Group.externalID
+Group.externalSFID = Group.externalSFID
+Group.externalTLID = Group.externalTLID
+
+[Role]
+Role = Role
+Role.ID = Role.ID
+Role.Name = Role.Name
+Role.EffectiveDate = Role.EffectiveDate
+Role.UpdateFlags = Role.UpdateFlags
+Role.UpdateDate = Role.UpdateDate
+Role.UpdateUserID = Role.UpdateUserID
+Role.DeleteFlag = Role.DeleteFlag
+
+[Organization]
+Organization = Organization
+Organization.ID = Organization.ID
+Organization.UpperID = Organization.UpperID
+Organization.Name = Organization.Name
+Organization.UpdateDate = Organization.UpdateDate
+Organization.UpdateUserID = Organization.UpdateUserID
+Organization.EffectiveDate = Organization.EffectiveDate
+Organization.DeleteFlag = Organization.DeleteFlag
+Organization.UpdateFlags = Organization.UpdateFlags
+
+[RoleMap]
+RoleID[] = "g1"
+RoleID[] = "g2"
+RoleID[] = "g3"
+RoleID[] = "g4"
+RoleID[] = "g5"
+
+[UserToGroup]
+UserToGroup = UserToGroup
+UserToGroup.ID = UserToGroup.ID
+UserToGroup.Group_ID = UserToGroup.Group_ID
+UserToGroup.User_ID = UserToGroup.User_ID
+UserToGroup.UpdateDate = UserToGroup.UpdateDate
+UserToGroup.UpdateUserID = UserToGroup.UpdateUserID
+UserToGroup.UpdateFlags = UserToGroup.UpdateFlags
+UserToGroup.DeleteFlag=UserToGroup.DeleteFlag
+
+[UserToRole]
+UserToRole= UserToRole
+UserToRole.ID = UserToRole.ID
+UserToRole.User_ID = UserToRole.User_ID
+UserToRole.Group_ID = UserToRole.Role_ID
+UserToRole.UpdateDate = UserToRole.UpdateDate
+UserToRole.UpdateUserID = UserToRole.UpdateUserID
+UserToRole.UpdateFlags = UserToRole.UpdateFlags
+UserToRole.DeleteFlag = UserToRole.DeleteFlag
+
+[Privilege]
+Privilege = Privilege
+Privilege.ID = Privilege.ID
+Privilege.externalID = Privilege.externalID
+Privilege.externalGWID = Privilege.externalGWID
+Privilege.name = Privilege.name
+Privilege.Key = Privilege.Key
+Privilege.Type = Privilege.Type
+Privilege.displayName = Privilege.displayName
+Privilege.description = Privilege.description
+Privilege.EffectiveDate = Privilege.EffectiveDate
+Privilege.UpdateDate = Privilege.UpdateDate
+Privilege.UpdateUserID = Privilege.UpdateUserID
+Privilege.UpdateFlags = Privilege.UpdateFlags
+Privilege.DeleteFlag = Privilege.DeleteFlag
+
+[UserToPrivilege]
+UserToPrivilege = UserToPrivilege
+UserToPrivilege.ID = UserToPrivilege.ID
+UserToPrivilege.User_ID = UserToPrivilege.User_ID
+UserToPrivilege.Privilege_ID = UserToPrivilege.Privilege_ID
+UserToPrivilege.UpdateDate = UserToPrivilege.UpdateDate
+UserToPrivilege.UpdateUserID = UserToPrivilege.UpdateUserID
+UserToPrivilege.UpdateFlags = UserToPrivilege.UpdateFlags
+UserToPrivilege.DeleteFlag = UserToPrivilege.DeleteFlag
+
+[RoleToPrivilege]
+RoleToPrivilege= RoleToPrivilege
+RoleToPrivilege.ID = RoleToPrivilege.ID
+RoleToPrivilege.Role_ID = RoleToPrivilege.Role_ID
+RoleToPrivilege.Privilege_ID = RoleToPrivilege.Privilege_ID
+UserToPrivilege.UpdateDate = UserToPrivilege.UpdateDate
+UserToPrivilege.UpdateUserID = UserToPrivilege.UpdateUserID
+RoleToPrivilege.UpdateFlags = RoleToPrivilege.UpdateFlags
+RoleToPrivilege.DeleteFlag = RoleToPrivilege.DeleteFlag
+
+[UserToOrganization]
+UserToOrganization = UserToOrganization
+UserToOrganization.ID = UserToOrganization.ID
+UserToOrganization.User_ID = UserToOrganization.User_ID
+UserToOrganization.Organization_ID = UserToOrganization.Organization_ID
+UserToOrganization.UpdateDate = UserToOrganization.UpdateDate
+UserToOrganization.UpdateUserID = UserToOrganization.UpdateUserID
+UserToOrganization.UpdateFlags = UserToOrganization.UpdateFlags
+UserToOrganization.DeleteFlag= UserToOrganization.DeleteFlag
+
+[UserDiffOld]
+UserDiffOld = UserDiffOld
+UserDiffOld.ID = UserDiffOld.ID
+UserDiffOld.jsonColumn = UserDiffOld.jsonColumn
+UserDiffOld.UpdateFlags = UserDiffOld.UpdateFlags
+
+[UserDiffNew]
+UserDiffNew = UserDiffNew
+UserDiffNew.ID = UserDiffNew.ID
+UserDiffNew.jsonColumn = UserDiffNew.jsonColumn
+UserDiffNew.UpdateFlags = UserDiffNew.UpdateFlags
+
+[RoleDiffOld]
+RoleDiffOld = RoleDiffOld
+RoleDiffOld.ID = RoleDiffOld.ID
+RoleDiffOld.jsonColumn = RoleDiffOld.jsonColumn
+RoleDiffOld.UpdateFlags = RoleDiffOld.UpdateFlags
+
+[RoleDiffNew]
+RoleDiffNew = RoleDiffNew
+RoleDiffNew.ID = RoleDiffNew.ID
+RoleDiffNew.jsonColumn = RoleDiffNew.jsonColumn
+RoleDiffNew.UpdateFlags = RoleDiffNew.UpdateFlags
+
+[OrganizationDiffOld]
+OrganizationDiffOld = OrganizationDiffOld
+OrganizationDiffOld.ID = OrganizationDiffOld.ID
+OrganizationDiffOld.jsonColumn = OrganizationDiffOld.jsonColumn
+OrganizationDiffOld.UpdateFlags = OrganizationDiffOld.UpdateFlags
+
+[OrganizationDiffNew]
+OrganizationDiffNew = OrganizationDiffNew
+OrganizationDiffNew.ID = OrganizationDiffNew.ID
+OrganizationDiffNew.jsonColumn = OrganizationDiffNew.jsonColumn
+OrganizationDiffNew.UpdateFlags = OrganizationDiffNew.UpdateFlags

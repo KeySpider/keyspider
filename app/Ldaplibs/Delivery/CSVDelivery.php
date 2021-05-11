@@ -62,6 +62,7 @@ class CSVDelivery implements DataDelivery
         if (!is_dir($deliverySource)) {
             return;
         }
+
         $sourceFiles = scandir($deliverySource);
 
         foreach ($sourceFiles as $sourceFile) {
@@ -126,17 +127,14 @@ class CSVDelivery implements DataDelivery
     private function rowsColumnCSV($fileCSV)
     {
         $rowsColumn = 0;
-
         if (file_exists($fileCSV)) {
             $data = [];
             foreach (file($fileCSV) as $line) {
                 $dataLine = str_getcsv($line);
                 $data[] = $dataLine;
             }
-
             $rowsColumn = count($data);
         }
-
         return $rowsColumn;
     }
 

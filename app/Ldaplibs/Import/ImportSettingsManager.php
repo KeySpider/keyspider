@@ -31,6 +31,7 @@ class ImportSettingsManager extends SettingsManager
      * define const
      */
     public const CSV_IMPORT_PROCESS_CONFIGRATION = 'CSV Import Process Configration';
+
     /**
      * @var array
      */
@@ -43,7 +44,6 @@ class ImportSettingsManager extends SettingsManager
      * @param $iniSettingsFiles
      */
     public const SCIM_INPUT_BACIC_CONFIGURATION = 'SCIM Input Bacic Configuration';
-
     public const SCIM_INPUT_FORMAT_CONVERSION = 'SCIM Input Format Conversion';
 
     public function __construct($iniSettingsFiles = null)
@@ -62,6 +62,7 @@ class ImportSettingsManager extends SettingsManager
             Log::error('Wrong key spider! Do nothing.');
             return [];
         }
+
         $this->iniImportSettingsFiles = $this->keySpider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
 
         $rule = $this->getRuleOfImport();
@@ -73,9 +74,11 @@ class ImportSettingsManager extends SettingsManager
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
                     $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
                 );
+
                 if (count($filesFromPattern) === 0) {
                     continue;
                 }
+
                 $filesArray = [];
                 $filesArray['setting'] = $tableContents;
                 $filesArray['files'] = $filesFromPattern;
@@ -100,7 +103,6 @@ class ImportSettingsManager extends SettingsManager
         }
 
         $master = $this->masterDBConfigData;
-
         $this->allTableSettingsContent = array();
 
         if (!$this->areAllImportIniFilesValid()) {
@@ -113,8 +115,10 @@ class ImportSettingsManager extends SettingsManager
                 Log::error('Can not run import schedule');
                 return [];
             }
+
             // set filename in json file
             $tableContents['IniFileName'] = $iniImportSettingsFile;
+
             // Set destination table in database
             $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ImportTable'];
             $tableNameOutput = $master[(string)$tableNameInput][(string)$tableNameInput];
@@ -125,15 +129,14 @@ class ImportSettingsManager extends SettingsManager
             // Column conversion
             $columnNameConversion = $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
             foreach ($columnNameConversion as $key => $value) {
-                $newKey = array_get($masterDBConversion,$key, null);
+                $newKey = array_get($masterDBConversion, $key, null);
                 if (isset($newKey)) {
                     $columnNameConversion[$newKey] = $value;
-                    if($key!==$newKey)
+                    if ($key !== $newKey)
                         unset($columnNameConversion[$key]);
                 }
             }
             $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
-
             $this->allTableSettingsContent[] = $tableContents;
         }
         return $this->allTableSettingsContent;
@@ -187,7 +190,6 @@ class ImportSettingsManager extends SettingsManager
             $this->logErrorOfValidation($fileName, $validate);
             return false;
         }
-
         // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
         if ($validate === null) {
@@ -208,8 +210,7 @@ class ImportSettingsManager extends SettingsManager
     private function validateBasicConfiguration($iniArray)
     {
         $tempIniArray = [];
-        $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[
-            self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
         $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
         $rules = [
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
@@ -217,11 +218,12 @@ class ImportSettingsManager extends SettingsManager
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
             'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required'
         ];
-        if ($this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']) &&
-            $this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath'])) {
+        if (
+            $this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']) &&
+            $this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath'])
+        ) {
             return Validator::make($tempIniArray, $rules);
         }
-
         Log::error('Double check folders are existed or not');
         Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']);
         Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']);
@@ -239,19 +241,19 @@ class ImportSettingsManager extends SettingsManager
     private function getFilesFromPattern($path, $pattern): array
     {
         $data = [];
-
         $validateFile = ['csv'];
 
         if (is_dir($path)) {
             foreach (scandir($path, SCANDIR_SORT_NONE) as $key => $file) {
                 $ext = pathinfo($file, PATHINFO_EXTENSION);
-                if (in_array($ext, $validateFile, true) &&
-                    preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))) {
+                if (
+                    in_array($ext, $validateFile, true) &&
+                    preg_match("/{$this->removeExt($pattern)}/", $this->removeExt($file))
+                ) {
                     $data[] = "{$path}/{$file}";
                 }
             }
         }
-
         return $data;
     }
 
@@ -264,7 +266,6 @@ class ImportSettingsManager extends SettingsManager
     public function getSCIMImportSettings($filePath): array
     {
         try {
-//            $filePath = array_get($this->keySpider, 'SCIM Input Process Configration')['import_config'][0];
             $iniArray = parse_ini_file($filePath, true);
             $rules = [
                 self::SCIM_INPUT_BACIC_CONFIGURATION => 'required',
@@ -278,7 +279,6 @@ class ImportSettingsManager extends SettingsManager
         } catch (\Exception $exception) {
             Log::error('Key error SCIM import validation');
         }
-
 
         $iniSCIMSettingsArray = [];
         try {
@@ -325,7 +325,6 @@ class ImportSettingsManager extends SettingsManager
         if ($success && isset($parsedArray['exp1'])) {
             return $parsedArray['exp1'];
         }
-
         return $value;
     }
 
@@ -345,9 +344,10 @@ class ImportSettingsManager extends SettingsManager
         } catch (\Exception $e) {
             Log::error($e->getMessage());
         }
+
         //AAA.001 should be 001 (column name)
         $newKeys = array_map(function ($k) {
-            return substr($k, strpos($k, '.')+1);
+            return substr($k, strpos($k, '.') + 1);
         }, array_keys($conversion));
 
         //get standard name from expression.
@@ -392,7 +392,7 @@ class ImportSettingsManager extends SettingsManager
         foreach ($columnNameConversion as $key => $value) {
             if (isset($masterDBConversion[$key])) {
                 $columnNameConversion[$masterDBConversion[$key]] = $value;
-                if($masterDBConversion[$key]!==$key)
+                if ($masterDBConversion[$key] !== $key)
                     unset($columnNameConversion[$key]);
             }
         }

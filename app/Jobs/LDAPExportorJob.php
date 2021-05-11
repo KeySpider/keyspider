@@ -32,6 +32,9 @@ class LDAPExportorJob extends LDAPExportor implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    protected $fileName;
+    private $queueSettings;
+
     /**
      * Create a new job instance.
      *
@@ -40,8 +43,6 @@ class LDAPExportorJob extends LDAPExportor implements ShouldQueue, JobInterface
      */
     public $tries = 5;
     public $timeout = 120;
-    protected $fileName;
-    private $queueSettings;
 
     public function __construct($setting)
     {
@@ -81,7 +82,6 @@ class LDAPExportorJob extends LDAPExportor implements ShouldQueue, JobInterface
         $details['post data'] = $this->dataPost;
         return $details;
     }
-
 
     /**
      * Determine the time at which the job should timeout.

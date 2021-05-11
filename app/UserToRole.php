@@ -28,5 +28,4 @@ class UserToRole extends Model
     // {
     //     return $this->belongsToMany('App\Group')->withDefault();
     // }    
-
 }

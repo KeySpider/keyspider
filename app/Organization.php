@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Log;
 
 class Organization extends Model
 {
-    //
     protected $table = 'Organization';
     protected $primaryKey = "ID";
 
@@ -30,5 +29,4 @@ class Organization extends Model
     {
         return $this->belongsTo('App\Organization', "UpperID")->withDefault();
     }
-
 }

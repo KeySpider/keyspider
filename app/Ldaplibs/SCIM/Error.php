@@ -1,4 +1,5 @@
 <?php
+
 /*******************************************************************************
  * Key Spider
  * Copyright (C) 2019 Key Spider Japan LLC
@@ -51,7 +52,6 @@ class Error implements Jsonable
     public function setErrors($errors)
     {
         $this->errors = $errors;
-
         return $this;
     }
 }

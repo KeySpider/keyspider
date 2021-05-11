@@ -43,7 +43,6 @@ class RDBImportSettingsManager extends SettingsManager
      * @param $iniSettingsFiles
      */
     public const RDB_INPUT_BASIC_CONFIGURATION = 'RDB Input Basic Configuration';
-
     public const RDB_INPUT_FORMAT_CONVERSION = 'RDB Input Format Conversion';
 
     public function __construct($iniSettingsFiles = null)
@@ -115,7 +114,7 @@ class RDBImportSettingsManager extends SettingsManager
             // Set destination table in database
             $tableNameInput = $tableContents[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
 
-           // $masterDBConversion = $master[$tableNameInput];
+            // $masterDBConversion = $master[$tableNameInput];
 
             // Column conversion
             // $columnNameConversion = $tableContents[SettingsManager::RDB_INPUT_FORMAT_CONVERSION];
@@ -210,8 +209,9 @@ class RDBImportSettingsManager extends SettingsManager
         foreach ($columnNameConversion as $key => $value) {
             if (isset($masterDBConversion[$key])) {
                 $columnNameConversion[$masterDBConversion[$key]] = $value;
-                if($masterDBConversion[$key]!==$key)
+                if ($masterDBConversion[$key] !== $key) {
                     unset($columnNameConversion[$key]);
+                }
             }
         }
         $iniRDBSettingsArray[self::RDB_INPUT_FORMAT_CONVERSION] = $columnNameConversion;

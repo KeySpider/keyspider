@@ -146,22 +146,40 @@ class CSVReader implements DataInputReader
                 return;
             }
 
+            // Traceing
+            $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+
             // get data from csv file
             $csv = Reader::createFromPath($fileCSV);
             $stmt = new Statement();
             $records = $stmt->process($csv);
 
+            // Traceing
+            $cmd = 'Start';
+            $message = "";
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+
+            // Traceing
+            $cmd = 'Count --> CSV File';
+            $message = sprintf("Processing %s Object %d records", $nameTable, count($records));
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+
+            $createCount = 0;
+            $updateCount = 0;
+
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
-                if ($nameTable == 'UserToGroup' || 
-                    $nameTable == 'UserToOrganization' || 
-                    $nameTable == 'UserToRole') {
+                if (
+                    $nameTable == 'UserToGroup' ||
+                    $nameTable == 'UserToOrganization' ||
+                    $nameTable == 'UserToRole'
+                ) {
 
                     $aliasTable = str_replace("UserTo", "", $nameTable);
 
                     DB::table($nameTable)
                         ->where('User_ID', $getDataAfterConvert['User_ID'])
-                        ->where($aliasTable.'_ID', $getDataAfterConvert[$aliasTable.'_ID'])
+                        ->where($aliasTable . '_ID', $getDataAfterConvert[$aliasTable . '_ID'])
                         // ->where('DeleteFlag', '0')
                         ->delete();
 
@@ -174,6 +192,8 @@ class CSVReader implements DataInputReader
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert['User_ID']);
+
+                    $createCount++;
                     
                     continue;
                 }
@@ -182,7 +202,7 @@ class CSVReader implements DataInputReader
                 if ($nameTable == 'User') {
                     $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
                     foreach ($getDataAfterConvert as $cl => $item) {
-                        if ( strpos($cl, config('const.ROLE_ID')) !== false ) {
+                        if (strpos($cl, config('const.ROLE_ID')) !== false) {
                             $num = $settingManagement->getRoleFlagX($item, $roleMaps);
                             if ($num !== null) {
                                 $keyValue = sprintf("RoleFlag-%d", $num);
@@ -195,8 +215,7 @@ class CSVReader implements DataInputReader
 
                 if (!empty($getEncryptedFields)) {
                     foreach ($getDataAfterConvert as $cl => $item) {
-                        $tableColumn = $nameTable.'.'.$cl;
-
+                        $tableColumn = $nameTable . '.' . $cl;
                         if (in_array($tableColumn, $getEncryptedFields)) {
                             $getDataAfterConvert[$cl] = $settingManagement->passwordEncrypt($item);
                         }
@@ -218,8 +237,10 @@ class CSVReader implements DataInputReader
                 if ($data) {
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
+                    $updateCount++;
                 } else {
                     DB::table($nameTable)->insert($getDataAfterConvert);
+                    $createCount++;
                 }
             }
 
@@ -229,12 +250,14 @@ class CSVReader implements DataInputReader
             $fileName = $nameTable . "_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . '/' . $fileName);
 
-            if ($nameTable != 'UserToGroup' && 
-                $nameTable != 'UserToOrganization' && 
-                $nameTable != 'UserToRole') {
+            if (
+                $nameTable != 'UserToGroup' &&
+                $nameTable != 'UserToOrganization' &&
+                $nameTable != 'UserToRole'
+            ) {
 
                 $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
-                DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}"=>'0']);
+                DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}" => '0']);
             } else {
                 $this->sanitizeRecord($nameTable);
             }
@@ -257,15 +280,15 @@ class CSVReader implements DataInputReader
             case 'UserToRole':
                 $colmn = 'Role_ID';
                 break;
-        }        
+        }
         $sqlStr = 'DELETE FROM "' . $nameTable . '" t1'
-                . ' WHERE EXISTS(SELECT *'
-                . ' FROM   "' . $nameTable . '" t2'
-                . ' WHERE  t2."User_ID" = t1."User_ID"'
-                . '   AND    t2."' . $colmn . '" = t1."' . $colmn . '"'
-                . '   AND    t2.ctid > t1.ctid );';
+            . ' WHERE EXISTS(SELECT *'
+            . ' FROM   "' . $nameTable . '" t2'
+            . ' WHERE  t2."User_ID" = t1."User_ID"'
+            . '   AND    t2."' . $colmn . '" = t1."' . $colmn . '"'
+            . '   AND    t2.ctid > t1.ctid );';
 
-        DB::statement($sqlStr);        
+        DB::statement($sqlStr);
     }
 
 
@@ -305,20 +328,17 @@ class CSVReader implements DataInputReader
             } elseif ($pattern === '0') {
                 $data[$col] = '0';
             } else {
-                // $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
-
                 // process with regular expressions?
                 $columnName = $regExpManagement->checkRegExpRecord($pattern);
-        
+
                 if (isset($columnName)) {
                     $recValue = $dataLine[strtolower($columnName) - 1];
                     $data[$col] = $regExpManagement->convertDataFollowSetting($pattern, $recValue);
                 } else {
-                $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
+                    $data[$col] = $this->convertDataFollowSetting($pattern, $dataLine);
+                }
             }
         }
-        }
-
         return $data;
     }
 
@@ -353,6 +373,7 @@ class CSVReader implements DataInputReader
                 if ($regx === '\s') {
                     return str_replace(' ', '', $item);
                 }
+
                 if ($regx === '\w') {
                     return strtolower($item);
                 }
@@ -362,11 +383,9 @@ class CSVReader implements DataInputReader
                     return $this->processGroup($str, $group);
                 }
             } else {
-
-                if ( !preg_match("/\((\d+)\)/", $pattern, $matchs) ) {
+                if (!preg_match("/\((\d+)\)/", $pattern, $matchs)) {
                     return $pattern;
                 }
-
             }
         }
     }

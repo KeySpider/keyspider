@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserToOrganization extends Model
 {
-    //
     protected $table = 'UserToOrganization';
     // protected $primaryKey = "ID";
 
@@ -28,5 +27,4 @@ class UserToOrganization extends Model
     // {
     //     return $this->belongsToMany('App\Group')->withDefault();
     // }    
-
 }

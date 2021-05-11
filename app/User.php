@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class User extends Model
 {
-    //
     protected $table = 'User';
     protected $primaryKey = "ID";
 
@@ -22,9 +21,8 @@ class User extends Model
     //belongsTo設定
     public function organization()
     {
-        // return $this->belongsTo('App\Organization', "OrganizationID1", "$primaryKey");
         return $this->belongsTo('App\Organization', "OrganizationID1", "ID")->withDefault();
-    }    
+    }
 
     public function groups()
     {

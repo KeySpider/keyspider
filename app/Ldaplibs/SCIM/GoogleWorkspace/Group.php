@@ -17,35 +17,43 @@ class Group
         $this->group = new Google_Service_Directory_Group();
     }
 
-    public function getGroup() {
+    public function getGroup()
+    {
         return $this->group;
     }
 
-    public function getPrimaryKey($group) {
+    public function getPrimaryKey($group)
+    {
         return $group['id'];
     }
 
-    public function setResource($group) {
+    public function setResource($group)
+    {
         return $this->group = $group;
     }
 
-    public function insert() {
+    public function insert()
+    {
         return $this->service->groups->insert($this->group);
     }
 
-    public function update($id) {
+    public function update($id)
+    {
         return $this->service->groups->update($id, $this->group);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->service->groups->delete($id);
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->service->groups->get($id);
     }
 
-    public function setAttributes($values) {
+    public function setAttributes($values)
+    {
         foreach ($values as $key => $value) {
             $this->setAttribute($key, $value);
         }
@@ -84,40 +92,48 @@ class Group
         }
     }
 
-    private function setAdminCreated($value) {
+    private function setAdminCreated($value)
+    {
         $this->group->setAdminCreated($value);
     }
 
-    private function setAliases($value) {
+    private function setAliases($value)
+    {
         $this->group->setAliases($value);
     }
 
-    private function setDescription($value) {
+    private function setDescription($value)
+    {
         $this->group->setDescription($value);
     }
 
-    private function setDirectMembersCount($value) {
+    private function setDirectMembersCount($value)
+    {
         $this->group->setDirectMembersCount($value);
     }
 
-    private function setEmail($value) {
+    private function setEmail($value)
+    {
         $this->group->setEmail($value);
     }
 
-    private function setEtag($value) {
+    private function setEtag($value)
+    {
         $this->group->setEtag($value);
     }
 
-    private function setKind($value) {
+    private function setKind($value)
+    {
         $this->group->setKind($value);
     }
 
-    private function setName($value) {
+    private function setName($value)
+    {
         $this->group->setName($value);
     }
 
-    private function setNonEditableAliases($value) {
+    private function setNonEditableAliases($value)
+    {
         $this->group->setNonEditableAliases($value);
     }
-
 }

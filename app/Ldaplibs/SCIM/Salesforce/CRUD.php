@@ -2,23 +2,26 @@
 
 namespace App\Ldaplibs\SCIM\Salesforce;
 
+use App\Ldaplibs\SettingsManager;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class CRUD
 {
     protected $instance_url;
     protected $access_token;
+    protected $settingManagement;
 
     public function __construct()
     {
         if (!isset($_SESSION) and !isset($_SESSION['salesforce'])) {
             throw new \Exception('Access Denied', 403);
         }
-
         $this->instance_url = $_SESSION['salesforce']['instance_url'];
         $this->access_token = $_SESSION['salesforce']['access_token'];
+        $this->settingManagement = new SettingsManager();
     }
 
     public function query($query)
@@ -40,52 +43,146 @@ class CRUD
 
     public function create($object, array $data)
     {
+        $camelTableName = ucfirst(strtolower($object));
+        $scimInfo = array(
+            'provisoning' => 'SalesForce',
+            'scimMethod' => 'create',
+            'table' => $camelTableName,
+            'message' => '',
+        );
+
+        if ($camelTableName == 'User') {
+            $scimInfo['itemId'] = $data['Alias'];
+            $scimInfo['itemName'] = sprintf("%s %s", $data['LastName'], $data['FirstName']);
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $data);
+            if (!$isContinueProcessing) {
+                return null;
+            }
+        } else {
+            $scimInfo['itemId'] = $data['Name'];
+            $scimInfo['itemName'] = $data['DeveloperName'];
+        }
+
         $url = "$this->instance_url/services/data/v39.0/sobjects/$object/";
 
         $client = new Client();
 
-        $request = $client->request('POST', $url, [
-            'headers' => [
-                'Authorization' => "OAuth $this->access_token",
-                'Content-type' => 'application/json'
-            ],
-            'json' => $data
-        ]);
+        try {
 
-        $status = $request->getStatusCode();
+            $request = $client->request('POST', $url, [
+                'headers' => [
+                    'Authorization' => "OAuth $this->access_token",
+                    'Content-type' => 'application/json'
+                ],
+                'json' => $data
+            ]);
 
-        if ($status != 201) {
-            die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+            $status = $request->getStatusCode();
+
+            if ($status != 201) {
+                $scimInfo['message'] = $request->getReasonPhrase();
+                $this->settingManagement->faildLogger($scimInfo);
+
+                die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+            }
+
+            $this->settingManagement->detailLogger($scimInfo);
+
+            $response = json_decode($request->getBody(), true);
+            $id = $response["id"];
+
+            return $id;
+        } catch (\Exception $exception) {
+            Log::debug($exception->getMessage());
+
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+            return null;
         }
+    }
 
-        $response = json_decode($request->getBody(), true);
-        $id = $response["id"];
+    private function requiredItemCheck($scimInfo, $item)
+    {
+        $rules = [
+            'Alias' => 'required',
+            'UserName' => ['required', 'email:strict'],
+            'Email' => 'required',
+            'FirstName' => 'required',
+            'LastName' => 'required',
+        ];
 
-        return $id;
+        $validate = Validator::make($item, $rules);
+        if ($validate->fails()) {
+            $reqStr = 'Validation error :';
+            foreach ($validate->getMessageBag()->keys() as $index => $value) {
+                if ($index != 0) {
+                    $reqStr = $reqStr . ',';                    
+                }
+                $reqStr = $reqStr . ' ' . $value;
+            }
+            $scimInfo['message'] = $reqStr;
 
+            $this->settingManagement->validationLogger($scimInfo);
+            return false;
+        }
+        return true;
     }
 
     public function update($object, $id, array $data)
     {
-        $url = "$this->instance_url/services/data/v39.0/sobjects/$object/$id";
+        $camelTableName = ucfirst(strtolower($object));
+        $scimInfo = array(
+            'provisoning' => 'SalesForce',
+            'scimMethod' => 'create',
+            'table' => $camelTableName,
+            'message' => '',
+        );
 
-        $client = new Client();
-
-        $request = $client->request('PATCH', $url, [
-            'headers' => [
-                'Authorization' => "OAuth $this->access_token",
-                'Content-type' => 'application/json'
-            ],
-            'json' => $data
-        ]);
-
-        $status = $request->getStatusCode();
-
-        if ($status != 204) {
-            die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+        if ($camelTableName == 'User') {
+            $scimInfo['itemId'] = $data['Alias'];
+            $scimInfo['itemName'] = sprintf("%s %s", $data['LastName'], $data['FirstName']);
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $data);
+            if (!$isContinueProcessing) {
+                return null;
+            }
+        } else {
+            $scimInfo['itemId'] = $data['Name'];
+            $scimInfo['itemName'] = $data['DeveloperName'];
         }
 
-        return $status;
+        $url = "$this->instance_url/services/data/v39.0/sobjects/$object/$id";
+        
+        $client = new Client();
+
+        try {
+            $request = $client->request('PATCH', $url, [
+                'headers' => [
+                    'Authorization' => "OAuth $this->access_token",
+                    'Content-type' => 'application/json'
+                ],
+                'json' => $data
+            ]);
+
+            $status = $request->getStatusCode();
+
+            if ($status != 204) {
+                $scimInfo['message'] = $request->getReasonPhrase();
+                $this->settingManagement->faildLogger($scimInfo);
+    
+                die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+            }
+
+            $this->settingManagement->detailLogger($scimInfo);
+
+            return $status;
+        
+        } catch (\Exception $exception) {
+            Log::debug($exception->getMessage());
+
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+            return null;
+        }
     }
 
     public function password($object, $id, array $data)
@@ -104,10 +201,9 @@ class CRUD
             ]);
 
             $status = $request->getStatusCode();
-
             return $status;
         } catch (\Exception $e) {
-            if ($e->getCode() == 500 && strpos($e->getMessage(),'invalid repeated password') !== false) {
+            if ($e->getCode() == 500 && strpos($e->getMessage(), 'invalid repeated password') !== false) {
                 // password not changed
             } else {
                 Log::error($e);
@@ -118,22 +214,43 @@ class CRUD
 
     public function delete($object, $id)
     {
+        $scimInfo = array(
+            'provisoning' => 'SalesForce',
+            'scimMethod' => 'delete',
+            'table' => ucfirst(strtolower($object)),
+            'itemId' => $id,
+            'itemName' => '',
+            'message' => '',
+        );
+
         $url = "$this->instance_url/services/data/v39.0/sobjects/$object/$id";
 
         $client = new Client();
-        $request = $client->request('DELETE', $url, [
-            'headers' => [
-                'Authorization' => "OAuth $this->access_token",
-            ]
-        ]);
+        try {
 
-        $status = $request->getStatusCode();
+            $request = $client->request('DELETE', $url, [
+                'headers' => [
+                    'Authorization' => "OAuth $this->access_token",
+                ]
+            ]);
 
-        if ($status != 204) {
-            die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+            $status = $request->getStatusCode();
+
+            if ($status != 204) {
+                $scimInfo['message'] = $request->getReasonPhrase();
+                $this->settingManagement->faildLogger($scimInfo);
+
+                die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
+            }
+
+            return true;
+        } catch (\Exception $exception) {
+            Log::debug($exception->getMessage());
+
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+            return false;
         }
-
-        return true;
     }
 
     public function addMemberToGroup($memberId, $groupId)
@@ -155,17 +272,15 @@ class CRUD
             ]);
 
             $status = $request->getStatusCode();
-
             return $status;
         } catch (\Exception $e) {
-            if ($e->getCode() == 500 && strpos($e->getMessage(),'invalid repeated password') !== false) {
+            if ($e->getCode() == 500 && strpos($e->getMessage(), 'invalid repeated password') !== false) {
                 // password not changed
             } else {
                 Log::error($e);
             }
         }
         return null;
-
     }
 
     public function getResourceDetail($object, $id = null)
@@ -192,7 +307,7 @@ class CRUD
             }
             return json_decode($request->getBody(), true);
         } catch (\Exception $e) {
-            if (strpos($e->getMessage(),'404 Not Found') !== false) {
+            if (strpos($e->getMessage(), '404 Not Found') !== false) {
                 // resource was deleted
             } else {
                 Log::error($exception);
@@ -200,5 +315,4 @@ class CRUD
         }
         return null;
     }
-
 }

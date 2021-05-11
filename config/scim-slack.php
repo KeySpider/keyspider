@@ -18,7 +18,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 return [
-    'createUser' => '{
+   'createUser' => '{
       "schemas":[
           "urn:scim:schemas:core:1.0"
        ],
@@ -73,9 +73,8 @@ return [
        "locale": "ja_JP",
        "groups":[
        ]
-    },
-}',
-'createGroup' => '{
+    }',
+   'createGroup' => '{
   "schemas": [
     "urn:scim:schemas:core:1.0"
   ],
@@ -87,7 +86,7 @@ return [
       "location": ""
   }
 }',
-'patchGroup' => '{
+   'patchGroup' => '{
    "schemas": [
       "urn:scim:schemas:core:1.0"
     ],
@@ -97,7 +96,7 @@ return [
       },      
     ]
   }',
- 'removeGroup' => '{
+   'removeGroup' => '{
    "schemas": [
      "urn:scim:schemas:core:1.0"
    ],
@@ -108,5 +107,4 @@ return [
      },      
    ]
 }'
-  ];
-  
+];

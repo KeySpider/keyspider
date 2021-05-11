@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Export\LDAPExportor;
 use App\Ldaplibs\Export\ExportLDAPSettingsManager;
 use Illuminate\Console\Command;
@@ -28,6 +29,8 @@ use Illuminate\Support\Facades\Log;
 class ExportLDAP extends Command
 {
     public const CONFIGURATION = 'LDAP Import Process Basic Configuration';
+    public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
+
     /**
      * The name and signature of the console command.
      *
@@ -49,19 +52,25 @@ class ExportLDAP extends Command
      */
     public function handle()
     {
-        // Setup schedule for Extract
-        $exportSettingManager = new ExportLDAPSettingsManager();
-        $exportSetting = $exportSettingManager->getRuleOfDataExport();
-        $arrayOfSetting = [];
-        foreach ($exportSetting as $ex) {
-            $arrayOfSetting = array_merge($arrayOfSetting, $ex);
-        }
-        if ($exportSetting) {
-            foreach ($exportSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $this->exportDataForTimeExecution($settingOfTimeExecution);
+        $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
+
+        if (array_key_exists(self::EXPORT_LDAP_CONFIG, $keyspider)) {
+            // Setup schedule for Extract
+            $exportSettingManager = new ExportLDAPSettingsManager();
+            $exportSetting = $exportSettingManager->getRuleOfDataExport();
+            $arrayOfSetting = [];
+            foreach ($exportSetting as $ex) {
+                $arrayOfSetting = array_merge($arrayOfSetting, $ex);
+            }
+            if ($exportSetting) {
+                foreach ($exportSetting as $timeExecutionString => $settingOfTimeExecution) {
+                    $this->exportDataForTimeExecution($settingOfTimeExecution);
+                }
+            } else {
+                Log::error('Can not run export schedule, getting error from config ini files');
             }
         } else {
-            Log::error('Can not run export schedule, getting error from config ini files');
+            Log::Info('nothing to do.');
         }
         return null;
     }

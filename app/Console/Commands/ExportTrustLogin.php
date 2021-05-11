@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
-use App\User;
-use Faker\Factory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class ExportTrustLogin extends Command
 {
+    public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
+
     /**
      * The name and signature of the console command.
      *
@@ -42,19 +43,25 @@ class ExportTrustLogin extends Command
      */
     public function handle()
     {
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager('TL Extract Process Configration');
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        $arrayOfSetting = [];
-        foreach ($extractSetting as $ex) {
-            $arrayOfSetting = array_merge($arrayOfSetting, $ex);
-        }
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $this->exportDataToTrustLoginForTimeExecution($settingOfTimeExecution);
+        $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
+
+        if (array_key_exists(self::EXPORT_TL_CONFIG, $keyspider)) {
+            // Setup schedule for Extract
+            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
+            $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+            $arrayOfSetting = [];
+            foreach ($extractSetting as $ex) {
+                $arrayOfSetting = array_merge($arrayOfSetting, $ex);
+            }
+            if ($extractSetting) {
+                foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                    $this->exportDataToTrustLoginForTimeExecution($settingOfTimeExecution);
+                }
+            } else {
+                Log::error('Can not run export schedule, getting error from config ini files');
             }
         } else {
-            Log::error('Can not run export schedule, getting error from config ini files');
+            Log::Info('nothing to do.');
         }
         return null;
     }
@@ -67,16 +74,4 @@ class ExportTrustLogin extends Command
             $extractor->processExtractToTL();
         }
     }
-
-    // private function updateDomainForUsers(): void
-    // {
-    //     $faker = Factory::create();
-    //     $domain = $faker->domainName;
-    //     $users = User::all();
-    //     foreach ($users as $user) {
-    //         $id = $user->toArray()['ID'];
-    //         $name = "$id@$domain";
-    //         $user->where('ID', $id)->update(['Name' => $name, 'mail' => $name]);
-    //     }
-    // }
 }

@@ -32,6 +32,9 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    protected $fileName;
+    private $queueSettings;
+
     /**
      * Create a new job instance.
      *
@@ -40,8 +43,6 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
      */
     public $tries = 5;
     public $timeout = 120;
-    protected $fileName;
-    private $queueSettings;
 
     public function __construct($dataPost, $setting)
     {
@@ -81,7 +82,6 @@ class DBImporterFromScimJob extends DBImporterFromScimData implements ShouldQueu
         $details['post data'] = $this->dataPost;
         return $details;
     }
-
 
     /**
      * Determine the time at which the job should timeout.

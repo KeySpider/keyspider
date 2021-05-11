@@ -23,6 +23,8 @@ namespace App\Ldaplibs\Import;
 use App\Exceptions\SCIMException;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\UserGraphAPI;
+
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
 use Illuminate\Database\Schema\Blueprint;
@@ -35,14 +37,13 @@ class SCIMReader
     private const SCIM_ENT = 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User';
     private const SCIM_MNG = 'manager';
 
-    private const USER_ENTERPRISE_ATTRS = array (
+    private const USER_ENTERPRISE_ATTRS = array(
         '(department)', '(employeeNumber)',
     );
 
     public function __construct()
     {
         $this->settingImport = new ImportSettingsManager();
-
     }
 
     /** Read file setting
@@ -54,11 +55,9 @@ class SCIMReader
     public function readData($filePath): array
     {
         $data = [];
-
         if (file_exists($filePath)) {
             $data = $this->settingImport->getSCIMImportSettings($filePath);
         }
-
         return $data;
     }
 
@@ -71,14 +70,12 @@ class SCIMReader
     public function getTableName($setting): ?string
     {
         $name = null;
-
         if (is_array($setting) && isset($setting[config('const.scim_input')])) {
             $importTable = $setting[config('const.scim_input')];
             $resourceType = $importTable['ImportTable'];
             $this->updateFlagsColumnName = $this->settingImport->getUpdateFlagsColumnName($resourceType);
             $this->deleteFlagColumnName = $this->settingImport->getDeleteFlagColumnName($resourceType);
             $this->primaryKey = $this->settingImport->getTableKey();
-
             return $importTable['ImportTable'];
         }
     }
@@ -93,7 +90,6 @@ class SCIMReader
     {
         $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
         $columns = [];
-
         foreach ($dataFormat as $key => $item) {
             if ($key !== '' && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
@@ -121,25 +117,25 @@ class SCIMReader
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
-                $keyWithoutTableName = explode('.', $key)[1]??null;
-
+                $keyWithoutTableName = explode('.', $key)[1] ?? null;
                 if ($keyWithoutTableName == config('const.JOB_TITLE')) {
                     $dataCreate = $settingManagement->resetRoleFlagX($dataCreate);
                     $xIndex = $settingManagement->getRoleFlagX($scimValue, $roleMaps);
                     if (!empty($xIndex)) {
-                    $keyValue = sprintf("RoleFlag-%d", $xIndex);
-                    $dataCreate[$keyValue] = '1';
-                }
+                        $keyValue = sprintf("RoleFlag-%d", $xIndex);
+                        $dataCreate[$keyValue] = '1';
+                    }
                 }
 
                 if ($keyWithoutTableName && isset($scimValue)) {
 
                     // if (in_array($scimValue, $getEncryptedFields)) {
                     if (in_array($key, $getEncryptedFields)) {
-                            $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
-                        } else {
-                            $dataCreate[$keyWithoutTableName] = "$scimValue";
-                        }
+                        $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
+                    } else {
+                        $dataCreate[$keyWithoutTableName] = "$scimValue";
+                    }
+
                     //Remove old Key (it's only suitable for Mysql)
                     //Mysql:[User.ID], Postgres:[ID] only
                     unset($key);
@@ -150,7 +146,10 @@ class SCIMReader
             if ($data) {
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
-//                Log::info($dataCreate);
+                // Log::info($dataCreate);
+                $uObjectId = $this->getAzureUserObjectId($dataCreate);
+                $dataCreate['externalID'] = $uObjectId;
+
                 $query = DB::table($nameTable);
                 $query->insert($dataCreate);
                 // Log::info($query->toSql());
@@ -158,9 +157,26 @@ class SCIMReader
 
             return true;
         } catch (\Exception $e) {
-            echo("Import from SCIM failed: $e");
+            echo ("Import from SCIM failed: $e");
             Log::error($e->getMessage());
         }
+    }
+
+    private function getAzureUserObjectId($uObject) {
+        // Get AAD User ObjectID
+        $userGraphAPI = new UserGraphAPI();
+
+        $uID = 'Non-existent-user';
+        $uPN = $uObject['user-PrincipalName'];
+
+        $aadUser = $userGraphAPI->getUserDetail($uID, $uPN);
+        // change object to array
+        $aryUser = (array)$aadUser;
+        // split key and value
+        foreach ($aryUser as $propDict => $userAttribute) {
+            $uID = $userAttribute['id'];
+        }
+        return $uID;
     }
 
     private function getValueFromScimFormat($value, $dataPost)
@@ -190,9 +206,8 @@ class SCIMReader
         if (in_array($value, self::USER_ENTERPRISE_ATTRS)) {
             $entAttr = $dataPost[self::SCIM_ENT];
 
-        $pattern = "/\((.*?)\)/";
+            $pattern = "/\((.*?)\)/";
             preg_match($pattern, $value, $matchedValue);
-
             return $entAttr[$matchedValue[1]];
         }
 
@@ -205,7 +220,6 @@ class SCIMReader
 
         try {
             if ($isMatched) {
-
                 // take a phone number
                 if (strncmp($matchedValue[1], $phoneStr, strlen($phoneStr)) === 0 ) {
                     return $this->getPhoneNumber($matchedValue[1], $dataPost[$phoneStr]);
@@ -322,7 +336,7 @@ class SCIMReader
 
         foreach ($formattedOperations as $operation) {
             //Update user attribute. Replace or Add is both ok.
-            if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))//
+            if (in_array(array_get($operation, 'op'), ["Replace", "Add"])) //
             {
                 // Convert Operation double coat to single coat
                 $operation['path'] = str_replace('"', "'", $operation['path']);
@@ -343,6 +357,7 @@ class SCIMReader
                 }
             }
         }
+
         // Bugfix : UpdateDate and UpdateUserID columns not updated
         $nowString = Carbon::now()->format('Y/m/d');
         $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
@@ -361,8 +376,8 @@ class SCIMReader
         $tableName = $this->getTableName($setting);
         $roleMap = $importSetting->getRoleMapInName();
         $tableKey = $importSetting->getTableKey();
-
         $returnFlag = true;
+
         //TODO: So bad code, but keep it for testing, fix later.
         foreach ($operations as $operation) {
             //Add member to group.
@@ -378,6 +393,7 @@ class SCIMReader
                     }
                 }
             }
+
             //Remove member from group.
             if (array_get($operation, 'op') === 'Remove' and array_get($operation, 'path') === 'members') {
                 $members = $operation['value'];
@@ -410,14 +426,15 @@ class SCIMReader
         Log::info(json_encode($roleMap, JSON_PRETTY_PRINT));
         Log::info("Add [$memberId] to [$groupId]\n\n\n");
         $setValues = [];
-//        $setValues["RoleID1"] = $groupId;
+        // $setValues["RoleID1"] = $groupId;
         foreach ($roleMap as $index => $role) {
             if ($role['ID'] == $groupId) {
                 $setValues["RoleFlag-$index"] = $isAdd ? 1 : 0;
                 break;
             }
         }
-        if(count($setValues)) {
+
+        if (count($setValues)) {
             $userRecord = (array)DB::table($tableName)->where($tableKey, $memberId)->get([$this->updateFlagsColumnName])->toArray()[0];
             $updateFlags = json_decode($userRecord[$this->updateFlagsColumnName], true);
             array_walk($updateFlags, function (&$value) {
@@ -426,8 +443,7 @@ class SCIMReader
             $setValues[$this->updateFlagsColumnName] = json_encode($updateFlags);
             DB::table($tableName)->where($tableKey, $memberId)->update($setValues);
             return true;
-        }
-        else{
+        } else {
             return false;
         }
     }
@@ -446,12 +462,12 @@ class SCIMReader
             if (in_array($chkEncField, $getEncryptedFields)) {
                 $setValues[$column] = $settingManagement->passwordEncrypt($value);
             }
-    
-            if ($column === $this->deleteFlagColumnName) {//If this is patch of deleting user, reset all roleFlags to 0
+
+            if ($column === $this->deleteFlagColumnName) { //If this is patch of deleting user, reset all roleFlags to 0
                 $roleFlagColumns = $this->settingImport->getRoleFlags();
                 if ($value === "False" || $value === "1") {
                     $setValues[$column] = 1;
-//                    $setValues[$column] = $value==="False"?1:0;
+                    // $setValues[$column] = $value==="False"?1:0;
                     foreach ($roleFlagColumns as $roleFlagColumn) {
                         $setValues[$roleFlagColumn] = 0;
                     }
@@ -485,22 +501,9 @@ class SCIMReader
                 $shortColumnName = explode('.', $column)[1];
                 $isMatched = preg_match($pattern, $scimFormat, $matchedValue);
                 if ($isMatched) {
-
-                    // //Remove everything between []
-                    // $newKey = preg_replace("/\[[^)]+\]/", "", $matchedValue[1]);
-                    // if (array_key_exists($newKey, $results)) {
-                    //     array_push($results[$newKey], $shortColumnName);
-                    // } else {
-                    //     $results[$newKey] = [$shortColumnName];
-                    // }
-
                         $results[$matchedValue[1]] = [$shortColumnName];
-
-                    
                 }
             }
-
-
         } catch (\Exception $exception) {
             Log::info(json_encode($exception->getMessage()));
             return [];
@@ -514,17 +517,21 @@ class SCIMReader
      */
     private function getFormatedOperationsFromRequest($operations): array
     {
-//New format of operations is no bracket in the path
+        //New format of operations is no bracket in the path
         //This is my smart way to compare with scim ini config
         $formattedOperations = array_map(function ($operation) {
             // $operation['path'] = preg_replace("/\[[^)]+\]/", "", $operation['path']);
             return $operation;
         }, $operations);
+
         //When deleteing user, ignore changing other things.
-        $deleteUserPatch = [
-            'op' => "Replace",
+        $deleteUserPatch =
+            [
+                'op' => "Replace",
                 'path' => "active",
-                'value' => "False"];
+                'value' => "False"
+            ];
+
         foreach ($formattedOperations as $op) {
             if ($op === $deleteUserPatch) {
                 $formattedOperations = [$deleteUserPatch];
@@ -533,5 +540,4 @@ class SCIMReader
         }
         return $formattedOperations;
     }
-
 }

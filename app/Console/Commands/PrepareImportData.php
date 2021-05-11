@@ -42,10 +42,10 @@ class PrepareImportData extends Command
         $destination = storage_path('import_csv');
         echo "Source: $source\n";
         echo "Dest  : $destination\n";
-        if(\File::copyDirectory($source, $destination)){
+
+        if (\File::copyDirectory($source, $destination)) {
             echo "Success\n";
-        }
-        else{
+        } else {
             echo "Failed\n";
         }
     }

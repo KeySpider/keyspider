@@ -58,7 +58,7 @@ class RDBReader
         var_dump($this->prefix . ' is processing now');
 
         // get real config
-        $setting = parse_ini_file(storage_path('ini_configs/import/'.$this->prefix.'InfoRDBImport.ini'), true);
+        $setting = parse_ini_file(storage_path('ini_configs/import/' . $this->prefix . 'InfoRDBImport.ini'), true);
 
         try {
             // Get data from Oracle.
@@ -71,11 +71,11 @@ class RDBReader
             $this->rdbRecords = [];
             DB::connection($conn)->table($table)->orderBy($pkColumn, 'ASC')
                 ->chunk(1000, function ($bulkDatas) use ($conversions, $pkColumn) {
-                foreach ($bulkDatas as $bulkData) {
-                    $array = json_decode(json_encode($bulkData), true);
-                    $this->rdbRecords[] = $this->createWorkFromRdb($pkColumn, $conversions, $array);
-                }
-            });
+                    foreach ($bulkDatas as $bulkData) {
+                        $array = json_decode(json_encode($bulkData), true);
+                        $this->rdbRecords[] = $this->createWorkFromRdb($pkColumn, $conversions, $array);
+                    }
+                });
 
             // Insert record to DiffNew
             $this->insertTodayData('New', $setting, $this->rdbRecords);
@@ -88,13 +88,13 @@ class RDBReader
 
             return true;
         } catch (\Exception $e) {
-            echo("Import from RDB failed: $e\n");
+            echo ("Import from RDB failed: $e\n");
             Log::error($e->getMessage());
             return false;
         }
     }
 
-     /**
+    /**
      * Create work from RDB
      * TODO : Set the required columns
      * 
@@ -121,7 +121,6 @@ class RDBReader
             } elseif ($item === '0') {
                 $fields[$key] = '0';
             } else {
-
                 $itemValue = $item;
 
                 $slow = strtolower($item);
@@ -149,19 +148,20 @@ class RDBReader
                         $slow = strtolower($matches[1]);
                         $fields[$key] = $array[$slow];
                     } else {
-                    $fields[$key] = $itemValue;
+                        $fields[$key] = $itemValue;
+                    }
                 }
             }
-        }
         }
         return $fields;
     }
 
-     /**
+    /**
      * concat sirName + lastName
      * 
      */
-    private function nameJoin($item, $data){
+    private function nameJoin($item, $data)
+    {
         $pattern = '/nameJoin\((.*)\)/';
         preg_match($pattern, $item, $matches);
 
@@ -182,19 +182,20 @@ class RDBReader
      * Import RDB record(s) to kispider
      * 
      */
-    private function insertTodayData($mode, $setting, $records){
+    private function insertTodayData($mode, $setting, $records)
+    {
         $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
         try {
             DB::beginTransaction();
-            DB::statement('ALTER TABLE "'.$table.$mode.'" ALTER COLUMN "jsonColumn" TYPE text;');
-            DB::table($table.$mode)->truncate();
+            DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
+            DB::table($table . $mode)->truncate();
             foreach ($records as $record) {
                 ksort($record);
                 $data = [
                     'ID' => $record['ID'],
                     'jsonColumn' => json_encode($record, JSON_UNESCAPED_UNICODE),
                 ];
-                DB::table($table.$mode)->insert($data);
+                DB::table($table . $mode)->insert($data);
             }
             DB::commit();
         } catch (\Exception $e) {
@@ -203,41 +204,45 @@ class RDBReader
         }
     }
 
-    private function CRUDRecord($setting) {
+    private function CRUDRecord($setting)
+    {
         $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
 
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
 
-        $inserts = DB::table($table."New")->select($table."New.ID")
-            ->leftJoin($table."Old", $table."New.ID", '=', $table."Old.ID")
-            ->whereNull($table."Old.ID")->get();
-            // Intentionally indented
-            if (count($inserts) != 0) {
-                $this->doCudOperation('ins', $setting, $inserts);
-                echo "debug ==== insert (".count($inserts).")\n";
-                Log::info("== ".$this->prefix." import insert record(s) = ".count($inserts));
-            }
+        $inserts = DB::table($table . "New")->select($table . "New.ID")
+            ->leftJoin($table . "Old", $table . "New.ID", '=', $table . "Old.ID")
+            ->whereNull($table . "Old.ID")->get();
 
-        $deletes = DB::table($table."New")->select($table."Old.ID")
-            ->rightJoin($table."Old", $table."New.ID", '=', $table."Old.ID")
-            ->whereNull($table."New.ID")->get();
-            // Intentionally indented
-            if (count($deletes) != 0) {
-                $this->doCudOperation('del', $setting, $deletes);
-                echo "debug ==== delete (".count($deletes).")\n";
-                Log::info("== ".$this->prefix." import delete record(s) = ".count($deletes));
-            }
-    
-        $updates = DB::table($table."New")->select($table."New.ID")
-            ->join($table."Old", $table."New.ID", '=', $table."Old.ID")
-            ->whereColumn($table.'New.jsonColumn', '<>', $table.'Old.jsonColumn')->get();
-            // Intentionally indented
-            if (count($updates) != 0) {
-                $this->doCudOperation('upd', $setting, $updates);
-                echo "debug ==== update (".count($updates).")\n";
-                Log::info("== ".$this->prefix." import update record(s) = ".count($updates));
-            }
+        // Intentionally indented
+        if (count($inserts) != 0) {
+            $this->doCudOperation('ins', $setting, $inserts);
+            echo "debug ==== insert (" . count($inserts) . ")\n";
+            Log::info("== " . $this->prefix . " import insert record(s) = " . count($inserts));
+        }
+
+        $deletes = DB::table($table . "New")->select($table . "Old.ID")
+            ->rightJoin($table . "Old", $table . "New.ID", '=', $table . "Old.ID")
+            ->whereNull($table . "New.ID")->get();
+
+        // Intentionally indented
+        if (count($deletes) != 0) {
+            $this->doCudOperation('del', $setting, $deletes);
+            echo "debug ==== delete (" . count($deletes) . ")\n";
+            Log::info("== " . $this->prefix . " import delete record(s) = " . count($deletes));
+        }
+
+        $updates = DB::table($table . "New")->select($table . "New.ID")
+            ->join($table . "Old", $table . "New.ID", '=', $table . "Old.ID")
+            ->whereColumn($table . 'New.jsonColumn', '<>', $table . 'Old.jsonColumn')->get();
+
+        // Intentionally indented
+        if (count($updates) != 0) {
+            $this->doCudOperation('upd', $setting, $updates);
+            echo "debug ==== update (" . count($updates) . ")\n";
+            Log::info("== " . $this->prefix . " import update record(s) = " . count($updates));
+        }
     }
 
     /**

@@ -27,7 +27,6 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-
 use Adldap\Laravel\Facades\Adldap;
 
 class LDAPExportor
@@ -49,10 +48,16 @@ class LDAPExportor
 
     const GROUP_TYPE_365 = 2;
     const GROUP_TYPE_SECURITY = -2147483646;
-    
+
     protected $setting;
     protected $tableMaster;
     protected $provider;
+
+    protected $settingManagement;
+
+    protected $createCount;
+    protected $updateCount;
+    protected $deleteCount;
 
     /**
      * LDAPExportor constructor.
@@ -64,6 +69,11 @@ class LDAPExportor
         $this->tableMaster = null;
         $this->provider = null;
         $this->regExpManagement = new RegExpsManager();
+        $this->settingManagement = new SettingsManager();
+
+        $this->createCount = 0;
+        $this->updateCount = 0;
+        $this->deleteCount = 0;
     }
 
     public function processExportLDAP4User()
@@ -85,40 +95,57 @@ class LDAPExportor
 
             $query = DB::table($tableMaster);
             $query = $query->where($whereData);
-            $extractedSql = $query->toSql();
 
+            $extractedSql = $query->toSql();
             // Log::info($extractedSql);
+
             $results = $query->get()->toArray();
 
             if ($results) {
-                Log::info("Export to AD from " . $tableMaster . " entry(".count($results).")");
-                echo "Export to AD from " . $tableMaster . " entry(".count($results).")\n";
+                Log::info("Export to AD from " . $tableMaster . " entry(" . count($results) . ")");
+                echo "Export to AD from " . $tableMaster . " entry(" . count($results) . ")\n";
 
+                $this->createCount = 0;
+                $this->updateCount = 0;
+                $this->deleteCount = 0;
+        
                 foreach ($results as $data) {
                     $array = json_decode(json_encode($data), true);
+
                     // Skip because 'cn' cannot be created
                     if (empty($array['Name'])) {
                         if (empty($array['displayName'])) {
-                        $this->setUpdateFlags($array['ID']);
-                        continue;
-                    }
+                            $this->setUpdateFlags($array['ID']);
+                            continue;
+                        }
                     }
 
                     switch ($this->tableMaster) {
-                    case 'User':
-                        $this->exportUserFromKeyspider($array);
-                        break;
-                    // case 'Role':
-                    //     $this->exportRoleFromKeyspider($array);
-                    //     break;
-                    case 'Group':
-                        $this->exportGroupFromKeyspider($array);
-                        break;
-                    case 'Organization':
-                        $this->exportOrganizationUnitFromKeyspider($array);
-                        break;
+                        case 'User':
+                            $this->exportUserFromKeyspider($array);
+                            break;
+                            // case 'Role':
+                            //     $this->exportRoleFromKeyspider($array);
+                            //     break;
+                        case 'Group':
+                            $this->exportGroupFromKeyspider($array);
+                            break;
+                        case 'Organization':
+                            $this->exportOrganizationUnitFromKeyspider($array);
+                            break;
                     }
                 }
+
+                $scimInfo = array(
+                    'provisoning' => 'LDAP',
+                    'table' => $this->tableMaster,
+                    'casesHandle' => count($results),
+                    'createCount' => $this->createCount,
+                    'updateCount' => $this->updateCount,
+                    'deleteCount' => $this->deleteCount,
+                );
+                $settingManagement->summaryLogger($scimInfo);
+    
             }
         } catch (Exception $exception) {
             Log::error($exception);
@@ -140,8 +167,7 @@ class LDAPExportor
 
         $adLdap = new \Adldap\Adldap();
 
-        $config = [  
-//            'hosts'    => [ $ldapHosts ],
+        $config = [
             'hosts'    => explode(',', $ldapHosts),
             'base_dn'  => $LdapBaseDn,
             'username' => $LdapUsername,
@@ -156,7 +182,6 @@ class LDAPExportor
 
         // Add a connection provider to Adldap.
         $adLdap->addProvider($config);
-
         return $adLdap;
     }
 
@@ -195,7 +220,7 @@ class LDAPExportor
             }
         }
         return $whereData;
-    }    
+    }
 
     private function conversionArrayValue($array)
     {
@@ -208,14 +233,14 @@ class LDAPExportor
         $regExpManagement = new RegExpsManager();
 
         $prefixArray = $this->array_key_prefix($array, $this->tableMaster);
-        
+
         $fields = [];
 
         foreach ($conversions as $key => $nameTable) {
             $explodeItem = explode('.', $nameTable);
-            $item = $explodeItem[count($explodeItem) -1];
+            $item = $explodeItem[count($explodeItem) - 1];
 
-            if ($explodeItem[0] == '('.$this->tableMaster){
+            if ($explodeItem[0] == '(' . $this->tableMaster) {
                 $item = $nameTable;
             }
 
@@ -276,6 +301,15 @@ class LDAPExportor
 
             $ldapBaseDn = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
 
+            $scimInfo = array(
+                'provisoning' => 'LDAP',
+                'scimMethod' => 'create',
+                'table' => 'User',
+                'itemId' => $user['ID'],
+                'itemName' => sprintf("%s %s", $user['surname'], $user['givenName']),
+                'message' => '',
+            );
+    
             // Finding a record.
             try {
                 $entry = $this->provider->search()
@@ -294,6 +328,11 @@ class LDAPExportor
                 // disble user
                 if ($user['DeleteFlag'] == '1') {
                     $ldapUser['userAccountControl'] = self::DISABLE_ACCOUNT;
+                    $scimInfo['scimMethod'] = 'delete';
+                    $this->deleteCount++;
+                } else {
+                    $scimInfo['scimMethod'] = 'update';
+                    $this->updateCount++;
                 }
                 $is_success = $entry->update($ldapUser);
             } else {
@@ -303,7 +342,7 @@ class LDAPExportor
                 // $ldapUser['pwdLastSet'] = 0;
 
                 $entry =  $this->provider->make()->user([
-                    'cn'       => $ldapUser['name'],
+                    'cn' => $ldapUser['name'],
                     'userAccountControl' => self::HOLDING_ACCOUNT,
                     // 'userAccountControl' => self::NORMAL_ACCOUNT,
                     // 'pwdLastSet' => 0,
@@ -314,8 +353,10 @@ class LDAPExportor
                 $is_success = $entry->save();
 
                 if ($is_success) {
-                    $is_success = $entry->update($ldapUser);    
+                    $is_success = $entry->update($ldapUser);
                 }
+                $scimInfo['scimMethod'] = 'create';
+                $this->createCount++;
             }
 
             // remove & add memberOf
@@ -335,11 +376,17 @@ class LDAPExportor
                 // User was saved!
                 $this->resetTransferredFlag($user['ID']);
             }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
+            $this->settingManagement->detailLogger($scimInfo);
+
+        } catch (\Adldap\Auth\BindException $exception) {
+            Log::error($exception);
             // There was an issue binding / connecting to the server.
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         } catch (Exception $exception) {
             Log::error($exception);
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
     }
 
@@ -347,9 +394,9 @@ class LDAPExportor
     {
         $table = 'UserToGroup';
         $queries = DB::table($table)
-                    ->select('Group_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '0')->get();
+            ->select('Group_ID')
+            ->where('User_ID', $uid)
+            ->where('DeleteFlag', '0')->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
@@ -358,20 +405,18 @@ class LDAPExportor
 
         $table = 'Group';
         $queries = DB::table($table)
-                    ->select('displayName')
-                    ->whereIn('ID', $groupIds)
-                    ->get();
+            ->select('displayName')
+            ->whereIn('ID', $groupIds)
+            ->get();
 
         $addGroupIDs = [];
-
         foreach ($queries as $key => $value) {
             $cnv = (array)$value;
             foreach ($cnv as $key => $value) {
                 $addGroupIDs[] = $value;
-            }    
+            }
         }
-        return $addGroupIDs; 
-
+        return $addGroupIDs;
     }
 
 
@@ -390,6 +435,15 @@ class LDAPExportor
                 }
             }
 
+            $scimInfo = array(
+                'provisoning' => 'LDAP',
+                'scimMethod' => 'create',
+                'table' => 'Group',
+                'itemId' => $data['ID'],
+                'itemName' => $data['displayName'],
+                'message' => '',
+            );
+
             // Finding a record.
             try {
                 $group = $this->provider->search()->groups()->find($data['displayName']);
@@ -401,21 +455,26 @@ class LDAPExportor
 
             $is_success = false;
             if ($group) {
-               // Update or Delete LDAP entry. Setting a model's attribute.
-                // $is_success = $group->update($ldapGroup);
+                // Update or Delete LDAP entry. Setting a model's attribute.
                 try {
                     $is_success = $group->update($ldapGroup);
+                    $scimInfo['scimMethod'] = 'update';
+                    $this->updateCount++;
                 } catch (Exception $exception) {
                     Log::info($ldapGroup);
                     Log::error($exception);
+
+                    $scimInfo['message'] = $exception->getMessage();
+                    $this->settingManagement->faildLogger($scimInfo);
+        
                     $is_success = false;
                 }
-
                 // disble user
                 if ($data['DeleteFlag'] == '1') {
                     $group->delete();
+                    $scimInfo['scimMethod'] = 'delete';
+                    $this->deleteCount++;
                 }
-
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 $group =  $this->provider->make()->group([
@@ -426,9 +485,16 @@ class LDAPExportor
                 if ($is_success) {
                     try {
                         $is_success = $group->update($ldapGroup);
+                        $scimInfo['scimMethod'] = 'create';
+                        $this->createCount++;
+        
                     } catch (Exception $exception) {
                         Log::info($ldapGroup);
                         Log::error($exception);
+
+                        $scimInfo['message'] = $exception->getMessage();
+                        $this->settingManagement->faildLogger($scimInfo);
+            
                         $is_success = false;
                     }
                 }
@@ -439,11 +505,19 @@ class LDAPExportor
                 // User was saved!
                 $this->resetTransferredFlag($data['ID']);
             }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
+            $this->settingManagement->detailLogger($scimInfo);
+
+        } catch (\Adldap\Auth\BindException $exception) {
+            Log::error($exception);
             // There was an issue binding / connecting to the server.
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
         } catch (Exception $exception) {
             Log::error($exception);
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
         }
     }
 
@@ -465,6 +539,15 @@ class LDAPExportor
             $ldapBasePath = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
             $ldapOu = $this->conversionArrayValue($data);
 
+            $scimInfo = array(
+                'provisoning' => 'LDAP',
+                'scimMethod' => 'create',
+                'table' => 'Organization',
+                'itemId' => $data['ID'],
+                'itemName' => $data['Name'],
+                'message' => '',
+            );
+
             // Finding a record.
             try {
                 $ou = $this->provider->search()->ous()->find($data['Name']);
@@ -476,13 +559,17 @@ class LDAPExportor
 
             $is_success = false;
             if ($ou) {
-               // Update or Delete LDAP entry. Setting a model's attribute.
+                // Update or Delete LDAP entry. Setting a model's attribute.
                 $is_success = $ou->update($ldapOu);
                 // disble ou
                 if ($data['DeleteFlag'] == '1') {
                     $ou->delete();
+                    $scimInfo['scimMethod'] = 'delete';
+                    $this->deleteCount++;
+                } else {
+                    $scimInfo['scimMethod'] = 'update';
+                    $this->updateCount++;
                 }
-
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 $rdn = sprintf("ou=%s,%s", $ldapOu['cn'], $ldapBasePath);
@@ -497,12 +584,20 @@ class LDAPExportor
             if ($is_success) {
                 // User was saved!
                 $this->resetTransferredFlag($data['ID'], true);
+                $scimInfo['scimMethod'] = 'create';
+                $this->createCount++;
             }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
+            $this->settingManagement->detailLogger($scimInfo);
+
+        } catch (\Adldap\Auth\BindException $exception) {
+            Log::error($exception);
             // There was an issue binding / connecting to the server.
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         } catch (Exception $exception) {
             Log::error($exception);
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
     }
 
@@ -524,15 +619,14 @@ class LDAPExportor
             $userRecord = (array)DB::table($itemTable)
                 ->where("ID", $id)
                 ->get(['UpdateFlags'])->toArray()[0];
-    
+
             $updateFlags = json_decode($userRecord['UpdateFlags'], true);
             $updateFlags[$addFlagName] = '0';
             $setValues["UpdateFlags"] = json_encode($updateFlags);
-    
+
             DB::table($itemTable)->where("ID", $id)
                 ->update($setValues);
             DB::commit();
-    
         } catch (Exception $e) {
             DB::rollback();
             Log::error($e);

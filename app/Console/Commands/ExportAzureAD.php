@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use Illuminate\Console\Command;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class ExportAzureAD extends Command
 {
+    public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
     /**
      * The name and signature of the console command.
      *
@@ -40,19 +42,25 @@ class ExportAzureAD extends Command
      */
     public function handle()
     {
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager('Azure Extract Process Configration');
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        $arrayOfSetting = [];
-        foreach ($extractSetting as $ex) {
-            $arrayOfSetting = array_merge($arrayOfSetting, $ex);
-        }
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $this->exportDataForTimeExecution($settingOfTimeExecution);
+        $sections = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
+
+        if (array_key_exists(self::EXPORT_AD_CONFIG, $sections)) {
+            // Setup schedule for Extract
+            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_AD_CONFIG);
+            $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+            $arrayOfSetting = [];
+            foreach ($extractSetting as $ex) {
+                $arrayOfSetting = array_merge($arrayOfSetting, $ex);
+            }
+            if ($extractSetting) {
+                foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                    $this->exportDataForTimeExecution($settingOfTimeExecution);
+                }
+            } else {
+                Log::error('Can not run export schedule, getting error from config ini files');
             }
         } else {
-            Log::error('Can not run export schedule, getting error from config ini files');
+            Log::Info('nothing to do.');
         }
         return null;
     }
@@ -65,5 +73,4 @@ class ExportAzureAD extends Command
             $extractor->processExtractToAD();
         }
     }
-
 }

@@ -38,7 +38,6 @@ class DeliverySettingsManager extends SettingsManager
      * @param null $iniSettingsFiles
      */
     const CSV_OUTPUT_PROCESS_CONFIGRATION = 'CSV Output Process Configration';
-
     const OUTPUT_CONFIG = 'output_config';
 
     public function __construct($iniSettingsFiles = null)
@@ -65,8 +64,7 @@ class DeliverySettingsManager extends SettingsManager
             ksort($timeArray);
             return $timeArray;
         }
-
-        Log::info('Error in Extract INI file');
+        Log::error('Error in Extract INI file');
         return [];
     }
 }

@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Group extends Model
 {
-    //
     protected $table = 'Group';
     protected $primaryKey = "ID";
 
@@ -23,5 +22,5 @@ class Group extends Model
     {
         return $this->belongsToMany('App\User', 'UserToGroup', 'Group_ID', 'User_ID')
             ->withPivot(['User_ID'])->orderBy('User_ID');
-    }    
+    }
 }

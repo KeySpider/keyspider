@@ -13,55 +13,68 @@ class Role
         $this->client = $client;
     }
 
-    public function getRole() {
+    public function getRole()
+    {
         return $this->role;
     }
 
-    public function getPrimaryKey($role) {
+    public function getPrimaryKey($role)
+    {
         return $role->id;
     }
 
-    public function setResource($role) {
+    public function setResource($role)
+    {
         return $this->role = $role;
     }
 
-    public function create() {
+    public function create()
+    {
         return $this->client->createRole($this->role);
     }
 
-    public function update($id) {
+    public function update($id)
+    {
         return $this->client->updateRole($id, $this->role);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->client->deleteRole($id);
     }
 
-    public function get($id) {
+    public function get($id)
+    {
         return $this->client->getRole($id);
     }
 
-    public function getRoleUsers($id) {
+    public function getRoleUsers($id)
+    {
         return $this->client->getRoleUsers($id);
     }
 
-    public function assignUserToRole($id, $userIds) {
+    public function assignUserToRole($id, $userIds)
+    {
         return $this->client->assignUserToRole($id, $userIds);
     }
 
-    public function removeUserFromRole($id, $userIds) {
+    public function removeUserFromRole($id, $userIds)
+    {
         return $this->client->removeUserFromRole($id, $userIds);
     }
 
-    public function getError() {
+    public function getError()
+    {
         return $this->client->getError();
     }
 
-    public function getErrorDescription() {
+    public function getErrorDescription()
+    {
         return $this->client->getErrorDescription();
     }
 
-    public function setAttributes($values) {
+    public function setAttributes($values)
+    {
         foreach ($values as $key => $value) {
             $this->setAttribute($key, $value);
         }
@@ -76,8 +89,8 @@ class Role
         }
     }
 
-    private function setValue($key, $value) {
+    private function setValue($key, $value)
+    {
         $this->role[$key] = $value;
     }
-
 }

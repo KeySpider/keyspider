@@ -7,7 +7,6 @@ use Google_Service_Directory_RoleAssignment;
 
 class RoleAssignment
 {
-
     private $service;
     private $customerId;
 
@@ -17,19 +16,23 @@ class RoleAssignment
         $this->customerId = $customerId;
     }
 
-    public function getRoleAssignment() {
+    public function getRoleAssignment()
+    {
         return $this->roleAssignment;
     }
 
-    public function get($id, $params = array()) {
+    public function get($id, $params = array())
+    {
         return $this->service->roleAssignments->get($this->customerId, $id, $params);
     }
 
-    public function list($params = array()) {
+    public function list($params = array())
+    {
         return $this->service->roleAssignments->listRoleAssignments($this->customerId, $params);
     }
 
-    public function insert($userId, $roleId) {
+    public function insert($userId, $roleId)
+    {
         $roleAssignment = new Google_Service_Directory_RoleAssignment();
         $roleAssignment->setAssignedTo($userId);
         $roleAssignment->setRoleId($roleId);
@@ -37,8 +40,8 @@ class RoleAssignment
         return $this->service->roleAssignments->insert($this->customerId, $roleAssignment);
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         return $this->service->roleAssignments->delete($this->customerId, $id);
     }
-
 }

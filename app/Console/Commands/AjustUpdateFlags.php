@@ -52,15 +52,19 @@ class AjustUpdateFlags extends Command
     private function alterUpdateFlags($nameTable)
     {
         $alterTableName = $nameTable;
-        if ($nameTable == 'UserToGroup' || 
-            $nameTable == 'UserToOrganization' || 
-            $nameTable == 'UserToRole' || 
-            $nameTable == 'UserToPrivilege') {
+        if (
+            $nameTable == 'UserToGroup' ||
+            $nameTable == 'UserToOrganization' ||
+            $nameTable == 'UserToRole' ||
+            $nameTable == 'UserToPrivilege'
+        ) {
             $alterTableName = str_replace('UserTo', '', $nameTable);
         }
 
         $settingManagement = new SettingsManager();
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($alterTableName);
+
+        // set UpdateFlags
         $updateFlagsArray = $settingManagement->getAllExtractionProcessID($alterTableName);
 
         $users = DB::table($nameTable)->get()->toArray();
@@ -71,7 +75,7 @@ class AjustUpdateFlags extends Command
         foreach ($users as $user) {
             $updateFlags = json_decode($user->UpdateFlags, true);
             $keys = array_keys($updateFlags);
-    
+
             foreach ($updateFlagsArray as $processId) {
                 if (!in_array($processId, $keys)) {
                     $updateFlags[$processId] = '1';
@@ -85,5 +89,4 @@ class AjustUpdateFlags extends Command
         Log::info($nameTable . " Changed " . $effectives . " processIDs");
         echo $nameTable . " Changed " . $effectives . " processIDs\n";
     }
-
 }

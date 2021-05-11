@@ -22,7 +22,6 @@ namespace App\Ldaplibs\Delivery;
 
 class SQLDelivery implements DataDelivery
 {
-
     public function format()
     {
         // TODO: Implement format() method.

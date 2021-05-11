@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use Illuminate\Console\Command;
@@ -28,12 +29,15 @@ use Illuminate\Support\Facades\Log;
 class ExportCSV extends Command
 {
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+    public const EXPORT_CSV_CONFIG = 'CSV Extract Process Configration';
+
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
     protected $signature = 'command:export';
+
     /**
      * The console command description.
      *
@@ -49,20 +53,25 @@ class ExportCSV extends Command
      */
     public function handle()
     {
-        // Setup schedule for Extract
-        $extractSettingManager = new ExtractSettingsManager();
-        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
-        $arrayOfSetting = [];
-        foreach ($extractSetting as $ex) {
-            $arrayOfSetting = array_merge($arrayOfSetting, $ex);
-        }
+        $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if ($extractSetting) {
-            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
-                $this->exportDataForTimeExecution($settingOfTimeExecution);
+        if (array_key_exists(self::EXPORT_CSV_CONFIG, $keyspider)) {
+            // Setup schedule for Extract
+            $extractSettingManager = new ExtractSettingsManager();
+            $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+            $arrayOfSetting = [];
+            foreach ($extractSetting as $ex) {
+                $arrayOfSetting = array_merge($arrayOfSetting, $ex);
+            }
+            if ($extractSetting) {
+                foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                    $this->exportDataForTimeExecution($settingOfTimeExecution);
+                }
+            } else {
+                Log::error('Can not run export schedule, getting error from config ini files');
             }
         } else {
-            Log::error('Can not run export schedule, getting error from config ini files');
+            Log::Info('nothing to do.');
         }
         return null;
     }

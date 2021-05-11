@@ -48,21 +48,18 @@ class GroupController extends LaravelController
 
     public function __construct()
     {
-
         $this->path = storage_path('ini_configs/import/RoleInfoSCIMInput.ini');
         $this->settingManagement = new SettingsManager();
         $this->importSetting = new ImportSettingsManager();
-        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config']??[];
-        foreach ($SCIMImportSettingFiles as $file){
+        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config'] ?? [];
+        foreach ($SCIMImportSettingFiles as $file) {
             $fileContent = parse_ini_file($file);
-            if($fileContent['ImportTable']=='Role'){
+            if ($fileContent['ImportTable'] == 'Role') {
                 $this->path = $file;
                 break;
             }
         }
-
         $this->masterDB = $this->importSetting->getTableRole();
-
     }
 
     /**
@@ -72,11 +69,9 @@ class GroupController extends LaravelController
     public function index(Request $request)
     {
         $scimQuery = $request->input('filter', null);
-
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
-
         $sqlQuery = DB::table($this->importSetting->getTableRole());
-//        $sqlQuery->where($columnDeleted, '!=', '1');
+        // $sqlQuery->where($columnDeleted, '!=', '1');
 
         if ($request->has('filter')) {
             if ($scimQuery) {
@@ -87,27 +82,23 @@ class GroupController extends LaravelController
                 $filterValue = null;
             }
             $sqlQuery->where('ID', $filterValue);
-//            $where['003'] = $filterValue;
+            // $where['003'] = $filterValue;
         }
 
         $dataConvert = [];
-
 
         $dataQuery = $sqlQuery->get();
         $sqlString = $sqlQuery->toSql();
 
         if (!empty($dataQuery->toArray())) {
             $importSetting = new ImportSettingsManager();
-
             foreach ($dataQuery as $data) {
                 $dataFormat = $importSetting->formatDBToSCIMStandard((array)$data, $this->path);
                 unset($dataFormat[0]);
                 unset($dataFormat[""]);
-
                 array_push($dataConvert, $dataFormat);
             }
         }
-
 
         $jsonData = [];
 
@@ -123,7 +114,6 @@ class GroupController extends LaravelController
                     ],
                     "members" => $members,
                 ];
-
                 array_push($jsonData, $dataTmp);
             }
         }
@@ -154,13 +144,7 @@ class GroupController extends LaravelController
 
     public function destroy($id, Request $request)
     {
-        // do something
-        // Log::info('-----------------DELETE USER...-----------------');
-        // Log::debug($id);
-        // Log::info('--------------------------------------------------');
-
         $this->checkToResponseErrorGroupNotFound($id);
-
         $this->logicalDeleteGroup($id);
 
         $jsonResponse = [
@@ -242,7 +226,6 @@ class GroupController extends LaravelController
         $input = $this->checkToResponseErrorCase($id, $input);
 
         foreach ($input['Operations'] as $operation) {
-
             $opTask = strtolower(array_get($operation, 'op', null));
             $scimReader = new SCIMReader();
             $options = [
@@ -251,17 +234,19 @@ class GroupController extends LaravelController
             ];
 
             if ($opTask === 'replace') {
-//                $result = $scimReader->updateReplaceSCIM($id, $options);
+                // $result = $scimReader->updateReplaceSCIM($id, $options);
                 $setting = $this->importSetting->getSCIMImportSettings($this->path);
                 $result = $scimReader->updateRsource($id, $input, $setting);
                 if ($result) return $this->response(
-                    [$input['schemas'],
+                    [
+                        $input['schemas'],
                         "meta" => [
                             "resourceType" => "Group"
                         ],
                         'detail' => 'Update Group success'
                     ],
-                    $code = 200);
+                    $code = 200
+                );
             } elseif ($opTask === 'add') {
                 Log::info('Add member');
                 $result = $scimReader->updateMembersOfGroup($id, $input);
@@ -279,22 +264,17 @@ class GroupController extends LaravelController
             }
         }
 
-//        throw (new SCIMException('Update success'))->setCode(200);
+        // throw (new SCIMException('Update success'))->setCode(200);
     }
 
     public function detail($id, Request $request)
     {
-        // do something
-        // Log::info('-----------------DETAIL GROUP...-----------------');
-        // Log::debug($id);
-        // Log::info('--------------------------------------------------');
-
         $columnDeleted = $this->settingManagement->getDeleteFlagColumnName($this->masterDB);
         $keyTable = $this->settingManagement->getTableKey();
 
         $where = [
             "{$keyTable}" => $id,
-//            "{$columnDeleted}" => '0'
+            //            "{$columnDeleted}" => '0'
         ];
         $sqlQuery = DB::table($this->importSetting->getTableRole());
 
@@ -303,6 +283,7 @@ class GroupController extends LaravelController
         }
 
         $dataFormat = [];
+
         if ($dataQuery) {
             $importSetting = new ImportSettingsManager();
             $dataFormat = $importSetting->formatDBToSCIMStandard((array)$dataQuery, $this->path);
@@ -313,6 +294,7 @@ class GroupController extends LaravelController
         }
 
         $jsonData = [];
+
         if (!empty($dataFormat)) {
             $members = $this->getAllMembersBelongedToGroupId($id);
             $jsonData = [
@@ -363,20 +345,18 @@ class GroupController extends LaravelController
         $groupTable = $this->settingManagement->getTableUser();
         $roleColumnIndex = $this->settingManagement->getRoleFlagIDColumnNameFromGroupId($id);
         $tableKey = $this->importSetting->getTableKey();
-        if ($roleColumnIndex!==null) {
+        if ($roleColumnIndex !== null) {
             $roleFlagColumnName = 'RoleFlag-' . (string)$roleColumnIndex;
             //Find all User has RoleFlag Column name equal '1'
             $query = DB::table($groupTable);
             $query->where($roleFlagColumnName, '1');
-//            $query->where($tableKey, $id);
+            //            $query->where($tableKey, $id);
             $membersInDB = $query->get()->toArray();
-//            Set response for each member
+            //            Set response for each member
             foreach ($membersInDB as $member) {
                 $members[] = ["display" => $member->ID, "value" => $member->ID];
             }
-
         }
-
         return $members;
     }
 
@@ -392,7 +372,7 @@ class GroupController extends LaravelController
         $sqlQuery = DB::table($this->importSetting->getTableRole());
         $where = [
             "{$keyTable}" => $id,
-//            "{$columnDeleted}" => '0'
+            //            "{$columnDeleted}" => '0'
         ];
 
         if (is_exits_columns($this->masterDB, $where)) {
@@ -416,6 +396,7 @@ class GroupController extends LaravelController
             $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
             unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
         }
+
         return $input;
     }
 }

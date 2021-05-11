@@ -32,6 +32,9 @@ class DBImporterFromRDBJob extends DBImporterFromRDBData implements ShouldQueue,
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    protected $fileName;
+    private $queueSettings;
+
     /**
      * Create a new job instance.
      *
@@ -40,9 +43,7 @@ class DBImporterFromRDBJob extends DBImporterFromRDBData implements ShouldQueue,
      */
     public $tries = 5;
     public $timeout = 120;
-    protected $fileName;
-    private $queueSettings;
-
+    
     public function __construct($dataPost, $setting)
     {
         parent::__construct($dataPost, $setting);
@@ -81,7 +82,6 @@ class DBImporterFromRDBJob extends DBImporterFromRDBData implements ShouldQueue,
         $details['post data'] = $this->dataPost;
         return $details;
     }
-
 
     /**
      * Determine the time at which the job should timeout.
