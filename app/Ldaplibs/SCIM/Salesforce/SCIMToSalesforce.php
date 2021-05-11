@@ -65,7 +65,7 @@ class SCIMToSalesforce
             foreach ($dataSchema as $key => $value) {
                 if (in_array($key, array_keys($data))) {
                     if ($key == 'Alias') {
-                        $data[$key] = substr($data[$key], 0, 7);
+                        $data[$key] = substr($data[$key], 0, 8);
                     }
                     $dataSchema[$key] = $data[$key];
                 }
