@@ -28,6 +28,7 @@ class ExtractSettingsManager extends SettingsManager
 {
     public const EXTRACTION_PROCESS_FORMAT_CONVERSION = 'Extraction Process Format Conversion';
     public const OUTPUT_PROCESS_CONVERSION = 'Output Process Conversion';
+    public const EXTRACTION_LDAP_CONNECTING_CONFIGRATION = 'Extraction LDAP Connecting Configration';
 
     protected $iniExportSettingsFiles = [];
 
@@ -129,6 +130,7 @@ class ExtractSettingsManager extends SettingsManager
             self::EXTRACTION_CONDITION => 'required',
             self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
             // self::OUTPUT_PROCESS_CONVERSION => 'required'
+            // self::EXTRACTION_LDAP_CONNECTING_CONFIGRATION => 'required',
         ];
 
         $validate = Validator::make($iniArray, $rules);
@@ -149,6 +151,10 @@ class ExtractSettingsManager extends SettingsManager
         }
 
         if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
+            return true;
+        }
+
+        if(!isset($tempIniArray['EXTRACTION_LDAP_CONNECTING_CONFIGRATION'])) {
             return true;
         }
 
@@ -208,7 +214,7 @@ class ExtractSettingsManager extends SettingsManager
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce,RDB'],
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce,LDAP,RDB'],
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);

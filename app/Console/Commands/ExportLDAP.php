@@ -21,14 +21,13 @@
 namespace App\Console\Commands;
 
 use App\Ldaplibs\SettingsManager;
-use App\Ldaplibs\Export\LDAPExportor;
-use App\Ldaplibs\Export\ExportLDAPSettingsManager;
+use App\Ldaplibs\Extract\DBExtractor;
+use App\Ldaplibs\Extract\ExtractSettingsManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class ExportLDAP extends Command
 {
-    public const CONFIGURATION = 'LDAP Import Process Basic Configuration';
     public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
 
     /**
@@ -56,14 +55,14 @@ class ExportLDAP extends Command
 
         if (array_key_exists(self::EXPORT_LDAP_CONFIG, $keyspider)) {
             // Setup schedule for Extract
-            $exportSettingManager = new ExportLDAPSettingsManager();
-            $exportSetting = $exportSettingManager->getRuleOfDataExport();
+            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_LDAP_CONFIG);
+            $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
-            foreach ($exportSetting as $ex) {
+            foreach ($extractSetting as $ex) {
                 $arrayOfSetting = array_merge($arrayOfSetting, $ex);
             }
-            if ($exportSetting) {
-                foreach ($exportSetting as $timeExecutionString => $settingOfTimeExecution) {
+            if ($extractSetting) {
+                foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 }
             } else {
@@ -84,8 +83,8 @@ class ExportLDAP extends Command
     {
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule['setting'];
-            $exportor = new LDAPExportor($setting);
-            $exportor->processExportLDAP4User();
+            $exportor = new DBExtractor($setting);
+            $exportor->processExtractToLDAP();
         }
     }
 }
