@@ -20,6 +20,7 @@
 
 namespace App\Jobs;
 
+use App\Commons\Consts;
 use App\Ldaplibs\Import\DBImporter;
 use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
@@ -79,7 +80,7 @@ class DBImporterJob extends DBImporter implements ShouldQueue, JobInterface
     public function getJobDetails()
     {
         $details = [];
-        $basicSetting = $this->setting['CSV Import Process Basic Configuration'];
+        $basicSetting = $this->setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION];
         $details['File to import'] = $this->fileName;
         $details['File path'] = $basicSetting['FilePath'];
         $details['Processed File Path'] = $basicSetting['ProcessedFilePath'];

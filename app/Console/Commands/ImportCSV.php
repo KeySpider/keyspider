@@ -21,6 +21,7 @@
 namespace App\Console\Commands;
 
 use Exception;
+use App\Commons\Consts;
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Import\ImportQueueManager;
@@ -30,22 +31,19 @@ use Illuminate\Support\Facades\Log;
 
 class ImportCSV extends Command
 {
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-    public const IMPORT_CSV_CONFIG = 'CSV Import Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:import';
+    protected $signature = "command:import";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Reader setting import file and process it';
+    protected $description = "Reader setting import file and process it";
 
     /**
      * Execute the console command.
@@ -57,7 +55,7 @@ class ImportCSV extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::IMPORT_CSV_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::CSV_IMPORT_PROCESS_CONFIGURATION, $keyspider)) {
             $importSettingsManager = new ImportSettingsManager();
             $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
 
@@ -68,10 +66,10 @@ class ImportCSV extends Command
                 }
             } else {
                 echo ("\e[0;31;47mNothing to import!\e[0m\n");
-                Log::error('Can not run import schedule, getting error from config ini files');
+                Log::error("Can not run import schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -79,21 +77,21 @@ class ImportCSV extends Command
     private function importDataForTimeExecution($dataSchedule): void
     {
         foreach ($dataSchedule as $data) {
-            $setting = $data['setting'];
-            $files = $data['files'];
+            $setting = $data["setting"];
+            $files = $data["files"];
 
-            if (!is_dir($setting[self::CONFIGURATION]['FilePath'])) {
+            if (!is_dir($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FilePath"])) {
                 Log::error(
-                    "ImportTable: {$setting[self::CONFIGURATION]['ImportTable']}
-                        FilePath: {$setting[self::CONFIGURATION]['FilePath']} is not available"
+                    "ImportTable: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"]}
+                        FilePath: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FilePath"]} is not available"
                 );
                 break;
             }
 
             if (empty($files)) {
                 echo ("Nothing to import");
-                $infoSetting = json_encode($setting[self::CONFIGURATION], JSON_PRETTY_PRINT);
-                Log::info($infoSetting . ' WITH FILES EMPTY');
+                $infoSetting = json_encode($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION], JSON_PRETTY_PRINT);
+                Log::info($infoSetting . " WITH FILES EMPTY");
             } else {
                 $queue = new ImportQueueManager();
                 foreach ($files as $file) {

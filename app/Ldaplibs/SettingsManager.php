@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs;
 
+use App\Commons\Consts;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,14 +29,9 @@ use RuntimeException;
 
 class SettingsManager
 {
-    public const INI_CONFIGS = 'ini_configs';
-    public const EXTRACTION_CONDITION = 'Extraction Condition';
-    public const CSV_IMPORT_PROCESS_FORMAT_CONVERSION = 'CSV Import Process Format Conversion';
-    public const EXTRACTION_PROCESS_BASIC_CONFIGURATION = 'Extraction Process Basic Configuration';
-    public const CSV_IMPORT_PROCESS_BASIC_CONFIGURATION = 'CSV Import Process Basic Configuration';
-    public const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
-    public const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
-    public const KEYSPIDER_INI = 'KeySpider.ini';
+    private const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
+    private const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
+
     public $iniMasterDBFile;
     public $masterDBConfigData;
     public $generalKeys;
@@ -50,7 +46,7 @@ class SettingsManager
         if (!$this->validateKeySpider()) {
             $this->keySpider = null;
         } elseif ($this->isGeneralSettingsFileValid()) {
-            $this->iniMasterDBFile = $this->keySpider['Master DB Configurtion']['master_db_config'];
+            $this->iniMasterDBFile = $this->keySpider[Consts::MASTER_DB_CONFIGURATION][Consts::MASTER_DB_CONFIG];
             $this->masterDBConfigData = parse_ini_file($this->iniMasterDBFile, true);
         }
     }
@@ -61,7 +57,7 @@ class SettingsManager
     public function getAllConfigsFromKeyspiderIni(Bool $bool = true)
     {
         // 引数として false を渡すとセクション名無しの配列を返します。
-        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI, $bool);
+        $keyspider = parse_ini_file($this->pathIniConfigs . Consts::FILENAME_KEYSPIDER_INI, $bool);
         return $keyspider;
     }
 
@@ -70,8 +66,8 @@ class SettingsManager
      */
     public function getImportConfigsFromKeyspiderIni()
     {
-        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI);
-        return $keyspider['import_config'];
+        $keyspider = parse_ini_file($this->pathIniConfigs . Consts::FILENAME_KEYSPIDER_INI);
+        return $keyspider[Consts::IMPORT_CONFIG];
     }
 
     /**
@@ -79,8 +75,8 @@ class SettingsManager
      */
     public function getExtractConfigsFromKeyspiderIni()
     {
-        $keyspider = parse_ini_file($this->pathIniConfigs . self::KEYSPIDER_INI);
-        return $keyspider['extract_config'];
+        $keyspider = parse_ini_file($this->pathIniConfigs . Consts::FILENAME_KEYSPIDER_INI);
+        return $keyspider[Consts::EXTRACT_CONFIG];
     }
 
     public function setRoleFlags($flags)
@@ -123,9 +119,9 @@ class SettingsManager
             $filesPath = $this->getAllConfigsFromKeyspiderIni(false);
 
             $allFilesInKeySpider = array_merge(
-                $filesPath['import_config'],
-                $filesPath['extract_config'],
-                [$filesPath['master_db_config']]
+                $filesPath[Consts::IMPORT_CONFIG],
+                $filesPath[Consts::EXTRACT_CONFIG],
+                [$filesPath[Consts::MASTER_DB_CONFIG]]
             );
 
             array_walk(
@@ -525,7 +521,7 @@ class SettingsManager
     {
         $extractionProcessIDs = [];
         try {
-            $filePaths = parse_ini_file($this->pathIniConfigs . 'KeySpider.ini')['extract_config'];
+            $filePaths = parse_ini_file($this->pathIniConfigs . 'KeySpider.ini')[Consts::EXTRACT_CONFIG];
 
             foreach ($filePaths as $filePath) {
                 if (is_file($filePath)) {
@@ -608,10 +604,10 @@ class SettingsManager
     public function isExtractSettingsFileValid(): bool
     {
         $pathIniConfigs = config('const.PATH_INI_CONFIGS') . config('const.INI_CONFIGS');
-        $inifilePaths = parse_ini_file($pathIniConfigs . 'KeySpider.ini')['extract_config'];
+        $inifilePaths = parse_ini_file($pathIniConfigs . 'KeySpider.ini')[Consts::EXTRACT_CONFIG];
 
         try {
-            $epbc = 'Extraction Process Basic Configuration';
+            $epbc = Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION;
             foreach ($inifilePaths as $key => $inifilePath) {
                 $inifile = parse_ini_file($inifilePath, true);
                 $validate = Validator::make($inifile, [

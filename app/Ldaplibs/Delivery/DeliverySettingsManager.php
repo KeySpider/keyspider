@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Delivery;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 
@@ -28,22 +29,10 @@ class DeliverySettingsManager extends SettingsManager
     private $iniDeliverySettingsFolder;
     private $iniDeliverySettingsFiles;
 
-    /**
-     * define const
-     */
-    public const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
-
-    /**
-     * DeliverySettingsManager constructor.
-     * @param null $iniSettingsFiles
-     */
-    const CSV_OUTPUT_PROCESS_CONFIGRATION = 'CSV Output Process Configration';
-    const OUTPUT_CONFIG = 'output_config';
-
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct();
-        $this->iniDeliverySettingsFiles = $this->keySpider[self::CSV_OUTPUT_PROCESS_CONFIGRATION][self::OUTPUT_CONFIG];
+        $this->iniDeliverySettingsFiles = $this->keySpider[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::OUTPUT_CONFIG];
     }
 
     /**
@@ -56,15 +45,15 @@ class DeliverySettingsManager extends SettingsManager
         if (true) {
             foreach ($this->iniDeliverySettingsFiles as $iniDeliverySettingsFile) {
                 $tableContent = parse_ini_file($iniDeliverySettingsFile, true);
-                foreach ($tableContent[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                    $filesArray['setting'] = $tableContent;
+                foreach ($tableContent[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+                    $filesArray["setting"] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
                 }
             }
             ksort($timeArray);
             return $timeArray;
         }
-        Log::error('Error in Extract INI file');
+        Log::error("Error in Extract INI file");
         return [];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBExtractorJob;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -51,7 +52,7 @@ class ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'CSV Extract Process Configration';
+        return Consts::CSV_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\Log;
 
 class SCIMToOneLogin
 {
-    const SCIM_CONFIG = 'SCIM Authentication Configuration';
-
     protected $setting;
     private $client;
     private $data;
@@ -23,10 +21,10 @@ class SCIMToOneLogin
      */
     public function __construct($setting)
     {
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['OneLogin Keys'];
-        $clientId = $scimOptions['clientId'];
-        $clientSecret = $scimOptions['clientSecret'];
-        $region = $scimOptions['region'];
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["OneLogin Keys"];
+        $clientId = $scimOptions["clientId"];
+        $clientSecret = $scimOptions["clientSecret"];
+        $region = $scimOptions["region"];
         $this->client = new Client($clientId, $clientSecret, $region);
         $this->settingManagement = new SettingsManager();
     }
@@ -35,9 +33,9 @@ class SCIMToOneLogin
     {
         $item = $this->replaceResource($resourceType, $item);
 
-        if ($resourceType == 'User') {
+        if ($resourceType == "User") {
             $this->data = new User($this->client);
-        } else if ($resourceType == 'Role') {
+        } else if ($resourceType == "Role") {
             $this->data = new Role($this->client);
         }
 
@@ -51,29 +49,29 @@ class SCIMToOneLogin
         );
 
         try {
-            $this->data->setAttributes($item);
-            $result = $this->data->create();
-    
-            if (empty($this->data->getError()) === false) {
-                Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] create was failed.'
-                    . ' reason "' . $this->data->getErrorDescription() . '"');
+        $this->data->setAttributes($item);
+        $result = $this->data->create();
+
+        if (empty($this->data->getError()) === false) {
+            Log::critical("OneLogin::" . $resourceType . " [" . $item["ID"] . "] create was failed."
+                . ' reason "' . $this->data->getErrorDescription() . '"');
 
                 $scimInfo['message'] = $this->data->getErrorDescription();
                 $this->settingManagement->faildLogger($scimInfo);
     
-                return null;
-            }
-    
-            $primary = $this->data->getPrimaryKey($result);
-            if ($resourceType == 'User') {
-                $this->passwordResource($primary, $item);
-                $this->userToRoleFromUser($primary, $item);
-            } else if ($resourceType == 'Role') {
-                $this->userToRoleFromRole($primary, $item);
-            }
+            return null;
+        }
+
+        $primary = $this->data->getPrimaryKey($result);
+        if ($resourceType == "User") {
+            $this->passwordResource($primary, $item);
+            $this->userToRoleFromUser($primary, $item);
+        } else if ($resourceType == "Role") {
+            $this->userToRoleFromRole($primary, $item);
+        }
 
             $this->settingManagement->detailLogger($scimInfo);
-            return $primary;
+        return $primary;
     
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -81,16 +79,16 @@ class SCIMToOneLogin
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     public function updateResource($resourceType, $item)
     {
         $item = $this->replaceResource($resourceType, $item);
 
-        if ($resourceType == 'User') {
+        if ($resourceType == "User") {
             $this->data = new User($this->client);
-        } else if ($resourceType == 'Role') {
+        } else if ($resourceType == "Role") {
             $this->data = new Role($this->client);
         }
 
@@ -105,33 +103,33 @@ class SCIMToOneLogin
 
         try {
             $result = $this->getResourceDetail($item['externalOLID'], $resourceType);
-            if ($result == null) {
-                return null;
-            }
-            $this->data->setResource($result);
-            $this->data->setAttributes($item);
-            $result = $this->data->update($item['externalOLID']);
-    
-            if (empty($this->data->getError()) === false) {
-                Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] update was failed.'
-                    . ' reason "' . $this->data->getErrorDescription() . '"');
+        if ($result == null) {
+            return null;
+        }
+        $this->data->setResource($result);
+        $this->data->setAttributes($item);
+        $result = $this->data->update($item["externalOLID"]);
+
+        if (empty($this->data->getError()) === false) {
+            Log::critical("OneLogin::" . $resourceType . " [" . $item["ID"] . "] update was failed."
+                . ' reason "' . $this->data->getErrorDescription() . '"');
 
                 $scimInfo['message'] = $this->data->getErrorDescription();
                 $this->settingManagement->faildLogger($scimInfo);
     
-                return null;
-            }
-    
-            $primary = $this->data->getPrimaryKey($result);
-            if ($resourceType == 'User') {
-                $this->passwordResource($primary, $item);
-                $this->userToRoleFromUser($primary, $item);
-            } else if ($resourceType == 'Role') {
-                $this->userToRoleFromRole($primary, $item);
-            }
+            return null;
+        }
+
+        $primary = $this->data->getPrimaryKey($result);
+        if ($resourceType == "User") {
+            $this->passwordResource($primary, $item);
+            $this->userToRoleFromUser($primary, $item);
+        } else if ($resourceType == "Role") {
+            $this->userToRoleFromRole($primary, $item);
+        }
 
             $this->settingManagement->detailLogger($scimInfo);
-            return $primary;
+        return $primary;
 
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -139,14 +137,14 @@ class SCIMToOneLogin
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     public function deleteResource($resourceType, $item)
     {
-        if ($resourceType == 'User') {
+        if ($resourceType == "User") {
             $this->data = new User($this->client);
-        } else if ($resourceType == 'Role') {
+        } else if ($resourceType == "Role") {
             $this->data = new Role($this->client);
         }
 
@@ -162,12 +160,12 @@ class SCIMToOneLogin
         try {
             $this->data->delete($item['externalOLID']);
 
-            if (empty($this->data->getError()) === false) {
-                Log::critical('OneLogin::' . $resourceType . ' [' . $item['ID'] . '] delete was failed.'
-                    . ' reason "' . $this->data->getErrorDescription() . '"');
-                return null;
-            }
-    
+        if (empty($this->data->getError()) === false) {
+            Log::critical("OneLogin::" . $resourceType . " [" . $item["ID"] . "] delete was failed."
+                . ' reason "' . $this->data->getErrorDescription() . '"');
+            return null;
+        }
+
             $this->settingManagement->detailLogger($scimInfo);
             return $item['externalOLID'];
     
@@ -177,7 +175,7 @@ class SCIMToOneLogin
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     public function replaceResource($resourceType, $item)
@@ -206,24 +204,24 @@ class SCIMToOneLogin
         );
 
         try {
-            $result = $this->data->get($resourceId);
-            if (empty($this->data->getError()) === false) {
-                Log::critical('OneLogin::' . $resourceType . ' [' . $resourceId . '] was not found.'
-                    . ' reason "' . $this->data->getErrorDescription() . '"');
+        $result = $this->data->get($resourceId);
+        if (empty($this->data->getError()) === false) {
+            Log::critical("OneLogin::" . $resourceType . " [" . $resourceId . "] was not found."
+                . ' reason "' . $this->data->getErrorDescription() . '"');
 
                 $scimInfo['message'] = $this->data->getErrorDescription();
                 $this->settingManagement->faildLogger($scimInfo);
     
-                return null;
-            }
+            return null;
+        }
 
-            if ($resourceType == 'User') {
-                return $result->getUserParams();
-            } else if ($resourceType == 'Role') {
-                return array(
-                    'name' => $result->getName(),
-                );
-            }
+        if ($resourceType == "User") {
+            return $result->getUserParams();
+        } else if ($resourceType == "Role") {
+            return array(
+                "name" => $result->getName(),
+            );
+        }
         
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -231,7 +229,7 @@ class SCIMToOneLogin
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     public function passwordResource($primary, $item)
@@ -247,26 +245,26 @@ class SCIMToOneLogin
 
         try {
             $password = $item['password'];
-            $this->data->password($primary, $password);
-            if (empty($this->data->getError()) === false) {
-                Log::critical('OneLogin::User [' . $item['ID'] . '] password set was failed.'
-                    . ' reason "' . $this->data->getErrorDescription() . '"');
+        $this->data->password($primary, $password);
+        if (empty($this->data->getError()) === false) {
+            Log::critical("OneLogin::User [" . $item["ID"] . "] password set was failed."
+                . ' reason "' . $this->data->getErrorDescription() . '"');
 
                 $scimInfo['message'] = $this->data->getErrorDescription();
                 $this->settingManagement->faildLogger($scimInfo);
-            }
+        }
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
-        }
+    }
     }
 
     public function userToRoleFromUser($primary, $item)
     {
         $reg = new RegExpsManager();
-        $result = $reg->getAttrs('UserToRole', 'User_ID', $item['ID']);
+        $result = $reg->getAttrs("UserToRole", "User_ID", $item["ID"]);
         if (empty($result) === true) {
             return;
         }
@@ -275,13 +273,13 @@ class SCIMToOneLogin
         $addRoleIds = array();
         $deleteRoleIds = array();
         foreach ($result as $value) {
-            $extRoleId = $reg->getAttrFromID('Role', $value['Role_ID'], 'externalOLID');
+            $extRoleId = $reg->getAttrFromID("Role", $value["Role_ID"], "externalOLID");
             if (empty($extRoleId[0]) === true) {
                 continue;
             }
-            if (in_array($extRoleId[0], $assignedRoleIds) === false && $value['DeleteFlag'] == '0') {
+            if (in_array($extRoleId[0], $assignedRoleIds) === false && $value["DeleteFlag"] == "0") {
                 array_push($addRoleIds, (int) $extRoleId[0]);
-            } else if (in_array($extRoleId[0], $assignedRoleIds) === true && $value['DeleteFlag'] == '1') {
+            } else if (in_array($extRoleId[0], $assignedRoleIds) === true && $value["DeleteFlag"] == "1") {
                 array_push($deleteRoleIds, (int) $extRoleId[0]);
             }
         }
@@ -296,29 +294,29 @@ class SCIMToOneLogin
         );
 
         try {
-            if (empty($addRoleIds) === false) {
-                $this->data->assignRoleToUser($primary, $addRoleIds);
-                if (empty($this->data->getError()) === false) {
-                    Log::critical('OneLogin::User [' . $item['ID'] . '] assign role was failed.'
-                        . ' reason "' . $this->data->getErrorDescription() . '"');
+        if (empty($addRoleIds) === false) {
+            $this->data->assignRoleToUser($primary, $addRoleIds);
+            if (empty($this->data->getError()) === false) {
+                Log::critical("OneLogin::User [" . $item["ID"] . "] assign role was failed."
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
 
                     $scimInfo['message'] = $this->data->getErrorDescription();
                     $this->settingManagement->faildLogger($scimInfo);
         
-                }
             }
+        }
 
-            if (empty($deleteRoleIds) === false) {
-                $this->data->removeRoleFromUser($primary, $deleteRoleIds);
-                if (empty($this->data->getError()) === false) {
-                    Log::critical('OneLogin::User [' . $item['ID'] . '] remove role was failed.'
-                        . ' reason "' . $this->data->getErrorDescription() . '"');
+        if (empty($deleteRoleIds) === false) {
+            $this->data->removeRoleFromUser($primary, $deleteRoleIds);
+            if (empty($this->data->getError()) === false) {
+                Log::critical("OneLogin::User [" . $item["ID"] . "] remove role was failed."
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
 
                     $scimInfo['message'] = $this->data->getErrorDescription();
                     $this->settingManagement->faildLogger($scimInfo);
 
-                }
             }
+        }
                 
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -326,14 +324,14 @@ class SCIMToOneLogin
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
-        
+    }
+
     }
 
     public function userToRoleFromRole($primary, $item)
     {
         $reg = new RegExpsManager();
-        $result = $reg->getAttrs('UserToRole', 'Role_ID', $item['ID']);
+        $result = $reg->getAttrs("UserToRole", "Role_ID", $item["ID"]);
         if (empty($result) === true) {
             return;
         }
@@ -349,13 +347,13 @@ class SCIMToOneLogin
         $addUserIds = array();
         $deleteUserIds = array();
         foreach ($result as $value) {
-            $extUserId = $reg->getAttrFromID('User', $value['User_ID'], 'externalOLID');
+            $extUserId = $reg->getAttrFromID("User", $value["User_ID"], "externalOLID");
             if (empty($extUserId[0]) === true) {
                 continue;
             }
-            if (in_array($extUserId[0], $assignedUserIds) === false && $value['DeleteFlag'] == '0') {
+            if (in_array($extUserId[0], $assignedUserIds) === false && $value["DeleteFlag"] == "0") {
                 array_push($addUserIds, (int) $extUserId[0]);
-            } else if (in_array($extUserId[0], $assignedUserIds) === true && $value['DeleteFlag'] == '1') {
+            } else if (in_array($extUserId[0], $assignedUserIds) === true && $value["DeleteFlag"] == "1") {
                 array_push($deleteUserIds, (int) $extUserId[0]);
             }
         }
@@ -370,27 +368,27 @@ class SCIMToOneLogin
         );
 
         try {
-            if (empty($addUserIds) === false) {
-                $this->data->assignUserToRole($primary, $addUserIds);
-                if (empty($this->data->getError()) === false) {
-                    Log::critical('OneLogin::Role [' . $item['ID'] . '] assign user was failed.'
-                        . ' reason "' . $this->data->getErrorDescription() . '"');
+        if (empty($addUserIds) === false) {
+            $this->data->assignUserToRole($primary, $addUserIds);
+            if (empty($this->data->getError()) === false) {
+                Log::critical("OneLogin::Role [" . $item["ID"] . "] assign user was failed."
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
 
                     $scimInfo['message'] = $this->data->getErrorDescription();
                     $this->settingManagement->faildLogger($scimInfo);
-                }
             }
-    
-            if (empty($deleteUserIds) === false) {
-                $this->data->removeUserFromRole($primary, $deleteUserIds);
-                if (empty($this->data->getError()) === false) {
-                    Log::critical('OneLogin::Role [' . $item['ID'] . '] remove role was failed.'
-                        . ' reason "' . $this->data->getErrorDescription() . '"');
+        }
+
+        if (empty($deleteUserIds) === false) {
+            $this->data->removeUserFromRole($primary, $deleteUserIds);
+            if (empty($this->data->getError()) === false) {
+                Log::critical("OneLogin::Role [" . $item["ID"] . "] remove role was failed."
+                    . ' reason "' . $this->data->getErrorDescription() . '"');
 
                     $scimInfo['message'] = $this->data->getErrorDescription();
                     $this->settingManagement->faildLogger($scimInfo);
-                }
             }
+        }
     
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -399,6 +397,6 @@ class SCIMToOneLogin
             $this->settingManagement->faildLogger($scimInfo);
             return null;
 
-        }
     }
+}
 }

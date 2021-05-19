@@ -20,17 +20,16 @@
 
 namespace App\Ldaplibs;
 
+use App\Commons\Consts;
 use App\Jobs\JobInterface;
 use Illuminate\Support\Facades\Log;
 
 class QueueManager
 {
-    public const INI_CONFIGS = 'ini_configs';
-
     public static function getQueueSettings()
     {
-        $queueSettings = parse_ini_file(storage_path('' . self::INI_CONFIGS . '/QueueSettings.ini'), true);
-        return $queueSettings['Queue Settings'];
+        $queueSettings = parse_ini_file(storage_path("" . Consts::INI_CONFIGS_PATH . "/QueueSettings.ini"), true);
+        return $queueSettings["Queue Settings"];
     }
 
     /**
@@ -41,9 +40,9 @@ class QueueManager
     public function push(JobInterface $job): void
     {
         dispatch($job);
-        Log::info('---------------Job logger---------------');
-        Log::info('Job type: ' . $job->getJobName());
-        Log::info('Job details:');
+        Log::info("---------------Job logger---------------");
+        Log::info("Job type: " . $job->getJobName());
+        Log::info("Job details:");
         // Log::info(json_encode($job->getJobDetails(), JSON_PRETTY_PRINT));
     }
 

@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Jobs\DBImporterFromRDBJob;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Import\ImportQueueManager;
@@ -30,23 +31,19 @@ use Illuminate\Support\Facades\DB;
 
 class ImportRDB extends Command
 {
-    public const CONFIGURATION = 'RDB Input Basic Configuration';
-    public const DATABASE_INFO = 'RDB Import Database Configuration';
-    public const IMPORT_RDB_CONFIG = 'RDB Import Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:rdb_import';
+    protected $signature = "command:rdb_import";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Reader setting import Oracle and process it';
+    protected $description = "Reader setting import Oracle and process it";
 
     /**
      * Execute the console command.
@@ -58,7 +55,7 @@ class ImportRDB extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::IMPORT_RDB_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::RDB_IMPORT_PROCESS_CONFIGURATION, $keyspider)) {
             $importSettingsManager = new RDBImportSettingsManager();
             $timeExecutionList = $importSettingsManager->getScheduleImportExecution();
             if ($timeExecutionList) {
@@ -68,10 +65,10 @@ class ImportRDB extends Command
                 }
             } else {
                 echo ("\e[0;31;47mNothing to import!\e[0m\n");
-                Log::error('Can not run import schedule, getting error from config ini files');
+                Log::error("Can not run import schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -79,23 +76,23 @@ class ImportRDB extends Command
     private function importDataForTimeExecution($dataSchedule): void
     {
         foreach ($dataSchedule as $data) {
-            $setting = $data['setting'];
-            $con = $setting[self::DATABASE_INFO]['Connection'];
-            $sql = sprintf("select count(*) as cnt from %s", $setting[self::DATABASE_INFO]['ImportTable']);
+            $setting = $data["setting"];
+            $con = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]["Connection"];
+            $sql = sprintf("select count(*) as cnt from %s", $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]["ImportTable"]);
 
             try {
                 $rows = DB::connection($con)->select($sql);
                 $array = json_decode(json_encode($rows), true);
-                $cnt = (int)$array[0]['cnt'];
+                $cnt = (int)$array[0]["cnt"];
 
                 if ($cnt > 0) {
                     $queue = new ImportQueueManager();
                     //echo ("- Import $cnt records\n");
-                    $dbImporter = new DBImporterFromRDBJob($setting, $file = 'dummy');
+                    $dbImporter = new DBImporterFromRDBJob($setting, $file = "dummy");
                     $queue->push($dbImporter);
                 }
             } catch (Exception $e) {
-                echo 'Error : ',  $e->getMessage(), "\n";
+                echo "Error : ",  $e->getMessage(), "\n";
                 break;
             }
         }

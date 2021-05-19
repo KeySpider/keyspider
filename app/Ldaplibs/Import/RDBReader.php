@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
@@ -32,13 +33,6 @@ use Exception;
 
 class RDBReader
 {
-    /**
-     * define const
-     */
-    public const RDB_IMPORT_DATABASE_CONFIGRATION = 'RDB Import Database Configuration';
-    public const RDB_INPUT_BASIC_CONFIGURATION = 'RDB Input Basic Configuration';
-    public const CONVERSION = 'RDB Input Format Conversion';
-
     protected $prefix;
     protected $rdbRecords;
 
@@ -54,7 +48,7 @@ class RDBReader
      */
     public function importFromRDBData($dataPost, $setting)
     {
-        $this->prefix = $dataPost[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
+        $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['Prefix'];
         var_dump($this->prefix . ' is processing now');
 
         // get real config
@@ -62,10 +56,10 @@ class RDBReader
 
         try {
             // Get data from Oracle.
-            $conn = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['Connection'];
-            $table = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ImportTable'];
-            $pkColumn = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['PrimaryColmn'];
-            $conversions = $setting[self::CONVERSION];
+            $conn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['Connection'];
+            $table = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['ImportTable'];
+            $pkColumn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['PrimaryColmn'];
+            $conversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
             $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
 
             // Initialize
@@ -186,7 +180,7 @@ class RDBReader
      */
     private function insertTodayData($mode, $setting, $records)
     {
-        $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
         try {
             DB::beginTransaction();
             DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
@@ -208,7 +202,7 @@ class RDBReader
 
     private function CRUDRecord($setting)
     {
-        $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
 
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
@@ -253,8 +247,8 @@ class RDBReader
      */
     private function doCudOperation($mode, $setting, $sarray)
     {
-        $diffTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
-        $itemTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
+        $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
+        $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['Prefix'];
         $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]["ExternalID"];
 
         // Sanitize ID array

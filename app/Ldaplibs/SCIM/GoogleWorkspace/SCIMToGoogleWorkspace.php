@@ -2,6 +2,7 @@
 
 namespace App\Ldaplibs\SCIM\GoogleWorkspace;
 
+use App\Commons\Consts;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\SCIM\GoogleWorkspace\Group;
@@ -17,9 +18,6 @@ use Illuminate\Support\Facades\Log;
 
 class SCIMToGoogleWorkspace
 {
-    const SCIM_CONFIG = 'SCIM Authentication Configuration';
-    const JSON_PATH = 'jsons/';
-
     protected $setting;
     private $client;
     private $data;
@@ -38,9 +36,9 @@ class SCIMToGoogleWorkspace
     private function getClient()
     {
         $client = new Client();
-        $client->setAuthConfig(storage_path(self::JSON_PATH . $this->setting[self::SCIM_CONFIG]['credentialJson']));
+        $client->setAuthConfig(storage_path(Consts::JSON_PATH . $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["credentialJson"]));
 
-        $tokenPath = storage_path(self::JSON_PATH . $this->setting[self::SCIM_CONFIG]['tokenJson']);
+        $tokenPath = storage_path(Consts::JSON_PATH . $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["tokenJson"]);
         if (file_exists($tokenPath) === false) {
             throw new Exception("token json file is not found.");
         }
@@ -74,17 +72,17 @@ class SCIMToGoogleWorkspace
         );
 
         try {
-            if ($resourceType == 'User') {
+            if ($resourceType == "User") {
                 // test source
                 return;
                 // $this->data = new User($this->client);
-            } else if ($resourceType == 'Group') {
+            } else if ($resourceType == "Group") {
                 $this->data = new Group($this->client);
-            } else if ($resourceType == 'Organization') {
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Organization") {
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Organization($this->client, $customerId);
-            } else if ($resourceType == 'Role') {
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Role") {
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Role($this->client, $customerId);
             }
 
@@ -92,10 +90,10 @@ class SCIMToGoogleWorkspace
             $result = $this->data->insert();
             if ($result) {
                 $this->settingManagement->detailLogger($scimInfo);
-                return $this->data->getPrimaryKey($result);
+            return $this->data->getPrimaryKey($result);
             }
         } catch (\Exception $exception) {
-            Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] create was failed.');
+            Log::critical("GoogleWorkspace::" . $resourceType . " [" . $item["ID"] . "] create was failed.");
             Log::critical($exception);
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
@@ -118,32 +116,32 @@ class SCIMToGoogleWorkspace
         );
 
         try {
-            if ($resourceType == 'User') {
+            if ($resourceType == "User") {
                 $this->data = new User($this->client);
-            } else if ($resourceType == 'Group') {
+            } else if ($resourceType == "Group") {
                 $this->data = new Group($this->client);
-            } else if ($resourceType == 'Organization') {
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Organization") {
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Organization($this->client, $customerId);
-            } else if ($resourceType == 'Role') {
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Role") {
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Role($this->client, $customerId);
             }
 
-            $result = $this->getResourceDetail($item['externalGWID'], $resourceType);
+            $result = $this->getResourceDetail($item["externalGWID"], $resourceType);
             if ($result == null) {
                 return null;
             }
 
             $this->data->setResource($result);
             $this->data->setAttributes($item);
-            $result = $this->data->update($item['externalGWID']);
+            $result = $this->data->update($item["externalGWID"]);
             if ($result) {
                 $this->settingManagement->detailLogger($scimInfo);
-                return $this->data->getPrimaryKey($result);
+            return $this->data->getPrimaryKey($result);
             }
         } catch (\Exception $exception) {
-            Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] update was failed.');
+            Log::critical("GoogleWorkspace::" . $resourceType . " [" . $item["ID"] . "] update was failed.");
             Log::critical($exception);
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
@@ -164,18 +162,18 @@ class SCIMToGoogleWorkspace
         );
 
         try {
-            if ($resourceType == 'User') {
+            if ($resourceType == "User") {
                 // test source
                 return;
                 // $this->data = new User($this->client);
-            } else if ($resourceType == 'Group') {
+            } else if ($resourceType == "Group") {
                 $this->data = new Group($this->client);
-            } else if ($resourceType == 'Organization') {
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Organization") {
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Organization($this->client, $customerId);
-            } else if ($resourceType == 'Role') {
-                $this->userRole($resourceType, $item['ID'], $item['externalGWID']);
-                $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+            } else if ($resourceType == "Role") {
+                $this->userRole($resourceType, $item["ID"], $item["externalGWID"]);
+                $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Role($this->client, $customerId);
             }
 
@@ -183,7 +181,7 @@ class SCIMToGoogleWorkspace
             $this->settingManagement->detailLogger($scimInfo);
             return $item['externalGWID'];
         } catch (\Exception $exception) {
-            Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] delete was failed.');
+            Log::critical("GoogleWorkspace::" . $resourceType . " [" . $item["ID"] . "] delete was failed.");
             Log::critical($exception);
 
             // TODO：コメント行を変更してください
@@ -253,9 +251,9 @@ class SCIMToGoogleWorkspace
     {
         $this->data = new Member($this->client);
 
-        if ($resourceType == 'User') {
+        if ($resourceType == "User") {
             $result = $this->userGroupByUser($item, $id);
-        } else if ($resourceType == 'Group') {
+        } else if ($resourceType == "Group") {
             $result = $this->userGroupByGroup($item, $id);
         }
     }
@@ -263,18 +261,18 @@ class SCIMToGoogleWorkspace
     public function userGroupByUser($item, $id)
     {
         $reg = new RegExpsManager();
-        $groupIds = $reg->getGroupsInUser($item['ID']);
+        $groupIds = $reg->getGroupsInUser($item["ID"]);
         if (empty($groupIds)) {
             return;
         }
 
         foreach ($groupIds as $groupId) {
-            $extGroupId = $reg->getAttrFromID('Group', $groupId, 'externalGWID');
+            $extGroupId = $reg->getAttrFromID("Group", $groupId, "externalGWID");
             if (empty($extGroupId) || empty($extGroupId[0])) {
                 // skip
                 continue;
             }
-            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($item['ID'], $groupId);
+            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($item["ID"], $groupId);
             $result = $this->hasMember($extGroupId, $id);
             if ($result->getIsMember() != true && $deleteFlag != true) {
                 // add
@@ -289,26 +287,26 @@ class SCIMToGoogleWorkspace
     public function userGroupByGroup($item, $id)
     {
         $reg = new RegExpsManager();
-        $userIds = $reg->getUsersInGroup($item['ID']);
+        $userIds = $reg->getUsersInGroup($item["ID"]);
         if (empty($userIds)) {
             $externalUserIds = array();
         } else {
-            $externalUserIds = $reg->getAttrFromID('User', $userIds, 'externalGWID');
+            $externalUserIds = $reg->getAttrFromID("User", $userIds, "externalGWID");
         }
         $addUserIds = $externalUserIds;
         $deleteUserIds = array();
 
         foreach ($userIds as $userId) {
-            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($userId, $item['ID']);
+            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($userId, $item["ID"]);
             if ($deleteFlag == true) {
-                $externalUserId = $reg->getAttrFromID('User', $userId, 'externalGWID');
+                $externalUserId = $reg->getAttrFromID("User", $userId, "externalGWID");
                 $key = array_search($externalUserId, $addUserIds);
                 unset($addUserIds[$key]);
                 array_push($deleteUserIds, $externalUserId);
             }
         }
 
-        $result = $this->getResourceDetail($id, 'Member');
+        $result = $this->getResourceDetail($id, "Member");
         if ($result != null) {
             foreach ($result->getMembers() as $key => $value) {
                 if (in_array($value->getId(), $externalUserIds) === true) {
@@ -429,9 +427,9 @@ class SCIMToGoogleWorkspace
     public function userRole($resourceType, $id, $externalId)
     {
         $reg = new RegExpsManager();
-        if ($resourceType == 'User') {
+        if ($resourceType == "User") {
             $this->userRoleByUser($resourceType, $id, $externalId);
-        } else if ($resourceType == 'Role') {
+        } else if ($resourceType == "Role") {
             $this->userRoleByRole($resourceType, $id, $externalId);
         }
     }
@@ -439,26 +437,26 @@ class SCIMToGoogleWorkspace
     public function userRoleByUser($resourceType, $id, $externalId)
     {
         $reg = new RegExpsManager();
-        $result = $reg->getAttrs('UserToRole', 'User_ID', $id);
+        $result = $reg->getAttrs("UserToRole", "User_ID", $id);
         if (empty($result)) {
             return;
         }
 
-        $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+        $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
         $roleAssignment = new RoleAssignment($this->client, $customerId);
-        $params = array('userKey' => $externalId);
+        $params = array("userKey" => $externalId);
         $list = (array) $roleAssignment->list($params);
         $items = array();
-        if (isset($list['items']) === true) {
-            foreach ($list['items'] as $item) {
-                array_push($items, ((array) $item)['roleId']);
+        if (isset($list["items"]) === true) {
+            foreach ($list["items"] as $item) {
+                array_push($items, ((array) $item)["roleId"]);
             }
         }
 
         foreach ($result as $value) {
             $roleAssignmentId = null;
-            if ($value['DeleteFlag'] == '0') {
-                $extRoleId = $reg->getAttrFromID('Role', $value['Role_ID'], 'externalGWID');
+            if ($value["DeleteFlag"] == "0") {
+                $extRoleId = $reg->getAttrFromID("Role", $value["Role_ID"], "externalGWID");
                 if (empty($extRoleId) || empty($extRoleId[0])) {
                     continue;
                 }
@@ -498,10 +496,10 @@ class SCIMToGoogleWorkspace
 
                     throw $exception;
                 }
-            } else if (empty($value['Name']) === false && $value['DeleteFlag'] != '0') {
+            } else if (empty($value["Name"]) === false && $value["DeleteFlag"] != "0") {
                 // delete
                 try {
-                    $roleAssignment->delete($value['Name']);
+                    $roleAssignment->delete($value["Name"]);
                 } catch (\Exception $exception) {
                     if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'RoleAssignment not found') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['Name'] . '] RoleAssignment not found.');
@@ -534,10 +532,10 @@ class SCIMToGoogleWorkspace
                 continue;
             }
             DB::beginTransaction();
-            $query = DB::table('UserToRole')
-                ->where('User_ID', $value['User_ID'])
-                ->where('Role_ID', $value['Role_ID'])
-                ->update(['Name' => $roleAssignmentId]);
+            $query = DB::table("UserToRole")
+                ->where("User_ID", $value["User_ID"])
+                ->where("Role_ID", $value["Role_ID"])
+                ->update(["Name" => $roleAssignmentId]);
             DB::commit();
         }
     }
@@ -545,26 +543,26 @@ class SCIMToGoogleWorkspace
     public function userRoleByRole($resourceType, $id, $externalId)
     {
         $reg = new RegExpsManager();
-        $result = $reg->getAttrs('UserToRole', 'Role_ID', $id);
+        $result = $reg->getAttrs("UserToRole", "Role_ID", $id);
         if (empty($result)) {
             return;
         }
 
-        $customerId = $this->setting[self::SCIM_CONFIG]['customerId'];
+        $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
         $roleAssignment = new RoleAssignment($this->client, $customerId);
-        $params = array('roleId' => $externalId);
+        $params = array("roleId" => $externalId);
         $list = (array) $roleAssignment->list($params);
         $items = array();
-        if (isset($list['items']) === true) {
-            foreach ($list['items'] as $item) {
-                array_push($items, ((array) $item)['assignedTo']);
+        if (isset($list["items"]) === true) {
+            foreach ($list["items"] as $item) {
+                array_push($items, ((array) $item)["assignedTo"]);
             }
         }
 
         foreach ($result as $value) {
             $roleAssignmentId = null;
-            if ($value['DeleteFlag'] == '0') {
-                $extUserId = $reg->getAttrFromID('User', $value['User_ID'], 'externalGWID');
+            if ($value["DeleteFlag"] == "0") {
+                $extUserId = $reg->getAttrFromID("User", $value["User_ID"], "externalGWID");
                 if (empty($extUserId) || empty($extUserId[0])) {
                     continue;
                 }
@@ -604,10 +602,10 @@ class SCIMToGoogleWorkspace
                     $this->settingManagement->faildLogger($scimInfo);
                     throw $exception;
                 }
-            } else if (empty($value['Name']) === false && $value['DeleteFlag'] != '0') {
+            } else if (empty($value["Name"]) === false && $value["DeleteFlag"] != "0") {
                 // delete
                 try {
-                    $roleAssignment->delete($value['Name']);
+                    $roleAssignment->delete($value["Name"]);
                 } catch (\Exception $exception) {
                     if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'RoleAssignment not found') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['Name'] . '] RoleAssignment not found.');
@@ -641,10 +639,10 @@ class SCIMToGoogleWorkspace
             }
 
             DB::beginTransaction();
-            $query = DB::table('UserToRole')
-                ->where('User_ID', $value['User_ID'])
-                ->where('Role_ID', $value['Role_ID'])
-                ->update(['Name' => $roleAssignmentId]);
+            $query = DB::table("UserToRole")
+                ->where("User_ID", $value["User_ID"])
+                ->where("Role_ID", $value["Role_ID"])
+                ->update(["Name" => $roleAssignmentId]);
             DB::commit();
         }
     }

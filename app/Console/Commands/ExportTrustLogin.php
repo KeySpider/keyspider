@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -10,21 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class ExportTrustLogin extends Command
 {
-    public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:export_tl';
+    protected $signature = "command:export_tl";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = "Command description";
 
     /**
      * Create a new command instance.
@@ -45,9 +44,9 @@ class ExportTrustLogin extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::EXPORT_TL_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::TL_EXTRACT_PROCESS_CONFIGURATION, $keyspider)) {
             // Setup schedule for Extract
-            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_TL_CONFIG);
+            $extractSettingManager = new ExtractSettingsManager(Consts::TL_EXTRACT_PROCESS_CONFIGURATION);
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
             foreach ($extractSetting as $ex) {
@@ -58,10 +57,10 @@ class ExportTrustLogin extends Command
                     $this->exportDataToTrustLoginForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run export schedule, getting error from config ini files');
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -69,7 +68,7 @@ class ExportTrustLogin extends Command
     public function exportDataToTrustLoginForTimeExecution($settings)
     {
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
             $extractor->processExtractToTL();
         }

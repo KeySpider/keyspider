@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToTLExtractorJob;
 
 class ExportTLScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportTLScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'TL Extract Process Configration';
+        return Consts::TL_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

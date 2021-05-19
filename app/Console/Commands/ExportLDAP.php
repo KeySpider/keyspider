@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -28,20 +29,18 @@ use Illuminate\Support\Facades\Log;
 
 class ExportLDAP extends Command
 {
-    public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:export_ldap';
+    protected $signature = "command:export_ldap";
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Reader setting import LDAP and process it';
+    protected $description = "Reader setting import LDAP and process it";
 
     /**
      * Execute the console command.
@@ -53,9 +52,9 @@ class ExportLDAP extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::EXPORT_LDAP_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::LDAP_EXTRACT_PROCESS_CONFIGURATION, $keyspider)) {
             // Setup schedule for Extract
-            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_LDAP_CONFIG);
+            $extractSettingManager = new ExtractSettingsManager(Consts::LDAP_EXTRACT_PROCESS_CONFIGURATION);
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
             foreach ($extractSetting as $ex) {
@@ -66,10 +65,10 @@ class ExportLDAP extends Command
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run export schedule, getting error from config ini files');
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -82,7 +81,7 @@ class ExportLDAP extends Command
     public function exportDataForTimeExecution($settings)
     {
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $exportor = new DBExtractor($setting);
             $exportor->processExtractToLDAP();
         }

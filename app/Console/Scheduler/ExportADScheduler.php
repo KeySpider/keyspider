@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToADExtractorJob;
 
 class ExportADScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportADScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'Azure Extract Process Configration';
+        return Consts::AD_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Commons\Consts;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SCIM\Box\SCIMToBox;
 use App\Ldaplibs\SCIM\GoogleWorkspace\SCIMToGoogleWorkspace;
@@ -43,24 +44,19 @@ class DBExtractor
     /**
      * define const
      */
-    const EXTRACTION_CONDITION = "Extraction Condition";
-    const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
-    const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
-    const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
-    const LDAP_CONFIGRATION = "Extraction LDAP Connecting Configration";
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
     const RDB_CONFIGRATION = "Extraction RDB Connecting Configration";
     const DB_CONNECTION = "database.connections";
 
     // see set attribute value detail
     // https://support.microsoft.com/ja-jp/help/305144/how-to-use-useraccountcontrol-to-manipulate-user-account-properties
-    const NORMAL_ACCOUNT = 544;
-    const DISABLE_ACCOUNT = 514;
-    // const HOLDING_ACCOUNT = 66082;
-    const HOLDING_ACCOUNT = 66050;
+    private const NORMAL_ACCOUNT = 544;
+    private const DISABLE_ACCOUNT = 514;
+    // private const HOLDING_ACCOUNT = 66082;
+    private const HOLDING_ACCOUNT = 66050;
 
-    const GROUP_TYPE_365 = 2;
-    const GROUP_TYPE_SECURITY = -2147483646;
+    private const GROUP_TYPE_365 = 2;
+    private const GROUP_TYPE_SECURITY = -2147483646;
 
     protected $setting;
     protected $regExpManagement;
@@ -102,9 +98,9 @@ class DBExtractor
                 continue;
             }
 
-            preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            preg_match("/\((\w+)\.(.*)\)/", $value, $matches, PREG_OFFSET_CAPTURE, 0);
 
-            if (strpos($value, 'ELOQ') !== false) {
+            if (strpos($value, "ELOQ") !== false) {
                 continue;
             }
 
@@ -128,11 +124,11 @@ class DBExtractor
             DB::beginTransaction();
 
             $results = null;
-            $dataType = 'csv';
+            $dataType = "csv";
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
 
             // Configuration file validation
@@ -145,13 +141,13 @@ class DBExtractor
 
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
 
             $realFormatConvention = [];
             foreach ($formatConvention as $idx => $dbColumn) {
                 $regColumnName = $this->regExpManagement->checkRegExpRecord($dbColumn);
                 if (isset($regColumnName)) {
-                    $realFormatConvention[] = '(' . $table . '.' . $regColumnName . ')';
+                    $realFormatConvention[] = "(" . $table . "." . $regColumnName . ")";
                 } else {
                     $realFormatConvention[] = $dbColumn;
                 }
@@ -178,12 +174,12 @@ class DBExtractor
 
             if ($results) {
                 // Traceing
-                $cmd = 'Start';
+                $cmd = "Start";
                 $message = "";
                 $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
                 //Start to extract
-                $pathOutput = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+                $pathOutput = $setting[Consts::OUTPUT_PROCESS_CONVERSION]["output_conversion"];
                 $settingOutput = $this->getContentOutputCSV($pathOutput);
                 $this->processOutputDataExtract($settingOutput, $results, $aliasColumns, $table);
 
@@ -192,10 +188,10 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     // update flag
                     $keyString = $item->{"$primaryKey"};
-                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = '0');
+                    $settingManagement->setUpdateFlags($extractedId, $keyString, $table, $value = "0");
                 }
                 // Traceing
-                $cmd = 'Extract';
+                $cmd = "Extract";
                 $message = sprintf("Extract %s Object Success.", $table);
                 $settingManagement->traceProcessInfo($dbt, $cmd, $message);
             }
@@ -205,17 +201,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'Extract',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "Extract",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             // Traceing
-            $cmd = 'Faild';
+            $cmd = "Faild";
             $message = sprintf("Extract %s Object Faild. %s", $table, $exception->getMessage());
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
         }
@@ -231,9 +227,9 @@ class DBExtractor
         foreach ($extractCondition as $key => &$condition) {
             if (!is_array($condition)) {
                 // Add/Sub EffectiveDate
-                if (strpos((string)$condition, 'TODAY()') !== false) {
+                if (strpos((string)$condition, "TODAY()") !== false) {
                     $condition = $this->regExpManagement->getEffectiveDate($condition);
-                    array_push($whereData, [$key, '<=', $condition]);
+                    array_push($whereData, [$key, "<=", $condition]);
                     continue;
                 }
 
@@ -246,17 +242,17 @@ class DBExtractor
             }
 
             // make standard condition
-            if ($condition === 'TODAY() + 7') {
-                $condition = Carbon::now()->addDay(7)->format('Y/m/d');
-                array_push($whereData, [$key, '<=', $condition]);
+            if ($condition === "TODAY() + 7") {
+                $condition = Carbon::now()->addDay(7)->format("Y/m/d");
+                array_push($whereData, [$key, "<=", $condition]);
             } elseif (is_array($condition)) {
                 // JSON Columns(Use UpdateFlags)
                 foreach ($condition as $keyJson => $valueJson) {
-                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", '=', "{$valueJson}"]);
+                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", "=", "{$valueJson}"]);
                 }
                 continue;
             } else {
-                array_push($whereData, [$key, '=', $condition]);
+                array_push($whereData, [$key, "=", $condition]);
             }
         }
         return $whereData;
@@ -274,9 +270,9 @@ class DBExtractor
         $arrayAliasColumns = [];
 
         foreach ($settingConvention as $key => $value) {
-            if (0 < strpos($value, 'UpperID->')) {
-                $value = explode('->', $value)[0];
-                $value = $value . ')';
+            if (0 < strpos($value, "UpperID->")) {
+                $value = explode("->", $value)[0];
+                $value = $value . ")";
             }
 
             preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
@@ -295,13 +291,13 @@ class DBExtractor
                 continue;
             }
 
-            preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            preg_match("/\((\w+)\.(.*)\)/", $value, $matches, PREG_OFFSET_CAPTURE, 0);
 
             if (count($matches) > 2 && is_array($matches[2])) {
                 $columnName = $matches[2][0];
                 $arrayAliasColumns[] = DB::raw("\"$columnName\" as \"$key\"");
             } else {
-                $isMache = preg_match('/\((.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+                $isMache = preg_match("/\((.*)\)/", $value, $matches, PREG_OFFSET_CAPTURE, 0);
                 if ($isMache) {
                     $value = $matches[1][0];
                 }
@@ -324,12 +320,12 @@ class DBExtractor
         foreach ($settingConvention as $key => $value) {
             $isFormat = preg_match($pattern, $value, $data);
             if ($isFormat) {
-                if (isset($data['exp3'])) {
+                if (isset($data["exp3"])) {
                     if (
-                        in_array($data['exp1'], $allDestinationColumns)
-                        and in_array($data['exp3'], $allDestinationColumns)
+                        in_array($data["exp1"], $allDestinationColumns)
+                        and in_array($data["exp3"], $allDestinationColumns)
                     ) {
-                        $joinConditions[$data['exp1']] = $data['exp3'];
+                        $joinConditions[$data["exp1"]] = $data["exp3"];
                     }
                 }
             }
@@ -378,35 +374,35 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = 'Start';
+            $cmd = "Start";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $tempPath = $settingOutput['TempPath'];
-            $fileName = $settingOutput['FileName'];
+            $tempPath = $settingOutput["TempPath"];
+            $fileName = $settingOutput["FileName"];
 
             $setting = $this->setting;
-            $nameTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $nameProcess = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];            
+            $nameTable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $nameProcess = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];            
 
             $groupDelimiter = null;
-            if ($nameTable == 'User') {
-                $groupDelimiter = $settingOutput['GroupDelimiter'];
+            if ($nameTable == "User") {
+                $groupDelimiter = $settingOutput["GroupDelimiter"];
             }
 
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
 
             ksort($formatConvention);
             mkDirectory($tempPath);
 
             if (is_file("{$tempPath}/$fileName")) {
-                $fileName = $this->removeExt($fileName) . '_' . Carbon::now()->format('Ymd') . rand(100, 999) . '.csv';
+                $fileName = $this->removeExt($fileName) . "_" . Carbon::now()->format("Ymd") . rand(100, 999) . ".csv";
             }
-            $file = fopen(("{$tempPath}/{$fileName}"), 'wb');
+            $file = fopen(("{$tempPath}/{$fileName}"), "wb");
 
             // Traceing
-            $cmd = 'Count';
+            $cmd = "Count";
             $message = sprintf("Processing %s Object %d records", $nameTable, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -419,7 +415,7 @@ class DBExtractor
             foreach ($results as $data) {
                 // Captude primary_key
                 $cnvData = (array)$data;
-                $uid = $cnvData['ID'];
+                $uid = $cnvData["ID"];
                 $data = array_only((array)$data, $selectColumns);
 
                 $dataTmp = [];
@@ -427,10 +423,10 @@ class DBExtractor
                     $line = null;
 
                     if (
-                        $column == 'UserToGroup' ||
-                        $column == 'UserToOrganization' ||
-                        $column == 'UserToRole' ||
-                        $column == 'UserToPrivilege'
+                        $column == "UserToGroup" ||
+                        $column == "UserToOrganization" ||
+                        $column == "UserToRole" ||
+                        $column == "UserToPrivilege"
                     ) {
 
                         $aliasTable = str_replace("UserTo", "", $column);
@@ -457,20 +453,20 @@ class DBExtractor
 
                     if (strpos($column, 'ELOQ;') !== false) {
                         // Get Eloquent string
-                        preg_match('/\(ELOQ;(.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                        preg_match("/\(ELOQ;(.*)\)/", $column, $matches, PREG_OFFSET_CAPTURE, 0);
                         $line = $this->regExpManagement->eloquentItem($uid, $matches[1][0]);
                         array_push($dataTmp, $line);
                         continue;
                     } else {
-                        if (strpos($column, 'TODAY()') !== false) {
+                        if (strpos($column, "TODAY()") !== false) {
                             $line = $this->regExpManagement->getEffectiveDate($column);
                         } else {
-                            $isMache = preg_match('/\((\w+)\.(.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                            $isMache = preg_match("/\((\w+)\.(.*)\)/", $column, $matches, PREG_OFFSET_CAPTURE, 0);
                             if ($isMache) {
                                 $column = $matches[2][0];
                                 $line = $data[$column];
                             } else {
-                                $isMache = preg_match('/\((.*)\)/', $column, $matches, PREG_OFFSET_CAPTURE, 0);
+                                $isMache = preg_match("/\((.*)\)/", $column, $matches, PREG_OFFSET_CAPTURE, 0);
                                 if ($isMache) {
                                     $line = $matches[1][0];
                                 } else {
@@ -480,33 +476,33 @@ class DBExtractor
                         }
                     }
 
-                    $twColumn = $nameTable . '.' . $column;
+                    $twColumn = $nameTable . "." . $column;
                     if (in_array($twColumn, $getEncryptedFields)) {
                         $line = $settingManagement->passwordDecrypt($line);
                     }
 
-                    if (strpos($column, config('const.ROLE_FLAG')) !== false) {
-                        $exp = explode('-', $column);
+                    if (strpos($column, config("const.ROLE_FLAG")) !== false) {
+                        $exp = explode("-", $column);
                         $line = $settingManagement->getRoleFlagInName($roleMaps, $exp[1], $line);
                     }
                     array_push($dataTmp, $line);
                 }
-                fputcsv($file, $dataTmp, ',');
+                fputcsv($file, $dataTmp, ",");
                 $putCount++;
             }
 
             $scimInfo = array(
-                'provisoning' => sprintf("%s (%s)", 'CSV', $nameProcess),
-                'table' => ucfirst(strtolower($nameTable)),
-                'casesHandle' => count($results),
-                'createCount' => $putCount,
-                'updateCount' => 0,
-                'deleteCount' => 0,
+                "provisoning" => sprintf("%s (%s)", "CSV", $nameProcess),
+                "table" => ucfirst(strtolower($nameTable)),
+                "casesHandle" => count($results),
+                "createCount" => $putCount,
+                "updateCount" => 0,
+                "deleteCount" => 0,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = 'Extract';
+            $cmd = "Extract";
             $message = sprintf(
                 "Extract %s Object Success. %d records affected.\n%s",
                 $nameTable,
@@ -520,18 +516,18 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'Extract',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($nameTable)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "Extract",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($nameTable)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             // Traceing
             $faildCnt = count($results) - $putCount;
-            $cmd = 'Faild';
+            $cmd = "Faild";
             $message = sprintf(
                 "Extract %s Object Faild. %d records faild. %s",
                 $nameTable,
@@ -555,16 +551,16 @@ class DBExtractor
             }
 
             switch ($aliasTable) {
-                case 'Group':
+                case "Group":
                     $retValue = $retValue . $eloquent->displayName;
                     break;
-                    // case 'Role':
+                    // case "Role":
                     //     $this->exportRoleFromKeyspider($array);
                     //     break;
-                    // case 'Group':
+                    // case "Group":
                     //     $this->exportGroupFromKeyspider($array);
                     //     break;
-                    // case 'Organization':
+                    // case "Organization":
                     //     $this->exportOrganizationUnitFromKeyspider($array);
                     //     break;
             }
@@ -578,7 +574,7 @@ class DBExtractor
      */
     public function removeExt($file_name)
     {
-        $file = preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+        $file = preg_replace("/\\.[^.\\s]{3,4}$/", "", $file_name);
         return $file;
     }
 
@@ -590,13 +586,13 @@ class DBExtractor
                 $itemValue = $item[$key];
                 $item[$key] = $this->regExpManagement->convertDataFollowSetting($value, $itemValue);
             }
-            if (strpos($value, 'TODAY()') !== false) {
+            if (strpos($value, "TODAY()") !== false) {
                 $item[$key] = $this->regExpManagement->getEffectiveDate($value);
             }
             preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
             if (!empty($matches)) {
                 $item[$key] = $this->executeExtend($value, $matches, $item["ID"]);
-        }
+            }
         }
         $item['UpdateDate'] = Carbon::now()->format('Y/m/d H:i:s');
         return $item;
@@ -637,10 +633,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -652,11 +648,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning start --> Azure Active Directory';
+            $cmd = $table . " Provisioning start --> Azure Active Directory";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
@@ -664,9 +660,9 @@ class DBExtractor
             //Append 'ID' to selected Columns to query and process later
 
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalID', 'DeleteFlag']);
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, "externalID", "DeleteFlag"]);
 
-            if ($table == 'User') {
+            if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
 
@@ -691,7 +687,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> Azure Active Directory';
+            $cmd = "Count --> Azure Active Directory";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -737,13 +733,13 @@ class DBExtractor
                             $userGraph->removeLicenseDetail($item->externalID);
                             $userDeleted = $userGraph->deleteResource($item->externalID, $table);
                             if ($userDeleted != null) {
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                             $updateQuery->where($primaryKey, $item->{"$primaryKey"});
-                            $updateQuery->update(['externalID' => null]);
+                            $updateQuery->update(["externalID" => null]);
 
-                            if ($table == 'Group') {
-                                $updateQuery = DB::table('UserToGroup');
-                                $updateQuery->where('Group_ID', $item->{"$primaryKey"});
+                            if ($table == "Group") {
+                                $updateQuery = DB::table("UserToGroup");
+                                $updateQuery->where("Group_ID", $item->{"$primaryKey"});
                                 $updateQuery->delete();
                             }
                             $deleteCount++;
@@ -793,9 +789,9 @@ class DBExtractor
                         }
                         // TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item->{"$primaryKey"});
-                        $updateQuery->update(['externalID' => $userOnAD->getID()]);
+                        $updateQuery->update(["externalID" => $userOnAD->getID()]);
                         $createCount++;
                         var_dump($userOnAD);
                     }
@@ -804,17 +800,17 @@ class DBExtractor
             }
 
             $scimInfo = array(
-                'provisoning' => 'Azure Active Directory',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "Azure Active Directory",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> Azure Active Directory';
+            $cmd = $table . " Provisioning done --> Azure Active Directory";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -831,17 +827,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'Azure Active Directory',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "Azure Active Directory",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> Azure Active Directory';
+            $cmd = $table . " Provisioning Faild --> Azure Active Directory";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -857,13 +853,13 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
             // Set table name to $scimInfo
-            $scimInfo['table'] = $table;
+            $scimInfo["table"] = $table;
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -875,11 +871,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> SalesForce';
+            $cmd = $table . " Provisioning Start --> SalesForce";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
             $selectColumns = $allSelectedColumns[0];
@@ -888,9 +884,9 @@ class DBExtractor
 
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
-            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, 'externalSFID', 'DeleteFlag']);
-            if ($table == 'User') {
-                // $selectColumnsAndID = array_merge($selectColumnsAndID, ['RoleFlag-0', 'RoleFlag-1', 'RoleFlag-2', 'RoleFlag-3', 'RoleFlag-4']);
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, "externalSFID", "DeleteFlag"]);
+            if ($table == "User") {
+                // $selectColumnsAndID = array_merge($selectColumnsAndID, ["RoleFlag-0", "RoleFlag-1", "RoleFlag-2", "RoleFlag-3", "RoleFlag-4"]);
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
@@ -907,7 +903,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> SalseForce';
+            $cmd = "Count --> SalseForce";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -929,7 +925,7 @@ class DBExtractor
                     if (($item["externalSFID"]) && ($scimLib->getResourceDetails($item["externalSFID"], $table))) {
                         if ($item["DeleteFlag"] == 1) {
                             //Delete resource
-                            $item['IsActive'] = 1;
+                            $item["IsActive"] = 1;
                             $userUpdated = $scimLib->deleteResource($table, (array)$item);
                             $deleteCount++;
                         } else {
@@ -968,17 +964,17 @@ class DBExtractor
                             var_dump($item);
                             continue;
                         } else {
-                            $item['externalSFID'] = $userOnSF;
+                            $item["externalSFID"] = $userOnSF;
                         }
 
                         $scimLib->passwordResource($table, (array)$item);
                         // TODO: create user on AD, update UpdateFlags and externalID.
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalSFID' => $userOnSF]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalSFID" => $userOnSF]);
                         DB::commit();
                         $createCount++;
                         var_dump($userOnSF);
@@ -987,17 +983,17 @@ class DBExtractor
             }
 
             $scimInfo = array(
-                'provisoning' => 'SalesForce',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "SalesForce",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> SalesForce';
+            $cmd = $table . " Provisioning done --> SalesForce";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1014,17 +1010,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'SalesForce',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "SalesForce",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> SalesForce';
+            $cmd = $table . " Provisioning Faild --> SalesForce";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1040,10 +1036,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1055,11 +1051,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> ZOOM';
+            $cmd = $table . " Provisioning Start --> ZOOM";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1067,9 +1063,9 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
-            $selectColumnsAndID = array_merge($aliasColumns, ['externalZOOMID', 'DeleteFlag']);
+            $selectColumnsAndID = array_merge($aliasColumns, ["externalZOOMID", "DeleteFlag"]);
 
-            if ($table == 'User') {
+            if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
@@ -1088,7 +1084,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> ZOOM';
+            $cmd = "Count --> ZOOM";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1103,16 +1099,16 @@ class DBExtractor
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
 
-                    if ($item['DeleteFlag'] == '1') {
-                        if (!empty($item['externalZOOMID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        if (!empty($item["externalZOOMID"])) {
                             $ext_id = $scimLib->deleteResource($table, $item);
                             if ($ext_id != null) {
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                             $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalZOOMID' => null]);
+                            $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                            $updateQuery->update(["externalZOOMID" => null]);
                             DB::commit();
                             $deleteCount++;
                             }
@@ -1135,12 +1131,12 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalZOOMID'])) {
+                    if (!empty($item["externalZOOMID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id != null) {
-                        $updateCount++;
-                    } else {
+                            $updateCount++;
+                        } else {
                             echo "Not found response of updating: \n";
                             continue;
                         }
@@ -1152,10 +1148,10 @@ class DBExtractor
                         } else {
                             echo "Not found response of creating: \n";
                             continue;
-                    }
+                        }
                     }
 
-                    if ($table == 'User') {
+                    if ($table == "User") {
                         $scimLib->addGroupMemebers($table, $item, $ext_id);
                         $scimLib->addRoleMemebers($table, $item, $ext_id);
                     }
@@ -1163,27 +1159,27 @@ class DBExtractor
                     if ($ext_id !== null) {
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalZOOMID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalZOOMID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
 
             $scimInfo = array(
-                'provisoning' => 'ZOOM',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "ZOOM",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> ZOOM';
+            $cmd = $table . " Provisioning done --> ZOOM";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1200,17 +1196,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'ZOOM',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "ZOOM",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> ZOOM';
+            $cmd = $table . " Provisioning Faild --> ZOOM";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1226,10 +1222,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1241,11 +1237,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> Slack';
+            $cmd = $table . " Provisioning Start --> Slack";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1253,9 +1249,9 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
-            $selectColumnsAndID = array_merge($aliasColumns, ['externalSlackID', 'DeleteFlag']);
+            $selectColumnsAndID = array_merge($aliasColumns, ["externalSlackID", "DeleteFlag"]);
 
-            if ($table == 'User') {
+            if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
@@ -1273,7 +1269,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> Slack';
+            $cmd = "Count --> Slack";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1288,16 +1284,16 @@ class DBExtractor
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
 
-                    if ($item['DeleteFlag'] == '1') {
-                        if (!empty($item['externalSlackID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        if (!empty($item["externalSlackID"])) {
                             $ext_id = $scimLib->deleteResource($table, $item);
                             if ($ext_id !== null) {
                                 DB::beginTransaction();
                                 $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                                $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                                 $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                                $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                                $updateQuery->update(['externalSlackID' => null]);
+                                $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                                $updateQuery->update(["externalSlackID" => null]);
                                 DB::commit();
                                 $deleteCount++;
                             }
@@ -1321,7 +1317,7 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalSlackID'])) {
+                    if (!empty($item["externalSlackID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id !== null) {
@@ -1331,8 +1327,8 @@ class DBExtractor
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
                         if ($ext_id !== null) {
-                        $createCount++;
-                    }
+                            $createCount++;
+                        }
                     }
  
                     if ($ext_id !== null) {
@@ -1340,27 +1336,27 @@ class DBExtractor
 
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalSlackID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalSlackID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
 
             $scimInfo = array(
-                'provisoning' => 'Slack',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "Slack",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> Slack';
+            $cmd = $table . " Provisioning done --> Slack";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1377,17 +1373,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'Slack',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "Slack",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> Slack';
+            $cmd = $table . " Provisioning Faild --> Slack";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1403,13 +1399,13 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
             // Set table name to $scimInfo
-            $scimInfo['table'] = $table;
+            $scimInfo["table"] = $table;
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1421,11 +1417,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> TrustLogin';
+            $cmd = $table . " Provisioning Start --> TrustLogin";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1433,13 +1429,13 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
 
             //Append 'ID' to selected Columns to query and process later
-            if ($table == 'User') {
-                $selectColumnsAndID = array_merge($aliasColumns, ['externalTLID', 'DeleteFlag']);
+            if ($table == "User") {
+                $selectColumnsAndID = array_merge($aliasColumns, ["externalTLID", "DeleteFlag"]);
             } else {
                 $selectColumnsAndID = $aliasColumns;
             }
 
-            if ($table == 'User') {
+            if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
@@ -1457,7 +1453,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> TrustLogin';
+            $cmd = "Count --> TrustLogin";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1472,16 +1468,16 @@ class DBExtractor
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
 
-                    if ($item['DeleteFlag'] == '1') {
-                        if (!empty($item['externalTLID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        if (!empty($item["externalTLID"])) {
                             $ext_id = $scimLib->deleteResource($table, $item);
                             if ($ext_id !== null) {
                                 DB::beginTransaction();
                                 $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                                $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                                 $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                                $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                                $updateQuery->update(['externalTLID' => null]);
+                                $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                                $updateQuery->update(["externalTLID" => null]);
                                 $deleteCount++;
                                 DB::commit();
                             }
@@ -1505,7 +1501,7 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalTLID'])) {
+                    if (!empty($item["externalTLID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id !== null) {
@@ -1522,26 +1518,26 @@ class DBExtractor
                     if ($ext_id !== null) {
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalTLID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalTLID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
             $scimInfo = array(
-                'provisoning' => 'TrustLogin',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "TrustLogin",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> TrustLogin';
+            $cmd = $table . " Provisioning done --> TrustLogin";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1558,17 +1554,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'TrustLogin',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "TrustLogin",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> TrustLogin';
+            $cmd = $table . " Provisioning Faild --> TrustLogin";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1584,10 +1580,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1599,11 +1595,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> BOX';
+            $cmd = $table . " Provisioning Start --> BOX";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1611,9 +1607,9 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
-            $selectColumnsAndID = array_merge($aliasColumns, ['externalBOXID', 'DeleteFlag']);
+            $selectColumnsAndID = array_merge($aliasColumns, ["externalBOXID", "DeleteFlag"]);
 
-            if ($table == 'User') {
+            if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
             }
@@ -1632,7 +1628,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> BOX';
+            $cmd = "Count --> BOX";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1647,16 +1643,16 @@ class DBExtractor
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
 
-                    if ($item['DeleteFlag'] == '1') {
-                        if (!empty($item['externalBOXID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        if (!empty($item["externalBOXID"])) {
                             $ext_id = $scimLib->deleteResource($table, $item);
                             if ($ext_id != null) {
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                             $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalBOXID' => null]);
+                            $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                            $updateQuery->update(["externalBOXID" => null]);
                             $deleteCount++;
                             DB::commit();
                             }
@@ -1680,7 +1676,7 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalBOXID'])) {
+                    if (!empty($item["externalBOXID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($table == "User" && !empty($ext_id)) {
@@ -1703,27 +1699,27 @@ class DBExtractor
                     if ($ext_id !== null) {
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalBOXID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalBOXID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
 
             $scimInfo = array(
-                'provisoning' => 'BOX',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "BOX",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> BOX';
+            $cmd = $table . " Provisioning done --> BOX";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1740,17 +1736,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'BOX',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "BOX",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> BOX';
+            $cmd = $table . " Provisioning Faild --> BOX";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1766,10 +1762,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1780,11 +1776,11 @@ class DBExtractor
             }
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> Google Workspace';
+            $cmd = $table . " Provisioning Start --> Google Workspace";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1792,7 +1788,7 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
-            $selectColumnsAndID = array_merge($aliasColumns, ['externalGWID', 'DeleteFlag', 'ID']);
+            $selectColumnsAndID = array_merge($aliasColumns, ["externalGWID", "DeleteFlag", "ID"]);
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
@@ -1805,7 +1801,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> Google Workspace';
+            $cmd = "Count --> Google Workspace";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1821,21 +1817,21 @@ class DBExtractor
                     $item = $this->overlayItem($formatConvention, $item);
 
                     foreach ($formatConvention as $key => $value) {
-                        $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, 'default');
+                        $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, "default");
                     }
 
-                    if ($item['DeleteFlag'] == '1') {
-                        $deleted = '1';
-                        if (!empty($item['externalGWID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        $deleted = "1";
+                        if (!empty($item["externalGWID"])) {
                             $deleted = $scimLib->deleteResource($table, $item);
                         }
                         if ($deleted != null) {
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                             $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalGWID' => null]);
+                            $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                            $updateQuery->update(["externalGWID" => null]);
                             $deleteCount++;
                             DB::commit();
                         }
@@ -1843,7 +1839,7 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalGWID'])) {
+                    if (!empty($item["externalGWID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id != null) {
@@ -1859,30 +1855,30 @@ class DBExtractor
 
                     if ($ext_id !== null) {
                         $scimLib->userGroup($table, $item, $ext_id);
-                        $scimLib->userRole($table, $item['ID'], $ext_id);
+                        $scimLib->userRole($table, $item["ID"], $ext_id);
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalGWID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalGWID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
 
             $scimInfo = array(
-                'provisoning' => 'Google Workspace',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "Google Workspace",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> Google Workspace';
+            $cmd = $table . " Provisioning done --> Google Workspace";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -1899,17 +1895,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'Google Workspace',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "Google Workspace",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> Google Workspace';
+            $cmd = $table . " Provisioning Faild --> Google Workspace";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -1925,10 +1921,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractedId = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($table);
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
@@ -1940,11 +1936,11 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . ' Provisioning Start --> OneLogin';
+            $cmd = $table . " Provisioning Start --> OneLogin";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
 
@@ -1952,7 +1948,7 @@ class DBExtractor
             $aliasColumns = $allSelectedColumns[1];
             //Append 'ID' to selected Columns to query and process later
 
-            $selectColumnsAndID = array_merge($aliasColumns, ['externalOLID', 'DeleteFlag', 'ID']);
+            $selectColumnsAndID = array_merge($aliasColumns, ["externalOLID", "DeleteFlag", "ID"]);
             $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
             foreach ($joins as $src => $des) {
                 $selectColumns[] = $des;
@@ -1965,7 +1961,7 @@ class DBExtractor
             $results = $query->get()->toArray();
 
             // Traceing
-            $cmd = 'Count --> OneLogin';
+            $cmd = "Count --> OneLogin";
             $message = sprintf("Processing %s Object %d records", $table, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -1981,21 +1977,21 @@ class DBExtractor
                     $item = $this->overlayItem($formatConvention, $item);
 
                     foreach ($formatConvention as $key => $value) {
-                        $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, 'default');
+                        $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, "default");
                     }
 
-                    if ($item['DeleteFlag'] == '1') {
-                        $deleted = '1';
-                        if (!empty($item['externalOLID'])) {
+                    if ($item["DeleteFlag"] == "1") {
+                        $deleted = "1";
+                        if (!empty($item["externalOLID"])) {
                             $deleted = $scimLib->deleteResource($table, $item);
                         }
                         if ($deleted != null) {
                             DB::beginTransaction();
                             $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                             $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalOLID' => null]);
+                            $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                            $updateQuery->update(["externalOLID" => null]);
                             $deleteCount++;
                             DB::commit();
                         }
@@ -2003,7 +1999,7 @@ class DBExtractor
                     }
 
                     $ext_id = null;
-                    if (!empty($item['externalOLID'])) {
+                    if (!empty($item["externalOLID"])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id != null) {
@@ -2020,27 +2016,27 @@ class DBExtractor
                     if ($ext_id !== null) {
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                        $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                        $updateQuery->update(['externalOLID' => $ext_id]);
+                        $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
+                        $updateQuery->update(["externalOLID" => $ext_id]);
                         DB::commit();
                     }
                 }
             }
 
             $scimInfo = array(
-                'provisoning' => 'OneLogin',
-                'table' => ucfirst(strtolower($table)),
-                'casesHandle' => count($results),
-                'createCount' => $createCount,
-                'updateCount' => $updateCount,
-                'deleteCount' => $deleteCount,
+                "provisoning" => "OneLogin",
+                "table" => ucfirst(strtolower($table)),
+                "casesHandle" => count($results),
+                "createCount" => $createCount,
+                "updateCount" => $updateCount,
+                "deleteCount" => $deleteCount,
             );
             $settingManagement->summaryLogger($scimInfo);
 
             // Traceing
-            $cmd = $table . ' Provisioning done --> OneLogin';
+            $cmd = $table . " Provisioning done --> OneLogin";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
@@ -2057,17 +2053,17 @@ class DBExtractor
             Log::debug($exception);
 
             $scimInfo = array(
-                'provisoning' => 'OneLogin',
-                'scimMethod' => 'unknown',
-                'table' => ucfirst(strtolower($table)),
-                'itemId' => 'System',
-                'itemName' => 'Exception',
-                'message' => $exception->getMessage(),
+                "provisoning" => "OneLogin",
+                "scimMethod" => "unknown",
+                "table" => ucfirst(strtolower($table)),
+                "itemId" => "System",
+                "itemName" => "Exception",
+                "message" => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $table . ' Provisioning Faild --> OneLogin';
+            $cmd = $table . " Provisioning Faild --> OneLogin";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
@@ -2221,9 +2217,9 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $tableMaster = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
-            $nameColumnUpdate = 'UpdateFlags';
+            $tableMaster = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
+            $nameColumnUpdate = "UpdateFlags";
 
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -2248,23 +2244,23 @@ class DBExtractor
                 foreach ($results as $data) {
                     $array = json_decode(json_encode($data), true);
                     // Skip because 'cn' cannot be created
-                    if (empty($array['Name'])) {
-                        if (empty($array['displayName'])) {
-                        $this->setUpdateFlags2($array['ID']);
+                    if (empty($array["Name"])) {
+                        if (empty($array["displayName"])) {
+                        $this->setUpdateFlags2($array["ID"]);
                         continue;
-                    }
+}
 
                     switch ($this->tableMaster) {
-                    case 'User':
+                    case "User":
                         $this->exportUserFromKeyspider($array);
                         break;
-                    // case 'Role':
+                    // case "Role":
                     //     $this->exportRoleFromKeyspider($array);
                     //     break;
-                    case 'Group':
+                    case "Group":
                         $this->exportGroupFromKeyspider($array);
                         break;
-                    case 'Organization':
+                    case "Organization":
                         $this->exportOrganizationUnitFromKeyspider($array);
                         break;
                     }
@@ -2282,25 +2278,25 @@ class DBExtractor
     private function configureLDAPServer()
     {
         $setting = $this->setting;
-        $ldapHosts =    $setting[self::LDAP_CONFIGRATION]['LdapHosts'];
-        $ldapPort =   $setting[self::LDAP_CONFIGRATION]['LdapPort'];
-        $LdapBaseDn =   $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
-        $LdapUsername = $setting[self::LDAP_CONFIGRATION]['LdapUsername'];
-        $LdapPassword = $setting[self::LDAP_CONFIGRATION]['LdapPassword'];
-        $UseSSL =       $setting[self::LDAP_CONFIGRATION]['UseSSL'];
-        $UseTLS =       $setting[self::LDAP_CONFIGRATION]['UseTLS'];
+        $ldapHosts =    $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapHosts"];
+        $ldapPort =     $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapPort"];
+        $LdapBaseDn =   $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
+        $LdapUsername = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapUsername"];
+        $LdapPassword = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapPassword"];
+        $UseSSL =       $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseSSL"];
+        $UseTLS =       $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseTLS"];
 
         $adLdap = new \Adldap\Adldap();
 
         $config = [  
-//            'hosts'    => [ $ldapHosts ],
-            'hosts'    => explode(',', $ldapHosts),
-            'port'     => $ldapPort,
-            'base_dn'  => $LdapBaseDn,
-            'username' => $LdapUsername,
-            'password' => $LdapPassword,
-            'use_ssl'  => ($UseSSL == true),
-            'use_tls'  => ($UseTLS == true),
+//            "hosts"    => [ $ldapHosts ],
+            "hosts"    => explode(",", $ldapHosts),
+            "port"     => $ldapPort,
+            "base_dn"  => $LdapBaseDn,
+            "username" => $LdapUsername,
+            "password" => $LdapPassword,
+            "use_ssl"  => ($UseSSL == true),
+            "use_tls"  => ($UseTLS == true),
         ];
 
         // Add a connection provider to Adldap.
@@ -2315,9 +2311,9 @@ class DBExtractor
         foreach ($extractCondition as $key => &$condition) {
             if (!is_array($condition)) {
                 // Add/Sub EffectiveDate
-                if (strpos((string)$condition, 'TODAY()') !== false) {
+                if (strpos((string)$condition, "TODAY()") !== false) {
                     $condition = $this->regExpManagement->getEffectiveDate($condition);
-                    array_push($whereData, [$key, '<=', $condition]);
+                    array_push($whereData, [$key, "<=", $condition]);
                     continue;
                 }
 
@@ -2330,17 +2326,17 @@ class DBExtractor
             }
 
             // make standard condition
-            if ($condition === 'TODAY() + 7') {
-                $condition = Carbon::now()->addDay(7)->format('Y/m/d');
-                array_push($whereData, [$key, '<=', $condition]);
+            if ($condition === "TODAY() + 7") {
+                $condition = Carbon::now()->addDay(7)->format("Y/m/d");
+                array_push($whereData, [$key, "<=", $condition]);
             } elseif (is_array($condition)) {
                 // JSON Columns(Use UpdateFlags)
                 foreach ($condition as $keyJson => $valueJson) {
-                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", '=', "{$valueJson}"]);
+                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", "=", "{$valueJson}"]);
                 }
                 continue;
             } else {
-                array_push($whereData, [$key, '=', $condition]);
+                array_push($whereData, [$key, "=", $condition]);
             }
         }
         return $whereData;
@@ -2349,7 +2345,7 @@ class DBExtractor
     private function conversionArrayValue($array)
     {
         $setting = $this->setting;
-        $conversions = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+        $conversions = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
 
         $settingManagement = new SettingsManager();
         $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -2361,19 +2357,19 @@ class DBExtractor
         $fields = [];
 
         foreach ($conversions as $key => $nameTable) {
-            $explodeItem = explode('.', $nameTable);
+            $explodeItem = explode(".", $nameTable);
             $item = $explodeItem[count($explodeItem) -1];
 
-            if ($explodeItem[0] == '('.$this->tableMaster){
+            if ($explodeItem[0] == "(".$this->tableMaster){
                 $item = $nameTable;
             }
 
-            if ($item === 'admin') {
-                $fields[$key] = 'admin';
-            } elseif ($item === 'TODAY()') {
-                $fields[$key] = Carbon::now()->format('Y/m/d');
-            } elseif ($item === '0') {
-                $fields[$key] = '0';
+            if ($item === "admin") {
+                $fields[$key] = "admin";
+            } elseif ($item === "TODAY()") {
+                $fields[$key] = Carbon::now()->format("Y/m/d");
+            } elseif ($item === "0") {
+                $fields[$key] = "0";
             } else {
                 // Set ini file const value
                 $itemValue = $item;
@@ -2404,11 +2400,11 @@ class DBExtractor
         return $fields;
     }
 
-    private function array_key_prefix(array $array, $prefix = '')
+    private function array_key_prefix(array $array, $prefix = "")
     {
         $result = array();
         foreach ($array as $key => $value) {
-            $result[$prefix . '.' . $key] = $value;
+            $result[$prefix . "." . $key] = $value;
         }
         return $result;
     }
@@ -2417,13 +2413,13 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $ldapSearchPath =  $setting[self::LDAP_CONFIGRATION]['LdapSearchPath'];
-            $ldapSearchColum = $setting[self::LDAP_CONFIGRATION]['LdapSearchColum'];
-            $ldapBasePath =    $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
-            $useSSL =          $setting[self::LDAP_CONFIGRATION]['UseSSL'];
-            $defaultPassword = $setting[self::EXTRACTION_CONFIGURATION]['DefaultPassword'];
+            $ldapSearchPath =  $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapSearchPath"];
+            $ldapSearchColum = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapSearchColum"];
+            $ldapBasePath =    $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
+            $useSSL =          $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseSSL"];
+            $defaultPassword = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["DefaultPassword"];
 
-            $ldapBaseDn = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
+            $ldapBaseDn = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
 
             // Finding a record.
             try {
@@ -2441,22 +2437,22 @@ class DBExtractor
             if ($entry) {
                 // Update or Delete LDAP entry. Setting a model's attribute.
                 // disble user
-                if ($user['DeleteFlag'] == '1') {
-                    $ldapUser['userAccountControl'] = self::DISABLE_ACCOUNT;
+                if ($user["DeleteFlag"] == "1") {
+                    $ldapUser["userAccountControl"] = self::DISABLE_ACCOUNT;
                 }
                 $is_success = $entry->update($ldapUser);
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                // $ldapUser['userAccountControl'] = self::HOLDING_ACCOUNT;
-                // $ldapUser['userAccountControl'] = self::NORMAL_ACCOUNT;
-                // $ldapUser['pwdLastSet'] = 0;
+                // $ldapUser["userAccountControl"] = self::HOLDING_ACCOUNT;
+                // $ldapUser["userAccountControl"] = self::NORMAL_ACCOUNT;
+                // $ldapUser["pwdLastSet"] = 0;
 
                 $entry =  $this->provider->make()->user();
                 foreach ($ldapUser as $key => $value) {
                     if ($key == "dn") {
                         $entry->setAttribute($key, "${ldapSearchPath}=${value},${ldapBaseDn}");
-                    } else if ($key == 'objectclass') {
-                        $entry->setAttribute($key, explode(',', $value));
+                    } else if ($key == "objectclass") {
+                        $entry->setAttribute($key, explode(",", $value));
                     } else {
                         $entry->setAttribute($key, $value);
                     }
@@ -2477,7 +2473,7 @@ class DBExtractor
                 $entry->removeGroup($group);
             }
 
-            $addGroups = $this->getMemberOfLDAP($user['ID']);
+            $addGroups = $this->getMemberOfLDAP($user["ID"]);
             foreach ($addGroups as $index => $group) {
                 $fmt = sprintf("CN=%s,%s", $group, $ldapBaseDn);
                 $entry->addGroup($fmt);
@@ -2486,7 +2482,7 @@ class DBExtractor
             // Saving the changes to your LDAP server.
             if ($is_success) {
                 // User was saved!
-                $this->resetTransferredFlag($user['ID']);
+                $this->resetTransferredFlag($user["ID"]);
             }
         } catch (\Adldap\Auth\BindException $e) {
             Log::error($e);
@@ -2498,21 +2494,21 @@ class DBExtractor
 
     private function getMemberOfLDAP($uid)
     {
-        $table = 'UserToGroup';
+        $table = "UserToGroup";
         $queries = DB::table($table)
-                    ->select('Group_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '0')->get();
+                    ->select("Group_ID")
+                    ->where("User_ID", $uid)
+                    ->where("DeleteFlag", "0")->get();
 
         $groupIds = [];
         foreach ($queries as $key => $value) {
             $groupIds[] = $value->Group_ID;
         }
 
-        $table = 'Group';
+        $table = "Group";
         $queries = DB::table($table)
-                    ->select('displayName')
-                    ->whereIn('ID', $groupIds)
+                    ->select("displayName")
+                    ->whereIn("ID", $groupIds)
                     ->get();
 
         $addGroupIDs = [];
@@ -2532,23 +2528,23 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $ldapBasePath = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
+            $ldapBasePath = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
 
             $ldapGroup = $this->conversionArrayValue($data);
 
-            $ldapGroup['groupType'] = self::GROUP_TYPE_365;
-            if (!empty($data['groupTypes'])) {
-                if ($data['groupTypes'] == 'Security') {
-                    $ldapGroup['groupType'] = self::GROUP_TYPE_SECURITY;
+            $ldapGroup["groupType"] = self::GROUP_TYPE_365;
+            if (!empty($data["groupTypes"])) {
+                if ($data["groupTypes"] == "Security") {
+                    $ldapGroup["groupType"] = self::GROUP_TYPE_SECURITY;
                 }
             }
 
             // Finding a record.
             try {
-                $group = $this->provider->search()->groups()->find($data['displayName']);
+                $group = $this->provider->search()->groups()->find($data["displayName"]);
             } catch (Exception $exception) {
                 // Record wasn't found!
-                Log::info(sprintf("Group wasn't found! : %s = %s", $ldapBasePath, $data['displayName']));
+                Log::info(sprintf("Group wasn't found! : %s = %s", $ldapBasePath, $data["displayName"]));
                 $group = false;
             }
 
@@ -2565,14 +2561,14 @@ class DBExtractor
                 }
 
                 // disble user
-                if ($data['DeleteFlag'] == '1') {
+                if ($data["DeleteFlag"] == "1") {
                     $group->delete();
                 }
 
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 $group =  $this->provider->make()->group([
-                    'cn'     => $ldapGroup['cn'],
+                    "cn"     => $ldapGroup["cn"],
                 ]);
 
                 $is_success = $group->save();
@@ -2590,7 +2586,7 @@ class DBExtractor
             // Saving the changes to your LDAP server.
             if ($is_success) {
                 // User was saved!
-                $this->resetTransferredFlag($data['ID']);
+                $this->resetTransferredFlag($data["ID"]);
             }
         } catch (\Adldap\Auth\BindException $e) {
             Log::error($e);
@@ -2604,15 +2600,15 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $ldapBasePath = $setting[self::LDAP_CONFIGRATION]['LdapBaseDn'];
+            $ldapBasePath = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
             $ldapOu = $this->conversionArrayValue($data);
 
             // Finding a record.
             try {
-                $ou = $this->provider->search()->ous()->find($data['Name']);
+                $ou = $this->provider->search()->ous()->find($data["Name"]);
             } catch (Exception $exception) {
                 // Record wasn't found!
-                Log::info(sprintf("Organization wasn't found! : [%s] = [%s]", $ldapBasePath, $data['Name']));
+                Log::info(sprintf("Organization wasn't found! : [%s] = [%s]", $ldapBasePath, $data["Name"]));
                 $ou = false;
             }
 
@@ -2621,16 +2617,16 @@ class DBExtractor
                // Update or Delete LDAP entry. Setting a model's attribute.
                 $is_success = $ou->update($ldapOu);
                 // disble ou
-                if ($data['DeleteFlag'] == '1') {
+                if ($data["DeleteFlag"] == "1") {
                     $ou->delete();
                 }
 
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                $rdn = sprintf("ou=%s,%s", $ldapOu['cn'], $ldapBasePath);
+                $rdn = sprintf("ou=%s,%s", $ldapOu["cn"], $ldapBasePath);
                 $ou =  $this->provider->make()->ou([
-                    'cn'     => $ldapOu['cn'],
-                    'dn'     => $rdn,
+                    "cn"     => $ldapOu["cn"],
+                    "dn"     => $rdn,
                 ]);
                 $is_success = $ou->save();
             }
@@ -2638,7 +2634,7 @@ class DBExtractor
             // Saving the changes to your LDAP server.
             if ($is_success) {
                 // User was saved!
-                $this->resetTransferredFlag($data['ID'], true);
+                $this->resetTransferredFlag($data["ID"], true);
             }
         } catch (\Adldap\Auth\BindException $e) {
             Log::error($e);
@@ -2656,8 +2652,8 @@ class DBExtractor
     private function setUpdateFlags2($id)
     {
         $setting = $this->setting;
-        $itemTable = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-        $addFlagName = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionProcessID'];
+        $itemTable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+        $addFlagName = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
 
         try {
             DB::beginTransaction();
@@ -2665,10 +2661,10 @@ class DBExtractor
 
             $userRecord = (array)DB::table($itemTable)
                 ->where("ID", $id)
-                ->get(['UpdateFlags'])->toArray()[0];
+                ->get(["UpdateFlags"])->toArray()[0];
     
-            $updateFlags = json_decode($userRecord['UpdateFlags'], true);
-            $updateFlags[$addFlagName] = '0';
+            $updateFlags = json_decode($userRecord["UpdateFlags"], true);
+            $updateFlags[$addFlagName] = "0";
             $setValues["UpdateFlags"] = json_encode($updateFlags);
     
             DB::table($itemTable)->where("ID", $id)

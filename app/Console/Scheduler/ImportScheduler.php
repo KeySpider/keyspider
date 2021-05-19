@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBImporterJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\ImportSettingsManager;
@@ -65,7 +66,7 @@ class ImportScheduler
 
     protected function getServiceConfig()
     {
-        return 'CSV Import Process Configration';
+        return Consts::CSV_IMPORT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

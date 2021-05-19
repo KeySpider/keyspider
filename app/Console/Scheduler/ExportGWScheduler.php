@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToGWExtractorJob;
 
 class ExportGWScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportGWScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'GW Extract Process Configration';
+        return Consts::GW_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

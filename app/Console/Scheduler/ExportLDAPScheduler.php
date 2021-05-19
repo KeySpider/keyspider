@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToLdapExtractorJob;
 
 class ExportLDAPScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportLDAPScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'LDAP Export Process Configration';
+        return Consts::LDAP_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

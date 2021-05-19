@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -10,20 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class ExportAzureAD extends Command
 {
-    public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:export_ad';
+    protected $signature = "command:export_ad";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = "Command description";
 
     /**
      * Create a new command instance.
@@ -44,9 +44,9 @@ class ExportAzureAD extends Command
     {
         $sections = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::EXPORT_AD_CONFIG, $sections)) {
+        if (array_key_exists(Consts::AD_EXTRACT_PROCESS_CONFIGURATION, $sections)) {
             // Setup schedule for Extract
-            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_AD_CONFIG);
+            $extractSettingManager = new ExtractSettingsManager(Consts::AD_EXTRACT_PROCESS_CONFIGURATION);
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
             foreach ($extractSetting as $ex) {
@@ -57,10 +57,10 @@ class ExportAzureAD extends Command
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run export schedule, getting error from config ini files');
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -68,7 +68,7 @@ class ExportAzureAD extends Command
     public function exportDataForTimeExecution($settings)
     {
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
             $extractor->processExtractToAD();
         }

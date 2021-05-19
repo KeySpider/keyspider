@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToZoomExtractorJob;
 
 class ExportZoomScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportZoomScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'ZOOM Extract Process Configration';
+        return Consts::ZOOM_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

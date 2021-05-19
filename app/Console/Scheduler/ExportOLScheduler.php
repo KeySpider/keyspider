@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToOLExtractorJob;
 
 class ExportOLScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportOLScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'OL Extract Process Configration';
+        return Consts::OL_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

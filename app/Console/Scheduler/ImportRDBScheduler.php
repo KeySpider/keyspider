@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBImporterFromRDBJob;
 use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\RDBImportSettingsManager;
@@ -48,6 +49,6 @@ class ImportRDBScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'RDB Import Database Configuration';
+        return Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION;
     }
 }

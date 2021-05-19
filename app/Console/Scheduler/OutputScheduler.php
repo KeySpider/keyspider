@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Ldaplibs\Delivery\DeliverySettingsManager;
 use App\Ldaplibs\Delivery\DeliveryQueueManager;
 use App\Jobs\DeliveryJob;
@@ -51,7 +52,7 @@ class OutputScheduler
 
     protected function getServiceConfig()
     {
-        return 'CSV Output Process Configration';
+        return Consts::CSV_OUTPUT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

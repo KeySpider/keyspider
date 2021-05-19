@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 
 use Exception;
@@ -27,12 +28,6 @@ use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
-    /**
-     * define const
-     */
-    public const CONVERSION = 'CSV Import Process Format Conversion';
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-
     /**
      * @var array $setting
      * @var string $fileName
@@ -63,7 +58,7 @@ class DBImporter
     public function import()
     {
         try {
-            $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
+            $processedFilePath = $this->setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ProcessedFilePath"];
             mkDirectory($processedFilePath);
 
             // get name table base
@@ -73,7 +68,7 @@ class DBImporter
             // $this->csvReader->createTable($nameTableBase, $columns);
 
             $params = [
-                'CONVERSATION' => $this->setting[self::CONVERSION],
+                "CONVERSATION" => $this->setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION],
             ];
 
             // process import

@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use http\Exception;
@@ -41,12 +42,6 @@ class CSVReader implements DataInputReader
     protected $setting;
 
     /**
-     * define const
-     */
-    public const CONVERSION = 'CSV Import Process Format Conversion';
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-
-    /**
      * CSVReader constructor.
      * @param SettingsManager $setting
      */
@@ -63,7 +58,7 @@ class CSVReader implements DataInputReader
      */
     public function getNameTableFromSetting($setting)
     {
-        $nameTable = $setting[self::CONFIGURATION]['TableNameInDB'];
+        $nameTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"];
         $nameTable = "\"{$nameTable}\"";
         return $nameTable;
     }
@@ -74,7 +69,7 @@ class CSVReader implements DataInputReader
      */
     public function getNameTableBase($setting)
     {
-        return $setting[self::CONFIGURATION]['TableNameInDB'];
+        return $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"];
     }
 
     /**
@@ -86,10 +81,10 @@ class CSVReader implements DataInputReader
      */
     public function getAllColumnFromSetting($setting)
     {
-        $pattern = '/[\'^£$%&*()}{@#~?><>,|=_+¬-]/';
+        $pattern = "/[\'^£$%&*()}{@#~?><>,|=_+¬-]/";
         $fields = [];
-        foreach ($setting[self::CONVERSION] as $key => $item) {
-            if ($key !== '' && preg_match($pattern, $key) !== 1) {
+        foreach ($setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] as $key => $item) {
+            if ($key !== "" && preg_match($pattern, $key) !== 1) {
                 $newstring = substr($key, -3);
                 $fields[] = "{$newstring}";
             }
@@ -155,12 +150,12 @@ class CSVReader implements DataInputReader
             $records = $stmt->process($csv);
 
             // Traceing
-            $cmd = 'Start';
+            $cmd = "Start";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
             // Traceing
-            $cmd = 'Count --> CSV File';
+            $cmd = "Count --> CSV File";
             $message = sprintf("Processing %s Object %d records", $nameTable, count($records));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -170,17 +165,17 @@ class CSVReader implements DataInputReader
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
                 if (
-                    $nameTable == 'UserToGroup' ||
-                    $nameTable == 'UserToOrganization' ||
-                    $nameTable == 'UserToRole'
+                    $nameTable == "UserToGroup" ||
+                    $nameTable == "UserToOrganization" ||
+                    $nameTable == "UserToRole"
                 ) {
 
                     $aliasTable = str_replace("UserTo", "", $nameTable);
 
                     DB::table($nameTable)
-                        ->where('User_ID', $getDataAfterConvert['User_ID'])
-                        ->where($aliasTable . '_ID', $getDataAfterConvert[$aliasTable . '_ID'])
-                        // ->where('DeleteFlag', '0')
+                        ->where("User_ID", $getDataAfterConvert["User_ID"])
+                        ->where($aliasTable . "_ID", $getDataAfterConvert[$aliasTable . "_ID"])
+                        // ->where("DeleteFlag", "0")
                         ->delete();
 
                     // set UpdateFlags
@@ -188,10 +183,10 @@ class CSVReader implements DataInputReader
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
-                    unset($getDataAfterConvert['ID']);
+                    unset($getDataAfterConvert["ID"]);
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
-                    $regExpManagement->updateUserUpdateFlags($getDataAfterConvert['User_ID']);
+                    $regExpManagement->updateUserUpdateFlags($getDataAfterConvert["User_ID"]);
 
                     $createCount++;
                     
@@ -199,14 +194,14 @@ class CSVReader implements DataInputReader
                 }
 
                 $roleFlags = [];
-                if ($nameTable == 'User') {
+                if ($nameTable == "User") {
                     $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
                     foreach ($getDataAfterConvert as $cl => $item) {
-                        if (strpos($cl, config('const.ROLE_ID')) !== false) {
+                        if (strpos($cl, config("const.ROLE_ID")) !== false) {
                             $num = $settingManagement->getRoleFlagX($item, $roleMaps);
                             if ($num !== null) {
                                 $keyValue = sprintf("RoleFlag-%d", $num);
-                                $roleFlags[$keyValue] = '1';
+                                $roleFlags[$keyValue] = "1";
                             }
                         }
                     }
@@ -215,7 +210,7 @@ class CSVReader implements DataInputReader
 
                 if (!empty($getEncryptedFields)) {
                     foreach ($getDataAfterConvert as $cl => $item) {
-                        $tableColumn = $nameTable . '.' . $cl;
+                        $tableColumn = $nameTable . "." . $cl;
                         if (in_array($tableColumn, $getEncryptedFields)) {
                             $getDataAfterConvert[$cl] = $settingManagement->passwordEncrypt($item);
                         }
@@ -245,19 +240,19 @@ class CSVReader implements DataInputReader
             }
 
             // move file
-            $now = Carbon::now()->format('Ymdhis') . random_int(1000, 9999);
+            $now = Carbon::now()->format("Ymdhis") . random_int(1000, 9999);
             // $fileName = "hogehoge_{$now}.csv";
             $fileName = $nameTable . "_{$now}.csv";
-            moveFile($fileCSV, $processedFilePath . '/' . $fileName);
+            moveFile($fileCSV, $processedFilePath . "/" . $fileName);
 
             if (
-                $nameTable != 'UserToGroup' &&
-                $nameTable != 'UserToOrganization' &&
-                $nameTable != 'UserToRole'
+                $nameTable != "UserToGroup" &&
+                $nameTable != "UserToOrganization" &&
+                $nameTable != "UserToRole"
             ) {
 
                 $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
-                DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}" => '0']);
+                DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}" => "0"]);
             } else {
                 $this->sanitizeRecord($nameTable);
             }
@@ -271,14 +266,14 @@ class CSVReader implements DataInputReader
     {
         $colmn = null;
         switch ($nameTable) {
-            case 'UserToGroup':
-                $colmn = 'Group_ID';
+            case "UserToGroup":
+                $colmn = "Group_ID";
                 break;
-            case 'UserToOrganization':
-                $colmn = 'Organization_ID';
+            case "UserToOrganization":
+                $colmn = "Organization_ID";
                 break;
-            case 'UserToRole':
-                $colmn = 'Role_ID';
+            case "UserToRole":
+                $colmn = "Role_ID";
                 break;
         }
         $sqlStr = 'DELETE FROM "' . $nameTable . '" t1'
@@ -304,29 +299,29 @@ class CSVReader implements DataInputReader
     {
         $fields = [];
         $data = [];
-        $conversions = $options['CONVERSATION'];
+        $conversions = $options["CONVERSATION"];
 
         $regExpManagement = new RegExpsManager();
 
         foreach ($conversions as $key => $item) {
-            if ($key === '' || preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $key) === 1) {
+            if ($key === "" || preg_match("/[\'^£$%&*()}{@#~?><>,|=_+¬-]/", $key) === 1) {
                 // unset($conversions[$key]);
             }
 
             if (isset($conversions[$key])) {
-                $explodeKey = explode('.', $key);
+                $explodeKey = explode(".", $key);
                 $key = $explodeKey[1];
                 $fields[$key] = $item;
             }
         }
 
         foreach ($fields as $col => $pattern) {
-            if ($pattern === 'admin') {
-                $data[$col] = 'admin';
-            } elseif ($pattern === 'TODAY()') {
-                $data[$col] = Carbon::now()->format('Y/m/d');
-            } elseif ($pattern === '0') {
-                $data[$col] = '0';
+            if ($pattern === "admin") {
+                $data[$col] = "admin";
+            } elseif ($pattern === "TODAY()") {
+                $data[$col] = Carbon::now()->format("Y/m/d");
+            } elseif ($pattern === "0") {
+                $data[$col] = "0";
             } else {
                 // process with regular expressions?
                 $columnName = $regExpManagement->checkRegExpRecord($pattern);
@@ -356,25 +351,25 @@ class CSVReader implements DataInputReader
         $group = null;
         $regx = null;
 
-        $success = preg_match('/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/', $pattern, $match);
+        $success = preg_match("/\(\s*(?<exp1>\d+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/", $pattern, $match);
 
         if ($success) {
-            $stt = (int)$match['exp1'];
-            $regx = $match['exp2'];
-            $group = $match['exp3'];
+            $stt = (int)$match["exp1"];
+            $regx = $match["exp2"];
+            $group = $match["exp3"];
         }
 
         foreach ($data as $key => $item) {
             if ($stt === $key + 1) {
-                if ($regx === '') {
+                if ($regx === "") {
                     return $item;
                 }
 
-                if ($regx === '\s') {
-                    return str_replace(' ', '', $item);
+                if ($regx === "\s") {
+                    return str_replace(" ", "", $item);
                 }
 
-                if ($regx === '\w') {
+                if ($regx === "\w") {
                     return strtolower($item);
                 }
                 $check = preg_match("/{$regx}/", $item, $str);
@@ -416,6 +411,6 @@ class CSVReader implements DataInputReader
             return "{$str[1]}/{$str[2]}/{$str[3]}";
         }
 
-        return '';
+        return "";
     }
 }

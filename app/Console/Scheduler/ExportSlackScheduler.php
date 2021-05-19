@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToSlackExtractorJob;
 
 class ExportSlackScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportSlackScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'SLACK Extract Process Configration';
+        return Consts::SLACK_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

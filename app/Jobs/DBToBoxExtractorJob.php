@@ -80,7 +80,7 @@ class DBToBoxExtractorJob extends DBExtractor implements ShouldQueue, JobInterfa
         $details = [];
         $details['Conversion'] = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
         $details['Extract table'] = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-        $details['Extract condition'] = $setting[self::EXTRACTION_CONDITION];
+        $details['Extract condition'] = $setting[self::EXTRACTION_PROCESS_CONDITION];
         return $details;
     }
 

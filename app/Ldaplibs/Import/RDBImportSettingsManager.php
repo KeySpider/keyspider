@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -27,10 +28,6 @@ use TablesBuilder;
 
 class RDBImportSettingsManager extends SettingsManager
 {
-    /**
-     * define const
-     */
-    public const RDB_IMPORT_PROCESS_CONFIGRATION = 'RDB Import Process Configration';
     /**
      * @var array
      */
@@ -42,9 +39,6 @@ class RDBImportSettingsManager extends SettingsManager
      *
      * @param $iniSettingsFiles
      */
-    public const RDB_INPUT_BASIC_CONFIGURATION = 'RDB Input Basic Configuration';
-    public const RDB_INPUT_FORMAT_CONVERSION = 'RDB Input Format Conversion';
-
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct($iniSettingsFiles);
@@ -58,23 +52,23 @@ class RDBImportSettingsManager extends SettingsManager
     public function getScheduleImportExecution(): array
     {
         if ($this->keySpider === null) {
-            Log::error('Wrong key spider! Do nothing.');
+            Log::error("Wrong key spider! Do nothing.");
             return [];
         }
 
-        if (empty($this->keySpider[self::RDB_IMPORT_PROCESS_CONFIGRATION])) {
-            Log::info('nothing to do.');
+        if (empty($this->keySpider[Consts::RDB_IMPORT_PROCESS_CONFIGURATION])) {
+            Log::info("nothing to do.");
             return [];
         }
         
-        $this->iniImportSettingsFiles = $this->keySpider[self::RDB_IMPORT_PROCESS_CONFIGRATION]['import_config'];
+        $this->iniImportSettingsFiles = $this->keySpider[Consts::RDB_IMPORT_PROCESS_CONFIGURATION][Consts::IMPORT_CONFIG];
 
         $rule = $this->getRuleOfImport();
 
         $timeArray = array();
         foreach ($rule as $tableContents) {
-            foreach ($tableContents[self::RDB_INPUT_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                $filesArray['setting'] = $tableContents;
+            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+                $filesArray["setting"] = $tableContents;
                 $timeArray[$specifyTime][] = $filesArray;
             }
         }
@@ -106,21 +100,19 @@ class RDBImportSettingsManager extends SettingsManager
         foreach ($this->iniImportSettingsFiles as $iniImportSettingsFile) {
             $tableContents = parse_ini_file($iniImportSettingsFile, true);
             if ($tableContents === null) {
-                Log::error('Can not run import schedule');
+                Log::error("Can not run import schedule");
                 return [];
             }
             // set filename in json file
-            $tableContents['IniFileName'] = $iniImportSettingsFile;
+            $tableContents["IniFileName"] = $iniImportSettingsFile;
             // Set destination table in database
-            $tableNameInput = $tableContents[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
+            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["OutputTable"];
 
             // $masterDBConversion = $master[$tableNameInput];
 
             // Column conversion
-            // $columnNameConversion = $tableContents[SettingsManager::RDB_INPUT_FORMAT_CONVERSION];
-            // $tableContents[SettingsManager::RDB_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
-            $columnNameConversion = $tableContents[self::RDB_INPUT_FORMAT_CONVERSION];
-            $tableContents[self::RDB_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+            $columnNameConversion = $tableContents[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
+            $tableContents[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
 
             $this->allTableSettingsContent[] = $tableContents;
         }
@@ -166,8 +158,8 @@ class RDBImportSettingsManager extends SettingsManager
     private function isImportIniValid($iniArray, $fileName = null): bool
     {
         $rules = [
-            self::RDB_INPUT_BASIC_CONFIGURATION => 'required',
-            self::RDB_INPUT_FORMAT_CONVERSION => 'required'
+            Consts::IMPORT_PROCESS_BASIC_CONFIGURATION => "required",
+            Consts::IMPORT_PROCESS_FORMAT_CONVERSION => "required"
         ];
         // Validate main keys
         $validate = Validator::make($iniArray, $rules);
@@ -189,8 +181,8 @@ class RDBImportSettingsManager extends SettingsManager
      */
     private function logErrorOfValidation($fileName, $validate): void
     {
-        Log::error('Key error validation');
-        Log::error(('Error file: ' . $fileName) ? $fileName : '');
+        Log::error("Key error validation");
+        Log::error(("Error file: " . $fileName) ? $fileName : "");
         /** @noinspection PhpUndefinedMethodInspection */
         Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
@@ -203,9 +195,9 @@ class RDBImportSettingsManager extends SettingsManager
     private function getRDBInputFormatConversion($filePath)
     {
         $iniRDBSettingsArray = parse_ini_file($filePath, true);
-        $tableNameInput = $iniRDBSettingsArray[self::RDBM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $tableNameInput = $iniRDBSettingsArray[self::RDBM_INPUT_BACIC_CONFIGURATION]["ImportTable"];
         $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
-        $columnNameConversion = $iniRDBSettingsArray[self::RDB_INPUT_FORMAT_CONVERSION];
+        $columnNameConversion = $iniRDBSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         foreach ($columnNameConversion as $key => $value) {
             if (isset($masterDBConversion[$key])) {
                 $columnNameConversion[$masterDBConversion[$key]] = $value;
@@ -214,7 +206,7 @@ class RDBImportSettingsManager extends SettingsManager
                 }
             }
         }
-        $iniRDBSettingsArray[self::RDB_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+        $iniRDBSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
         return $iniRDBSettingsArray;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToBoxExtractorJob;
 
 class ExportBoxScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportBoxScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'BOX Extract Process Configration';
+        return Consts::BOX_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

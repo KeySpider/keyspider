@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -10,21 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class ExportOneLogin extends Command
 {
-    public const EXPORT_OL_CONFIG = 'OL Extract Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:export_ol';
+    protected $signature = "command:export_ol";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = "Command description";
 
     /**
      * Create a new command instance.
@@ -45,9 +44,9 @@ class ExportOneLogin extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::EXPORT_OL_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::OL_EXTRACT_PROCESS_CONFIGURATION, $keyspider)) {
             // Setup schedule for Extract
-            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_OL_CONFIG);
+            $extractSettingManager = new ExtractSettingsManager(Consts::OL_EXTRACT_PROCESS_CONFIGURATION);
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
             foreach ($extractSetting as $ex) {
@@ -58,10 +57,10 @@ class ExportOneLogin extends Command
                     $this->exportDataToOneLoginForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run export schedule, getting error from config ini files');
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -69,7 +68,7 @@ class ExportOneLogin extends Command
     public function exportDataToOneLoginForTimeExecution($settings)
     {
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
             $extractor->processExtractToOL();
         }

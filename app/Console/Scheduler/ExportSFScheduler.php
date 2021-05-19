@@ -2,6 +2,7 @@
 
 namespace App\Console\Scheduler;
 
+use App\Commons\Consts;
 use App\Jobs\DBToSFExtractorJob;
 
 class ExportSFScheduler extends ExportScheduler
@@ -13,7 +14,7 @@ class ExportSFScheduler extends ExportScheduler
 
     protected function getServiceConfig()
     {
-        return 'SF Extract Process Configration';
+        return Consts::SF_EXTRACT_PROCESS_CONFIGURATION;
     }
 
     protected function getServiceName()

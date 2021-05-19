@@ -20,6 +20,7 @@
 
 namespace App\Console;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use Exception;
 use Illuminate\Console\Scheduling\Schedule;
@@ -28,41 +29,23 @@ use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
-    public const MASTER_DB_CONFIG = 'Master DB Configurtion';
-    public const CONFIGURATION = 'CSV Import Process Basic Configration';
-    public const DATABASE_INFO = 'RDB Import Database Configuration';
-    public const IMPORT_CSV_CONFIG = 'CSV Import Process Configration';
-    public const IMPORT_RDB_CONFIG = 'RDB Import Process Configration';
-    public const IMPORT_SCIM_CONFIG = 'SCIM Input Process Configration';
-    public const EXPORT_AD_CONFIG = 'Azure Extract Process Configration';
-    public const EXPORT_BOX_CONFIG = 'BOX Extract Process Configration';
-    public const EXPORT_CSV_CONFIG = 'CSV Extract Process Configration';
-    public const EXPORT_GW_CONFIG = 'GW Extract Process Configration';
-    public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
-    public const EXPORT_OL_CONFIG = 'OL Extract Process Configration';
-    public const EXPORT_SF_CONFIG = 'SF Extract Process Configration';
-    public const EXPORT_SLACK_CONFIG = 'SLACK Extract Process Configration';
-    public const EXPORT_TL_CONFIG = 'TL Extract Process Configration';
-    public const EXPORT_ZOOM_CONFIG = 'ZOOM Extract Process Configration';
-    public const DELIVERY_CSV_CONFIG = 'CSV Output Process Configration';
-
     // [Master DB Configurtion] と [SCIM Input Process Configration] は 実行時間を定義しないため "none" をマッピングします。
-    public const OPERATIONS = array(
-        self::MASTER_DB_CONFIG => 'none',
-        self::IMPORT_CSV_CONFIG => 'App\Console\Scheduler\ImportScheduler',
-        self::IMPORT_RDB_CONFIG => 'App\Console\Scheduler\ImportRDBScheduler',
-        self::IMPORT_SCIM_CONFIG => 'none',
-        self::EXPORT_AD_CONFIG => 'App\Console\Scheduler\ExportADScheduler',
-        self::EXPORT_BOX_CONFIG => 'App\Console\Scheduler\ExportBoxScheduler',
-        self::EXPORT_CSV_CONFIG => 'App\Console\Scheduler\ExportScheduler',
-        self::EXPORT_GW_CONFIG => 'App\Console\Scheduler\ExportGWScheduler',
-        self::EXPORT_LDAP_CONFIG => 'App\Console\Scheduler\ExportLDAPScheduler',
-        self::EXPORT_OL_CONFIG => 'App\Console\Scheduler\ExportOLScheduler',
-        self::EXPORT_SF_CONFIG => 'App\Console\Scheduler\ExportSFScheduler',
-        self::EXPORT_SLACK_CONFIG => 'App\Console\Scheduler\ExportSlackScheduler',
-        self::EXPORT_TL_CONFIG => 'App\Console\Scheduler\ExportTLScheduler',
-        self::EXPORT_ZOOM_CONFIG => 'App\Console\Scheduler\ExportZoomScheduler',
-        self::DELIVERY_CSV_CONFIG => 'App\Console\Scheduler\OutputScheduler'
+    private const OPERATIONS = array(
+        Consts::MASTER_DB_CONFIGURATION             =>  "none",
+        Consts::CSV_IMPORT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ImportScheduler",
+        Consts::RDB_IMPORT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ImportRDBScheduler",
+        Consts::SCIM_IMPORT_PROCESS_CONFIGURATION   =>  "none",
+        Consts::AD_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportADScheduler",
+        Consts::BOX_EXTRACT_PROCESS_CONFIGURATION   =>  "App\Console\Scheduler\ExportBoxScheduler",
+        Consts::CSV_EXTRACT_PROCESS_CONFIGURATION   =>  "App\Console\Scheduler\ExportScheduler",
+        Consts::GW_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportGWScheduler",
+        Consts::LDAP_EXTRACT_PROCESS_CONFIGURATION  =>  "App\Console\Scheduler\ExportLDAPScheduler",
+        Consts::OL_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportOLScheduler",
+        Consts::SF_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportSFScheduler",
+        Consts::SLACK_EXTRACT_PROCESS_CONFIGURATION =>  "App\Console\Scheduler\ExportSlackScheduler",
+        Consts::TL_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportTLScheduler",
+        Consts::ZOOM_EXTRACT_PROCESS_CONFIGURATION  =>  "App\Console\Scheduler\ExportZoomScheduler",
+        Consts::CSV_OUTPUT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\OutputScheduler",
     );
 
     /**
@@ -106,7 +89,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__ . '/Commands');
-        require base_path('routes/console.php');
+        $this->load(__DIR__ . "/Commands");
+        require base_path("routes/console.php");
     }
 }
