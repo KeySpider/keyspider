@@ -237,6 +237,12 @@ class LDAPExportor
         $fields = [];
 
         foreach ($conversions as $key => $nameTable) {
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $nameTable, $matches);
+            if (!empty($matches)) {
+                $fields[$key] = $this->executeExtend($nameTable, $matches, $array["ID"]);
+                continue;
+            }
+
             $explodeItem = explode('.', $nameTable);
             $item = $explodeItem[count($explodeItem) - 1];
 
@@ -278,6 +284,37 @@ class LDAPExportor
             }
         }
         return $fields;
+    }
+
+    private function executeExtend($value, $matches, $id) {
+        $className = self::PLUGINS_DIR . "$matches[1]";
+        if (!class_exists($className)) {
+            return $value;
+        }
+        $clazz = new $className;
+        if (!method_exists($clazz, $matches[2])) {
+            return $value;
+        }
+        $methodName = $matches[2];
+        $parameters = [];
+        $keys = [];
+        $tableName;
+        if (!empty($matches[3])) {
+            $params = explode(",", $matches[3]);
+            $selectColumns = [];
+            foreach ($params as $param) {
+                $value = explode(".", $param);
+                $tableName = $value[0];
+                array_push($selectColumns, $value[1]);
+            }
+            $queries = DB::table($tableName)
+                ->select($selectColumns)
+                ->where('ID', $id)->first();
+            foreach ($selectColumns as $selectColumn) {
+                array_push($parameters, $queries->$selectColumn);
+            }
+        }
+        return $clazz->$methodName($parameters);
     }
 
     private function array_key_prefix(array $array, $prefix = '')

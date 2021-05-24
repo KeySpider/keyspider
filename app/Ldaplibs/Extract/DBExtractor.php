@@ -46,6 +46,7 @@ class DBExtractor
     const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
+    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
     protected $setting;
     protected $regExpManagement;
@@ -76,7 +77,13 @@ class DBExtractor
         ksort($settingConvention);
 
         foreach ($settingConvention as $key => $value) {
-            $n = strpos($value, $nameTable);
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
+            if (!empty($matches)) {
+                $arraySelectColumns[] = DB::raw("'$value' as \"$key\"");
+                $arrayAliasColumns[] = $key;
+                continue;
+            }
+
             preg_match('/\((\w+)\.(.*)\)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
 
             if (strpos($value, 'ELOQ') !== false) {
@@ -253,7 +260,13 @@ class DBExtractor
                 $value = explode('->', $value)[0];
                 $value = $value . ')';
             }
-            $n = strpos($value, $nameTable);
+
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
+            if (!empty($matches)) {
+                $arrayAliasColumns[] = DB::raw("'$value' as \"$key\"");
+                $arraySelectColumns[] = $key;
+                continue;
+            }
 
             // process with regular expressions?
             // set real value, after mod
@@ -417,6 +430,12 @@ class DBExtractor
 
                         continue;
                     }
+                    
+                    preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $column, $matches);
+                    if (!empty($matches)) {
+                        $dataTmp[$index] = $this->executeExtend($column, $matches, $uid);
+                        continue;
+                    }
 
                     if (strpos($column, 'ELOQ;') !== false) {
                         // Get Eloquent string
@@ -556,9 +575,44 @@ class DBExtractor
             if (strpos($value, 'TODAY()') !== false) {
                 $item[$key] = $this->regExpManagement->getEffectiveDate($value);
             }
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
+            if (!empty($matches)) {
+                $item[$key] = $this->executeExtend($value, $matches, $item["ID"]);
+            }
         }
         $item['UpdateDate'] = Carbon::now()->format('Y/m/d H:i:s');
         return $item;
+    }
+
+    private function executeExtend($value, $matches, $id) {
+        $className = self::PLUGINS_DIR . "$matches[1]";
+        if (!class_exists($className)) {
+            return $value;
+        }
+        $clazz = new $className;
+        if (!method_exists($clazz, $matches[2])) {
+            return $value;
+        }
+        $methodName = $matches[2];
+        $parameters = [];
+        $keys = [];
+        $tableName;
+        if (!empty($matches[3])) {
+            $params = explode(",", $matches[3]);
+            $selectColumns = [];
+            foreach ($params as $param) {
+                $value = explode(".", $param);
+                $tableName = $value[0];
+                array_push($selectColumns, $value[1]);
+            }
+            $queries = DB::table($tableName)
+                ->select($selectColumns)
+                ->where('ID', $id)->first();
+            foreach ($selectColumns as $selectColumn) {
+                array_push($parameters, $queries->$selectColumn);
+            }
+        }
+        return $clazz->$methodName($parameters);
     }
 
     public function processExtractToAD()
