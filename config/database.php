@@ -38,6 +38,7 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'deleteType' => '<logical> or <physical>',
         ],
 
         'mysql' => [
@@ -54,6 +55,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            'deleteType' => '<logical> or <physical>',
         ],
 
         'pgsql' => [
@@ -68,6 +70,7 @@ return [
             'prefix_indexes' => true,
             'schema' => 'public',
             'sslmode' => 'prefer',
+            'deleteType' => '<logical> or <physical>',
         ],
 
         'sqlsrv' => [
@@ -80,6 +83,7 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+            'deleteType' => '<logical> or <physical>',
         ],
 
         'oracle' => [
@@ -91,6 +95,7 @@ return [
             'username' => env('DB_USERNAME_ORA', 'forge'),
             'password' => env('DB_PASSWORD_ORA', ''),
             'charset' => 'AL32UTF8',
+            'deleteType' => '<logical> or <physical>',
         ],
     ],
 
