@@ -30,6 +30,7 @@ use App\Jobs\DBToBoxExtractorJob;
 use App\Jobs\DBToSFExtractorJob;
 use App\Jobs\DBToZoomExtractorJob;
 use App\Jobs\DBToSlacKExtractorJob;
+use App\Jobs\DBToRDBExtractorJob;
 use App\Jobs\DeliveryJob;
 use App\Jobs\DBImporterFromRDBJob;
 use App\Jobs\LDAPExportorJob;
@@ -64,6 +65,7 @@ class Kernel extends ConsoleKernel
     public const EXPORT_ZOOM_CONFIG = 'ZOOM Extract Process Configration';
     public const EXPORT_SLACK_CONFIG = 'SLACK Extract Process Configration';
     public const IMPORT_RDB_CONFIG = 'RDB Import Process Configration';
+    public const EXPORT_RDB_CONFIG = 'RDB Extract Process Configration';
     public const DATABASE_INFO = 'RDB Import Database Configuration';
     public const EXPORT_LDAP_CONFIG = 'LDAP Export Process Configration';
     public const DELIVERY_CSV_CONFIG = 'CSV Output Process Configration';
@@ -84,6 +86,7 @@ class Kernel extends ConsoleKernel
         self::EXPORT_GW_CONFIG => 'exportDataToGW',
         self::EXPORT_SLACK_CONFIG => 'exportDataToSlack',
         self::EXPORT_OL_CONFIG => 'exportDataToOL',
+        self::EXPORT_RDB_CONFIG => 'exportDataToRDB',
         self::DELIVERY_CSV_CONFIG => 'deliveryCsv',
         self::EXPORT_LDAP_CONFIG => 'exportDataToLdap'
     );
@@ -320,6 +323,24 @@ class Kernel extends ConsoleKernel
             }
         } else {
             Log::info('Currently, there is no OneLogin extracting.');
+        }
+    }
+
+    /**
+     * RDB エクスポート用の実行時間チェック処理です。
+     */
+    public function exportDataToRDB(Schedule $schedule)
+    {
+        $extractSettingManager = new ExtractSettingsManager(self::EXPORT_RDB_CONFIG);
+        $extractSetting = $extractSettingManager->getRuleOfDataExtract();
+        if ($extractSetting) {
+            foreach ($extractSetting as $timeExecutionString => $settingOfTimeExecution) {
+                $schedule->call(function () use ($settingOfTimeExecution) {
+                    $this->exportDataToRDBForTimeExecution($settingOfTimeExecution);
+                })->dailyAt($timeExecutionString);
+            }
+        } else {
+            Log::info('Currently, there is no RDB extracting.');
         }
     }
 
@@ -571,6 +592,21 @@ class Kernel extends ConsoleKernel
             foreach ($settings as $dataSchedule) {
                 $setting = $dataSchedule['setting'];
                 $extractor = new DBToSlackExtractorJob($setting);
+                $queue->push($extractor);
+            }
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    }
+
+    public function exportDataToRDBForTimeExecution($settings)
+    {
+        Log::info('exportDataToRDBForTimeExecution');
+        try {
+            $queue = new ExtractQueueManager();
+            foreach ($settings as $dataSchedule) {
+                $setting = $dataSchedule['setting'];
+                $extractor = new DBToRDBExtractorJob($setting);
                 $queue->push($extractor);
             }
         } catch (Exception $e) {

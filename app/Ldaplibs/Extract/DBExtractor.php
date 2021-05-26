@@ -42,11 +42,13 @@ class DBExtractor
     /**
      * define const
      */
-    const EXTRACTION_CONDITION = 'Extraction Condition';
+    const EXTRACTION_CONDITION = "Extraction Condition";
     const EXTRACTION_CONFIGURATION = "Extraction Process Basic Configuration";
     const OUTPUT_PROCESS_CONVERSION = "Output Process Conversion";
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
+    const RDB_CONFIGRATION = "Extraction RDB Connecting Configration";
+    const DB_CONNECTION = "database.connections";
 
     protected $setting;
     protected $regExpManagement;
@@ -1920,6 +1922,146 @@ class DBExtractor
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
                 $table,
+                $faildCnt,
+                "create = $createCount, update = $updateCount, delete = $deleteCount",
+                $exception->getMessage()
+            );
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+        }
+    }
+
+    public function processExtractToRDB()
+    {
+        try {
+            $setting = $this->setting;
+            $extractiontable = $setting[self::EXTRACTION_CONFIGURATION]["ExtractionTable"];
+            $extractionProcessID = $setting[self::EXTRACTION_CONFIGURATION]["ExtractionProcessID"];
+            $extractCondition = $setting[self::EXTRACTION_CONDITION];
+            $connectionType = $setting[self::RDB_CONFIGRATION]["ConnectionType"];
+            $exportTable = $setting[self::RDB_CONFIGRATION]["ExportTable"];
+            $primaryColumn = $setting[self::RDB_CONFIGRATION]["PrimaryColumn"];
+            $externalId = $setting[self::RDB_CONFIGRATION]["ExternalId"];
+            $rdbDeleteType = config(self::DB_CONNECTION)[$connectionType]["deleteType"] ?? Null;
+
+            $settingManagement = new SettingsManager();
+            $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($extractiontable);
+            $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
+            $deleteFlagName = $settingManagement->getDeleteFlagColumnName($extractiontable);
+
+            // Configuration file validation
+            if (!$settingManagement->isExtractSettingsFileValid()) {
+                return;
+            }
+
+            // Traceing
+            $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            $cmd = $extractiontable . " Provisioning start --> RDB";
+            $message = "";
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+
+            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $primaryKey = $settingManagement->getTableKey();
+
+            $allSelectedColumns = $this->getColumnsSelect($extractiontable, $formatConvention);
+            $selectColumns = $allSelectedColumns[0];
+            $aliasColumns = $allSelectedColumns[1];
+
+            $getEncryptedFields = $settingManagement->getEncryptedFields();
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, $externalId, $deleteFlagName]);
+            $joins = ($this->getJoinCondition($formatConvention, $settingManagement));
+
+            foreach ($joins as $src => $des) {
+                $selectColumns[] = $des;
+            }
+
+            $querytable = DB::table($extractiontable);
+            $query = $querytable->select($selectColumnsAndID)->where($whereData);
+            $results = $query->get()->toArray();
+
+            // Traceing
+            $cmd = "Count --> RDB";
+            $message = sprintf("Processing %s Object %d records", $extractiontable, count($results));
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+
+            $createCount = 0;
+            $updateCount = 0;
+            $deleteCount = 0;
+
+            if ($results) {
+                foreach ($results as $key => $item) {
+                    $item = (array)$item;
+                    $item = $this->overlayItem($formatConvention, $item);
+                    $exportDate = array_intersect_key($item, $formatConvention);
+
+                    DB::beginTransaction();
+                    $rdbTable = DB::connection($connectionType)->table($exportTable);
+
+                    if ($item[$deleteFlagName] == '1') {
+                        if (!empty($item[$externalId])) {
+                            $deleteData = $rdbTable->where($primaryColumn, $item[$externalId]);
+                            if ($rdbDeleteType == "logical") {
+                                // Logical Delete
+                                $deleteData->update($exportDate);
+                                $deleteCount++;
+                            } elseif ($rdbDeleteType == "physical") {
+                                // Physical Delete
+                                $deleteData->delete();
+                                $item[$externalId] = "";
+                                $deleteCount++;
+                            } else {
+                                Log::error("Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.");
+                                continue;
+                            }
+                        }
+                        $settingManagement->setUpdateFlags($extractionProcessID, $item["$primaryKey"], $extractiontable, $value = 0);
+                        $updateQuery = DB::table($extractiontable)->where($primaryKey, $item["$primaryKey"]);
+                        $updateQuery->update(["UpdateDate" => $item["UpdateDate"]]);
+                        $updateQuery->update([$externalId => $item[$externalId]]);
+                        DB::commit();
+                        continue;
+                    }
+
+                    $rdbId = $item[$externalId];
+                    if (!empty($item[$externalId])) {
+                        // UPDATE
+                        $rdbTable->where($primaryColumn, $item[$externalId])->update($exportDate);
+                        $updateCount++;
+                    } else {
+                        // CREATE
+                        $rdbId = $rdbTable->insertGetId($exportDate, $primaryColumn);
+                        $createCount++;
+                    }
+                    $settingManagement->setUpdateFlags($extractionProcessID, $item["$primaryKey"], $extractiontable, $value = 0);
+                    $updateQuery = DB::table($extractiontable)->where($primaryKey, $item["$primaryKey"]);
+                    $updateQuery->update(["UpdateDate" => $item["UpdateDate"]]);
+                    $updateQuery->update([$externalId => $rdbId]);
+                    DB::commit();
+                }
+            }
+
+            // Traceing
+            $cmd = $extractiontable . ' Provisioning done --> RDB';
+            $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
+            if (count($results) == 0) {
+                $summarys = "";
+            }
+            $message = sprintf(
+                "Provisioning %s Object Success. %d objects affected.\n%s",
+                $extractiontable,
+                $updateCount + $createCount + $deleteCount,
+                $summarys
+            );
+            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+        } catch (Exception $exception) {
+            DB::rollback();
+            echo ("\e[0;31;47m [$extractionProcessID] $exception \e[0m \n");
+            Log::debug($exception);
+
+            $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
+            $cmd = $extractiontable . ' Provisioning Faild --> RDB';
+            $message = sprintf(
+                "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
+                $extractiontable,
                 $faildCnt,
                 "create = $createCount, update = $updateCount, delete = $deleteCount",
                 $exception->getMessage()

@@ -208,7 +208,7 @@ class ExtractSettingsManager extends SettingsManager
         $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
         $rules = [
             'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce'],
+            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce,RDB'],
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);

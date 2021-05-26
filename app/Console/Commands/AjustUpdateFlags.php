@@ -75,15 +75,23 @@ class AjustUpdateFlags extends Command
         foreach ($users as $user) {
             $updateFlags = json_decode($user->UpdateFlags, true);
             $keys = array_keys($updateFlags);
-
+            $ajustUpdateFlags = [];
+            $addFlagCount = 0;
+            
             foreach ($updateFlagsArray as $processId) {
-                if (!in_array($processId, $keys)) {
-                    $updateFlags[$processId] = '1';
-                    $effectives += 1;
+                if (in_array($processId, $keys)) {
+                    $ajustUpdateFlags[$processId] = $updateFlags[$processId];
+                    unset($updateFlags[$processId]);
+                } else {
+                    $ajustUpdateFlags[$processId] = '1';
+                    $addFlagCount++;
                 }
             }
 
-            $setValues[$colUpdateFlag] = json_encode($updateFlags);
+            $deleteFlagCount = count($updateFlags);
+            $effectives += $addFlagCount + $deleteFlagCount;
+
+            $setValues[$colUpdateFlag] = json_encode($ajustUpdateFlags);
             DB::table($nameTable)->where("ID", $user->ID)->update($setValues);
         }
         Log::info($nameTable . " Changed " . $effectives . " processIDs");

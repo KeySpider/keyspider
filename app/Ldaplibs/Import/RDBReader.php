@@ -66,13 +66,15 @@ class RDBReader
             $table = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ImportTable'];
             $pkColumn = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['PrimaryColmn'];
             $conversions = $setting[self::CONVERSION];
+            $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
 
             // Initialize
             $this->rdbRecords = [];
             DB::connection($conn)->table($table)->orderBy($pkColumn, 'ASC')
-                ->chunk(1000, function ($bulkDatas) use ($conversions, $pkColumn) {
+                ->chunk(1000, function ($bulkDatas) use ($conversions, $pkColumn, $externalID) {
                     foreach ($bulkDatas as $bulkData) {
                         $array = json_decode(json_encode($bulkData), true);
+                        $conversions[$this->prefix . "." . $externalID] = $pkColumn;
                         $this->rdbRecords[] = $this->createWorkFromRdb($pkColumn, $conversions, $array);
                     }
                 });
@@ -253,6 +255,7 @@ class RDBReader
     {
         $diffTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
         $itemTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
+        $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]["ExternalID"];
 
         // Sanitize ID array
         $varray = json_decode(json_encode($sarray), true);
@@ -265,7 +268,7 @@ class RDBReader
                     DB::beginTransaction();
                     //DB::enableQueryLog();
                     DB::table($itemTable)->where("ID", $id)
-                        ->update(['DeleteFlag' => '1']);
+                        ->update(['DeleteFlag' => '1', $externalID => NULL]);
                     //var_dump(DB::getQueryLog());
 
                     // Add 'LDAP status' to UpdateFlags
