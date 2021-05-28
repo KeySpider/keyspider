@@ -24,7 +24,7 @@ return [
       "urn:ietf:params:scim:api:messages:2.0:User"
     ],
     "externalId": "(User.ID)",
-    "active": (User.DeleteFlag),
+accountLockStatus
     "roles": [
       {
         "value": "Standard"

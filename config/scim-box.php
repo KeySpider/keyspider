@@ -20,14 +20,14 @@
 
 return [
   'createUser' => '{
+    "status": "(User.DeleteFlag)",
     "name": "(User.name)",
     "login": "(User.login)",
     "language": "ja",
     "timezone": "Asia/Tokyo",
     "job_title": "(User.job_title)",
     "phone": "(User.phone)",
-    "address": "(User.joinAddress)",
-    "status": "(User.DeleteFlag)"
+    "address": "(User.joinAddress)"
   }',
   'createGroup' => '{
     "name": "(Group.name)"

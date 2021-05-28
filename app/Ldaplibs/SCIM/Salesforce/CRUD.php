@@ -133,7 +133,7 @@ class CRUD
         $camelTableName = ucfirst(strtolower($object));
         $scimInfo = array(
             'provisoning' => 'SalesForce',
-            'scimMethod' => 'create',
+            'scimMethod' => 'update',
             'table' => $camelTableName,
             'message' => '',
         );
@@ -151,7 +151,7 @@ class CRUD
         }
 
         $url = "$this->instance_url/services/data/v39.0/sobjects/$object/$id";
-        
+
         $client = new Client();
 
         try {
@@ -242,6 +242,7 @@ class CRUD
 
                 die("Error: call to URL $url failed with status $status, response: " . $request->getReasonPhrase());
             }
+            $this->settingManagement->detailLogger($scimInfo);
 
             return true;
         } catch (\Exception $exception) {

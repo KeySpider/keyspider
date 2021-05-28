@@ -654,6 +654,8 @@ class DBExtractor
                 $allRoleFlags = $settingManagement->getRoleFlags();
                 $selectColumnsAndID = array_merge($selectColumnsAndID, $allRoleFlags);
 
+                $selectColumnsAndID = array_merge($selectColumnsAndID, ['LockFlag']);
+
                 $getOfficeLicenseFields = $settingManagement->getOfficeLicenseFields();
                 if (!empty($getOfficeLicenseFields)) {
                     $selectColumnsAndID = array_merge($selectColumnsAndID, [$getOfficeLicenseFields]);
@@ -681,6 +683,9 @@ class DBExtractor
             $updateCount = 0;
             $deleteCount = 0;
 
+            // Linkage LockFlag
+            $linkageLockFlag = array_key_exists('accountEnabled', $formatConvention);
+
             if ($results) {
                 $userGraph = new UserGraphAPI();
 
@@ -689,6 +694,19 @@ class DBExtractor
                 foreach ($results as $key => $item) {
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
+
+                    if ($table == 'User') {
+                        if ($linkageLockFlag) {
+                            $eaLocked = True;
+                            if ((int)$item['LockFlag'] == 1) {
+                                $eaLocked = False;
+                            }
+                            $item['accountEnabled'] = $eaLocked;
+                        } else {
+                            unset($item['accountEnabled']);
+                        }
+                    }
+                    
                     $item = json_decode(json_encode($item));
 
                     DB::beginTransaction();
@@ -701,19 +719,19 @@ class DBExtractor
                             Log::info("Delete $table [$uPN] on AzureAD");
 
                             $userGraph->removeLicenseDetail($item->externalID);
-
-                            $userGraph->deleteResource($item->externalID, $table);
-
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
-                            $updateQuery->where($primaryKey, $item->{"$primaryKey"});
-                            $updateQuery->update(['externalID' => null]);
-
-                            if ($table == 'Group') {
-                                $updateQuery = DB::table('UserToGroup');
-                                $updateQuery->where('Group_ID', $item->{"$primaryKey"});
-                                $updateQuery->delete();
+                            $userDeleted = $userGraph->deleteResource($item->externalID, $table);
+                            if ($userDeleted != null) {
+                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                                $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                                $updateQuery->update(['externalID' => null]);
+    
+                                if ($table == 'Group') {
+                                    $updateQuery = DB::table('UserToGroup');
+                                    $updateQuery->where('Group_ID', $item->{"$primaryKey"});
+                                    $updateQuery->delete();
+                                }
+                                $deleteCount++;
                             }
-                            $deleteCount++;
                         } else {
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
                             if ($userUpdated == null) {
@@ -728,10 +746,31 @@ class DBExtractor
                         if ($item->DeleteFlag == 1) {
                             $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                             Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
+
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item->{"$primaryKey"};
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on TrustLogin, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'TrustLogin',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on TrustLogn, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
+
                             DB::commit();
                             continue;
                         }
-                        $userOnAD = $userGraph->createResource((array)$item, $table);
+                        // Error occurrd without accountEnabled
+                        $userItem = (array)$item;
+                        if (!array_key_exists('accountEnabled', $userItem)) {
+                            $userItem['accountEnabled']  = True;
+                        }
+
+                        $userOnAD = $userGraph->createResource($userItem, $table);
                         if ($userOnAD == null) {
                             DB::commit();
                             continue;
@@ -890,6 +929,19 @@ class DBExtractor
                     } //Not found resource, create it!
                     else {
                         if ($item["DeleteFlag"] == 1) {
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item['ID'];
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on Salesforce, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'SalesForce',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on Salesforce, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
                             continue;
                         }
 
@@ -1037,18 +1089,32 @@ class DBExtractor
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalZOOMID'])) {
-                            $scimLib->deleteResource($table, $item);
-                            DB::beginTransaction();
-                            $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
-                            $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalZOOMID' => null]);
-                            DB::commit();
-                            $deleteCount++;
+                            $ext_id = $scimLib->deleteResource($table, $item);
+                            if ($ext_id != null) {
+                                DB::beginTransaction();
+                                $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                                $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                                $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
+                                $updateQuery->update(['externalZOOMID' => null]);
+                                DB::commit();
+                                $deleteCount++;
+                            }
                             continue;
                         } else {
-                            // $item['status'] = 'inactive';
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item['ID'];
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on ZOOM, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'ZOOM',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on ZOOM, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
                         }
                     }
 
@@ -1056,12 +1122,21 @@ class DBExtractor
                     if (!empty($item['externalZOOMID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
-                        $ext_id = $item['externalZOOMID'];
-                        $updateCount++;
+                        if ($ext_id != null) {
+                            $updateCount++;
+                        } else {
+                            echo "Not found response of updating: \n";
+                            continue;
+                        }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
-                        $createCount++;
+                        if ($ext_id != null) {
+                            $createCount++;
+                        } else {
+                            echo "Not found response of creating: \n";
+                            continue;
+                        }
                     }
 
                     if ($table == 'User') {
@@ -1212,7 +1287,20 @@ class DBExtractor
                             }
                             continue;
                         } else {
-                            $item['locked'] = '1';
+                            // $item['locked'] = '1';
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item['ID'];
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on Slack, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'Slack',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on Slack, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
                         }
                     }
 
@@ -1220,15 +1308,20 @@ class DBExtractor
                     if (!empty($item['externalSlackID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
-                        $updateCount++;
+                        if ($ext_id !== null) {
+                            $updateCount++;
+                        }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
-                        $createCount++;
+                        if ($ext_id !== null) {
+                            $createCount++;
+                        }
                     }
-                    $scimLib->updateGroupMemebers($table, $item, $ext_id);
-
+ 
                     if ($ext_id !== null) {
+                        $scimLib->updateGroupMemebers($table, $item, $ext_id);
+
                         DB::beginTransaction();
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
                         $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
@@ -1378,7 +1471,20 @@ class DBExtractor
                             }
                             continue;
                         } else {
-                            $item['locked'] = '1';
+                            // $item['locked'] = '1';
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item['ID'];
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on TrustLogin, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'TrustLogin',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on TrustLogn, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
                         }
                     }
 
@@ -1527,18 +1633,33 @@ class DBExtractor
 
                     if ($item['DeleteFlag'] == '1') {
                         if (!empty($item['externalBOXID'])) {
-                            $scimLib->deleteResource($table, $item);
-                            DB::beginTransaction();
-                            $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
-                            $updateQuery->where($primaryKey, $item["$primaryKey"]);
-                            $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
-                            $updateQuery->update(['externalBOXID' => null]);
-                            $deleteCount++;
-                            DB::commit();
+                            $ext_id = $scimLib->deleteResource($table, $item);
+                            if ($ext_id != null) {
+                                DB::beginTransaction();
+                                $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
+                                $updateQuery = DB::table($setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable']);
+                                $updateQuery->where($primaryKey, $item["$primaryKey"]);
+                                $updateQuery->update(['UpdateDate' => Carbon::now()->format('Y/m/d H:i:s')]);
+                                $updateQuery->update(['externalBOXID' => null]);
+                                $deleteCount++;
+                                DB::commit();
+                            }
                             continue;
                         } else {
-                            $item['status'] = 'inactive';
+                            // $item['status'] = 'inactive';
+                            $nowTbl = ucfirst(strtolower($table));
+                            $kspId = $item['ID'];
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on BOX, do nothing!");
+
+                            $scimInfo = array(
+                                'provisoning' => 'BOX',
+                                'scimMethod' => 'create',
+                                'table' => $nowTbl,
+                                'itemId' => $kspId,
+                                'itemName' => 'Throw of creating',
+                                'message' => "DeleteFlag = 1 and not existed on BOX, do nothing!",
+                            );
+                            $this->settingManagement->faildLogger($scimInfo);
                         }
                     }
 
@@ -1549,14 +1670,18 @@ class DBExtractor
                         if ($table == "User" && !empty($ext_id)) {
                             $scimLib->addMemberToGroups($item, $ext_id);
                         }
-                        $updateCount++;
+                        if ($ext_id != null) {
+                            $updateCount++;
+                        }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
                         if ($table == "User" && !empty($ext_id)) {
                             $scimLib->addMemberToGroups($item, $ext_id);
                         }
-                        $createCount++;
+                        if ($ext_id != null) {
+                            $createCount++;
+                        }
                     }
 
                     if ($ext_id !== null) {
@@ -1705,11 +1830,15 @@ class DBExtractor
                     if (!empty($item['externalGWID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
-                        $updateCount++;
+                        if ($ext_id != null) {
+                            $updateCount++;
+                        }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
-                        $createCount++;
+                        if ($ext_id != null) {
+                            $createCount++;
+                        }
                     }
 
                     if ($ext_id !== null) {
@@ -1861,11 +1990,15 @@ class DBExtractor
                     if (!empty($item['externalOLID'])) {
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
-                        $updateCount++;
+                        if ($ext_id != null) {
+                            $updateCount++;
+                        }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
-                        $createCount++;
+                        if ($ext_id != null) {
+                            $createCount++;
+                        }
                     }
 
                     if ($ext_id !== null) {

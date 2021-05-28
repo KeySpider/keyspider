@@ -33,7 +33,7 @@ return [
        "profileUrl":"",
        "title":"(User.title)",
        "timezone":"Asia/Tokyo",
-       "active":(User.DeleteFlag),
+accountLockStatus
        "emails":[
           {
              "value":"(User.mail)",

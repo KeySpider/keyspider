@@ -6,10 +6,19 @@ class User
 {
     private $client;
     private $user = array();
+    private $useLockflag = false;
+
+    const FORMAT_CONVERSION = 'Extraction Process Format Conversion';
+    const INI_PATH = 'ini_configs/extract/UserToOLExtraction.ini';
 
     public function __construct($client)
     {
         $this->client = $client;
+
+        $fcSection = parse_ini_file(storage_path(self::INI_PATH), true) [self::FORMAT_CONVERSION];
+        if ( array_key_exists('status', $fcSection) ) {
+            $this->useLockflag = true;
+        }
     }
 
     public function getUser()
@@ -136,7 +145,13 @@ class User
                 $this->setValue($key, $value);
                 break;
             case $key == 'status':
-                $this->setValue($key, $value);
+                if ($this->useLockflag) {
+                    $convBool = true;
+                    if ((int)$value == 1) {
+                        $convBool = false;
+                    }                    
+                    $this->setValue($key, $convBool);
+                }
                 break;
             case $key == 'directory_id':
                 $this->setValue($key, $value);

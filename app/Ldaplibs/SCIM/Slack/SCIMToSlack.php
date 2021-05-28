@@ -31,18 +31,23 @@ class SCIMToSlack
 
     public function createResource($resourceType, $item)
     {
+        $camelTableName = ucfirst(strtolower($resourceType));
         $scimInfo = array(
             'provisoning' => 'Slack',
             'scimMethod' => 'create',
-            'table' => ucfirst(strtolower($resourceType)),
+            'table' => $camelTableName,
             'itemId' => $item['ID'],
-            'itemName' => $item['userName'],
             'message' => '',
         );
 
-        $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
-        if (!$isContinueProcessing) {
-            return null;
+        if ($camelTableName == 'User') {
+            $scimInfo['itemName'] = $item['userName'];
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
+            if (!$isContinueProcessing) {
+                return null;
+            }
+        } else {
+            $scimInfo['itemName'] = $item['displayName'];
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
@@ -112,18 +117,23 @@ class SCIMToSlack
 
     public function updateResource($resourceType, $item)
     {
+        $camelTableName = ucfirst(strtolower($resourceType));
         $scimInfo = array(
             'provisoning' => 'Slack',
             'scimMethod' => 'update',
-            'table' => ucfirst(strtolower($resourceType)),
+            'table' => $camelTableName,
             'itemId' => $item['ID'],
-            'itemName' => $item['userName'],
             'message' => '',
         );
 
-        $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
-        if (!$isContinueProcessing) {
-            return null;
+        if ($camelTableName == 'User') {
+            $scimInfo['itemName'] = $item['userName'];
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
+            if (!$isContinueProcessing) {
+                return null;
+            }
+        } else {
+            $scimInfo['itemName'] = $item['displayName'];
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
@@ -274,7 +284,8 @@ class SCIMToSlack
             foreach ($item as $key => $value) {
                 if ($key === 'locked') {
                     if ( $value == '1') $isActive = 'false';
-                    $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
+                    $als = sprintf("       \"active\":%s,", $isActive);
+                    $tmp = str_replace("accountLockStatus", $als, $tmp);
                     continue;
                 }
 
@@ -284,6 +295,10 @@ class SCIMToSlack
                 }
                 $tmp = str_replace("(User.$key)", $value, $tmp);
             }
+
+            // if not yet replace als code, replace to null
+            $tmp = str_replace("accountLockStatus\n", '', $tmp);
+
         } else {
             $tmp = Config::get('scim-slack.createGroup');
             $tmp = str_replace("(Organization.DisplayName)", $item['displayName'], $tmp);

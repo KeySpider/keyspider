@@ -32,6 +32,7 @@ class SCIMToGoogleWorkspace
     {
         $this->setting = $setting;
         $this->client = $this->getClient();
+        $this->settingManagement = new SettingsManager();
     }
 
     private function getClient()
@@ -62,6 +63,16 @@ class SCIMToGoogleWorkspace
     {
         $item = $this->replaceResource($resourceType, $item);
 
+        // TODO：コメント行を変更してください
+        $scimInfo = array(
+            'provisoning' => 'Google Workspace',
+            'scimMethod' => 'create',
+            'table' => ucfirst(strtolower($resourceType)),
+            'itemId' => $item['ID'],
+            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+            'message' => '',
+        );
+
         try {
             if ($resourceType == 'User') {
                 // test source
@@ -79,10 +90,15 @@ class SCIMToGoogleWorkspace
 
             $this->data->setAttributes($item);
             $result = $this->data->insert();
-            return $this->data->getPrimaryKey($result);
-        } catch (\Exception $e) {
+            if ($result) {
+                $this->settingManagement->detailLogger($scimInfo);
+                return $this->data->getPrimaryKey($result);
+            }
+        } catch (\Exception $exception) {
             Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] create was failed.');
-            Log::critical($e);
+            Log::critical($exception);
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
         return null;
     }
@@ -90,6 +106,16 @@ class SCIMToGoogleWorkspace
     public function updateResource($resourceType, $item)
     {
         $item = $this->replaceResource($resourceType, $item);
+
+        // TODO：コメント行を変更してください
+        $scimInfo = array(
+            'provisoning' => 'Google Workspace',
+            'scimMethod' => 'update',
+            'table' => ucfirst(strtolower($resourceType)),
+            'itemId' => $item['ID'],
+            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+            'message' => '',
+        );
 
         try {
             if ($resourceType == 'User') {
@@ -112,16 +138,31 @@ class SCIMToGoogleWorkspace
             $this->data->setResource($result);
             $this->data->setAttributes($item);
             $result = $this->data->update($item['externalGWID']);
-            return $this->data->getPrimaryKey($result);
-        } catch (\Exception $e) {
+            if ($result) {
+                $this->settingManagement->detailLogger($scimInfo);
+                return $this->data->getPrimaryKey($result);
+            }
+        } catch (\Exception $exception) {
             Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] update was failed.');
-            Log::critical($e);
+            Log::critical($exception);
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
         return null;
     }
 
     public function deleteResource($resourceType, $item)
     {
+        // TODO：コメント行を変更してください
+        $scimInfo = array(
+            'provisoning' => 'Google Workspace',
+            'scimMethod' => 'delete',
+            'table' => ucfirst(strtolower($resourceType)),
+            'itemId' => $item['ID'],
+            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+            'message' => '',
+        );
+
         try {
             if ($resourceType == 'User') {
                 // test source
@@ -139,10 +180,23 @@ class SCIMToGoogleWorkspace
             }
 
             $this->data->delete($item['externalGWID']);
+            $this->settingManagement->detailLogger($scimInfo);
             return $item['externalGWID'];
-        } catch (\Exception $e) {
+        } catch (\Exception $exception) {
             Log::critical('GoogleWorkspace::' . $resourceType . ' [' . $item['ID'] . '] delete was failed.');
-            Log::critical($e);
+            Log::critical($exception);
+
+            // TODO：コメント行を変更してください
+            $scimInfo = array(
+                'provisoning' => 'Google Workspace',
+                'scimMethod' => 'delete',
+                'table' => ucfirst(strtolower($resourceType)),
+                'itemId' => $item['ID'],
+                'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                'message' => $exception->getMessage(),
+            );
+
+            $this->settingManagement->faildLogger($scimInfo);
         }
         return null;
     }
@@ -165,12 +219,32 @@ class SCIMToGoogleWorkspace
     {
         try {
             $result = $this->data->get($resourceId);
-        } catch (\Exception $e) {
-            if ($e->getCode() == 404 && strpos($e->getMessage(), 'Resource Not Found') !== false) {
+        } catch (\Exception $exception) {
+            if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'Resource Not Found') !== false) {
                 Log::error('GoogleWorkspace::' . $resourceType . ' [' . $resourceId . '] was not found.');
+
+                $scimInfo = array(
+                    'provisoning' => 'Google Workspace',
+                    'scimMethod' => 'getResourceDetail',
+                    'table' => ucfirst(strtolower($resourceType)),
+                    'itemId' => '',  // $item['ID'],
+                    'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                    'message' => $exception->getMessage(),
+                );
+                $this->settingManagement->faildLogger($scimInfo);
                 return null;
             }
-            throw $e;
+            $scimInfo = array(
+                'provisoning' => 'Google Workspace',
+                'scimMethod' => 'getResourceDetail',
+                'table' => ucfirst(strtolower($resourceType)),
+                'itemId' => '',  // $item['ID'],
+                'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                'message' => $exception->getMessage(),
+            );
+            $this->settingManagement->faildLogger($scimInfo);
+
+            throw $exception;
         }
         return $result;
     }
@@ -259,12 +333,31 @@ class SCIMToGoogleWorkspace
     {
         try {
             $result = $this->data->hasMember($groupKey, $userKey);
-        } catch (\Exception $e) {
-            if ($e->getCode() == 404 && strpos($e->getMessage(), 'Resource Not Found') !== false) {
+        } catch (\Exception $exception) {
+            if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'Resource Not Found') !== false) {
                 Log::error('GoogleWorkspace::Member [' . $groupKey . '] was not found.');
+                $scimInfo = array(
+                    'provisoning' => 'Google Workspace',
+                    'scimMethod' => 'hasMember',
+                    'table' => '',  // ucfirst(strtolower($resourceType)),
+                    'itemId' => '',  // $item['ID'],
+                    'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                    'message' => $exception->getMessage(),
+                );
+                $this->settingManagement->faildLogger($scimInfo);
                 return;
             }
-            throw $e;
+            $scimInfo = array(
+                'provisoning' => 'Google Workspace',
+                'scimMethod' => 'hasMember',
+                'table' => '',  // ucfirst(strtolower($resourceType)),
+                'itemId' => '',  // $item['ID'],
+                'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                'message' => $exception->getMessage(),
+            );
+            $this->settingManagement->faildLogger($scimInfo);
+
+            throw $exception;
         }
         return $result;
     }
@@ -273,12 +366,31 @@ class SCIMToGoogleWorkspace
     {
         try {
             $this->data->insert($groupKey, $userKey);
-        } catch (\Exception $e) {
-            if ($e->getCode() == 409 && strpos($e->getMessage(), 'Member already exists') !== false) {
+        } catch (\Exception $exception) {
+            if ($exception->getCode() == 409 && strpos($exception->getMessage(), 'Member already exists') !== false) {
                 // Member already exists
+                $scimInfo = array(
+                    'provisoning' => 'Google Workspace',
+                    'scimMethod' => 'insertMember',
+                    'table' => '',  // ucfirst(strtolower($resourceType)),
+                    'itemId' => '',  // $item['ID'],
+                    'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                    'message' => $exception->getMessage(),
+                );
+                $this->settingManagement->faildLogger($scimInfo);
                 return;
             }
-            throw $e;
+            $scimInfo = array(
+                'provisoning' => 'Google Workspace',
+                'scimMethod' => 'insertMember',
+                'table' => '',  // ucfirst(strtolower($resourceType)),
+                'itemId' => '',  // $item['ID'],
+                'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                'message' => $exception->getMessage(),
+            );
+            $this->settingManagement->faildLogger($scimInfo);
+
+            throw $exception;
         }
     }
 
@@ -286,12 +398,31 @@ class SCIMToGoogleWorkspace
     {
         try {
             $this->data->delete($groupKey, $userKey);
-        } catch (\Exception $e) {
-            if ($e->getCode() == 404 && strpos($e->getMessage(), 'Resource Not Found') !== false) {
+        } catch (\Exception $exception) {
+            if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'Resource Not Found') !== false) {
                 // deleted
+                $scimInfo = array(
+                    'provisoning' => 'Google Workspace',
+                    'scimMethod' => 'deleteMember',
+                    'table' => '',  // ucfirst(strtolower($resourceType)),
+                    'itemId' => '',  // $item['ID'],
+                    'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                    'message' => $exception->getMessage(),
+                );
+                $this->settingManagement->faildLogger($scimInfo);
                 return;
             }
-            throw $e;
+            $scimInfo = array(
+                'provisoning' => 'Google Workspace',
+                'scimMethod' => 'deleteMember',
+                'table' => '',  // ucfirst(strtolower($resourceType)),
+                'itemId' => '',  // $item['ID'],
+                'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                'message' => $exception->getMessage(),
+            );
+            $this->settingManagement->faildLogger($scimInfo);
+
+            throw $exception;
         }
     }
 
@@ -341,22 +472,61 @@ class SCIMToGoogleWorkspace
                 try {
                     $ra = $roleAssignment->insert($externalId, $extRoleId[0]);
                     $roleAssignmentId = $ra->getRoleAssignmentId();
-                } catch (\Exception $e) {
-                    if ($e->getCode() == 404 && strpos($e->getMessage(), 'Role not found') !== false) {
+                } catch (\Exception $exception) {
+                    if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'Role not found') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['Role_ID'] . '] Role not found.');
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByUser',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
                         continue;
                     }
-                    throw $e;
+                    $scimInfo = array(
+                        'provisoning' => 'Google Workspace',
+                        'scimMethod' => 'userRoleByUser',
+                        'table' => 'UserToRole',
+                        'itemId' => '',  // $item['ID'],
+                        'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                        'message' => $exception->getMessage(),
+                    );
+                    $this->settingManagement->faildLogger($scimInfo);
+
+                    throw $exception;
                 }
             } else if (empty($value['Name']) === false && $value['DeleteFlag'] != '0') {
                 // delete
                 try {
                     $roleAssignment->delete($value['Name']);
-                } catch (\Exception $e) {
-                    if ($e->getCode() == 404 && strpos($e->getMessage(), 'RoleAssignment not found') !== false) {
+                } catch (\Exception $exception) {
+                    if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'RoleAssignment not found') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['Name'] . '] RoleAssignment not found.');
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByUser',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
+
                     } else {
-                        throw $e;
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByUser',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
+
+                        throw $exception;
                     }
                 }
             } else {
@@ -408,22 +578,61 @@ class SCIMToGoogleWorkspace
                 try {
                     $ra = $roleAssignment->insert($extUserId[0], $externalId);
                     $roleAssignmentId = $ra->getRoleAssignmentId();
-                } catch (\Exception $e) {
-                    if ($e->getCode() == 400 && strpos($e->getMessage(), 'Required parameter: [resource.identity.identity_id]') !== false) {
+                } catch (\Exception $exception) {
+                    if ($exception->getCode() == 400 && strpos($exception->getMessage(), 'Required parameter: [resource.identity.identity_id]') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['User_ID'] . '] User not found.');
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByRole',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
+
                         continue;
                     }
-                    throw $e;
+                    $scimInfo = array(
+                        'provisoning' => 'Google Workspace',
+                        'scimMethod' => 'userRoleByRole',
+                        'table' => 'UserToRole',
+                        'itemId' => '',  // $item['ID'],
+                        'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                        'message' => $exception->getMessage(),
+                    );
+                    $this->settingManagement->faildLogger($scimInfo);
+                    throw $exception;
                 }
             } else if (empty($value['Name']) === false && $value['DeleteFlag'] != '0') {
                 // delete
                 try {
                     $roleAssignment->delete($value['Name']);
-                } catch (\Exception $e) {
-                    if ($e->getCode() == 404 && strpos($e->getMessage(), 'RoleAssignment not found') !== false) {
+                } catch (\Exception $exception) {
+                    if ($exception->getCode() == 404 && strpos($exception->getMessage(), 'RoleAssignment not found') !== false) {
                         Log::error('GoogleWorkspace::UserToRole [' . $value['Name'] . '] RoleAssignment not found.');
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByRole',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
+
                     } else {
-                        throw $e;
+                        $scimInfo = array(
+                            'provisoning' => 'Google Workspace',
+                            'scimMethod' => 'userRoleByRole',
+                            'table' => 'UserToRole',
+                            'itemId' => '',  // $item['ID'],
+                            'itemName' => '',  // sprintf("%s %s", $item['surname'], $item['givenName']),
+                            'message' => $exception->getMessage(),
+                        );
+                        $this->settingManagement->faildLogger($scimInfo);
+
+                        throw $exception;
                     }
                 }
             } else {

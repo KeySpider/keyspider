@@ -105,9 +105,8 @@ class SCIMToTrustLogin
                 if ( array_key_exists('id', $responce)) {
                     $return_id = $responce['id'];
                     Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
                     $this->settingManagement->detailLogger($scimInfo);
-
+                    curl_close($tuCurl);
                     return $return_id;
                 };
 
@@ -116,6 +115,10 @@ class SCIMToTrustLogin
                     Log::error($info);
                     Log::error($responce);
                     Log::error('Create faild ststus = ' . $curl_status . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+
+                    $scimInfo['message'] = 'Create faild ststus = ' . $curl_status;
+                    $this->settingManagement->faildLogger($scimInfo);
+    
                     curl_close($tuCurl);
                     return null;
                 }
@@ -292,27 +295,28 @@ class SCIMToTrustLogin
         $getEncryptedFields = $settingManagement->getEncryptedFields();
 
         $tmp = Config::get('scim-trustlogin.createUser');
-        $isActive = 'true';
 
         foreach ($item as $key => $value) {
             if ($key === 'locked') {
+                $isActive = 'true';
                 if ( $value == '1') $isActive = 'false';
-                $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
+                $als = sprintf("    \"active\":%s,", $isActive);
+                $tmp = str_replace("accountLockStatus", $als, $tmp);
                 continue;
             }
 
-            if (strpos($value, 'ELOQ;') !== false) {
-                if (empty($item['OrganizationID1'])) {
-                    $tmp = str_replace("(User.Organization.displayName)", '', $tmp);
-                    continue;
-                }
-                // Get Eloquent string
-                preg_match('/ELOQ;(.*)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
-                $line = $this->regExpManagement->eloquentItem($item['ID'], $matches[1][0]);
+            // if (strpos($value, 'ELOQ;') !== false) {
+            //     if (empty($item['OrganizationID1'])) {
+            //         $tmp = str_replace("(User.Organization.displayName)", '', $tmp);
+            //         continue;
+            //     }
+            //     // Get Eloquent string
+            //     preg_match('/ELOQ;(.*)/', $value, $matches, PREG_OFFSET_CAPTURE, 0);
+            //     $line = $this->regExpManagement->eloquentItem($item['ID'], $matches[1][0]);
 
-                $tmp = str_replace("(User.Organization.displayName)", $line, $tmp);
-                continue;
-            }
+            //     $tmp = str_replace("(User.Organization.displayName)", $line, $tmp);
+            //     continue;
+            // }
 
             $twColumn = "User.$key";
             if (in_array($twColumn, $getEncryptedFields)) {
@@ -320,6 +324,9 @@ class SCIMToTrustLogin
             }
             $tmp = str_replace("(User.$key)", $value, $tmp);
         }
+        // if not yet replace als code, replace to null
+        $tmp = str_replace("accountLockStatus\n", '', $tmp);
+
         return $tmp;
     }
 }

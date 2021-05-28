@@ -27,6 +27,7 @@ class UserGraphAPI
         $tenantId = $options['tenantId'];
         $clientId = $options['clientId'];
         $clientSecret = $options['clientSecret'];;
+        $this->initialPassword = $options['initialPassword'];;
 
         $guzzle = new \GuzzleHttp\Client();
         $url = 'https://login.microsoftonline.com/' . $tenantId . '/oauth2/token?api-version=1.0';
@@ -50,8 +51,8 @@ class UserGraphAPI
             true
         )['Microsoft Office 365 Licenses'];
 
-        $settingManagement = new SettingsManager();
-        $this->getOfficeLicenseField = $settingManagement->getOfficeLicenseFields();
+        $this->settingManagement = new SettingsManager();
+        $this->getOfficeLicenseField = $this->settingManagement->getOfficeLicenseFields();
     }
 
     private function createUserObject($userAttibutes = []): User
@@ -72,6 +73,15 @@ class UserGraphAPI
 
     public function createUser($userAttibutes)
     {
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'create',
+            'table' => 'User',
+            'itemId' => $userAttibutes['ID'],
+            'itemName' => sprintf("%s %s", $userAttibutes['surname'], $userAttibutes['givenName']),
+            'message' => '',
+        );
+
         $swapUser = array();
         foreach ($userAttibutes as $attr => $value) {
             if (!empty($value)) {
@@ -87,12 +97,16 @@ class UserGraphAPI
             echo "\n- \t\tcreating User: \n";
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
             $newUser->setPasswordProfile([
-                "password" => 'Can1234A!B!C!',
+                "password" => $this->initialPassword,
                 "forceChangePasswordNextSignIn" => false
             ]);
 
             $newUser->setUsageLocation('JP');
-            $newUser->setAccountEnabled($userAttibutes['DeleteFlag'] == 0 ? true : false);
+
+            if ( array_key_exists('accountEnabled', $userAttibutes) ) {
+                $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? True : False);
+            }
+            // $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? true : false);
             $userCreated = $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
                 ->setReturnType(User::class)
@@ -109,25 +123,43 @@ class UserGraphAPI
 
             echo "- \t\tcreated User \n";
             $this->addMemberToGroups($userAttibutes, $uID);
+            $this->settingManagement->detailLogger($scimInfo);
+
             return $userCreated;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
             return null;
         }
     }
 
     public function updateUser($userAttibutes)
     {
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'update',
+            'table' => 'User',
+            'itemId' => $userAttibutes['ID'],
+            'itemName' => sprintf("%s %s", $userAttibutes['surname'], $userAttibutes['givenName']),
+            'message' => '',
+        );
+
         try {
             Log::info("Update user: " . json_encode($userAttibutes));
             echo "\n- \t\tupdating User: \n";
-            $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
+            // $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
             $uPN = $userAttibutes['userPrincipalName'];
             $uID = $userAttibutes['externalID'];
             //Can not update userPrincipalName
             unset($userAttibutes['userPrincipalName']);
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
-            $newUser->setAccountEnabled($accountEnable);
+
+            if ( array_key_exists('accountEnabled', $userAttibutes) ) {
+                $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? True : False);
+            }
+            // $newUser->setAccountEnabled($accountEnable);
             var_dump($newUser);
             $this->graph->createRequest("PATCH", "/users/$uPN")
                 ->attachBody($newUser)
@@ -143,10 +175,14 @@ class UserGraphAPI
                     $this->updateUserAssignLicense($uID, $license, $this->getOfficeLicenseField);
                 }
             }
+            $this->settingManagement->detailLogger($scimInfo);
 
             return $newUser;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
             return null;
         }
     }
@@ -167,10 +203,26 @@ class UserGraphAPI
 
     public function deleteUser($userPrincipalName): void
     {
-        $userDeleted = $this->graph->createRequest("DELETE", "/users/" . $userPrincipalName)
-            ->setReturnType(User::class)
-            ->execute();
-        echo "\nDeleted user: $$userPrincipalName";
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'delete',
+            'table' => 'User',
+            'itemId' => $userPrincipalName,
+            'itemName' => '',
+            'message' => '',
+        );
+
+        try {
+            $userDeleted = $this->graph->createRequest("DELETE", "/users/" . $userPrincipalName)
+                ->setReturnType(User::class)
+                ->execute();
+            echo "\nDeleted user: $$userPrincipalName";
+            $this->settingManagement->detailLogger($scimInfo);
+        } catch (\Exception $exception) {
+            Log::debug($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }        
     }
 
     public function getUserDetail(string $userId, $uPN)
@@ -196,6 +248,15 @@ class UserGraphAPI
 
     public function createGroup($groupAttributes, $ext = null)
     {
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'create',
+            'table' => 'Group',
+            'itemId' => $groupAttributes['ID'],
+            'itemName' => $groupAttributes['displayName'],
+            'message' => '',
+        );
+
         Log::info("creating Group: " . json_encode($groupAttributes));
         echo "\n- \t\tcreating Group: \n";
         $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
@@ -211,10 +272,13 @@ class UserGraphAPI
                 ->setReturnType(Group::class)
                 ->execute();
             echo "\n- \t\tGroup created: \n";
+            $this->settingManagement->detailLogger($scimInfo);
+
             return $group;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            var_dump($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
             return null;
         }
     }
@@ -384,6 +448,15 @@ class UserGraphAPI
 
     public function updateGroup($groupAttibutes)
     {
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'update',
+            'table' => 'group',
+            'itemId' => $groupAttibutes['ID'],
+            'itemName' => $groupAttibutes['displayName'],
+            'message' => '',
+        );
+
         try {
             Log::info("Update group: " . json_encode($groupAttibutes));
             echo "\n- \t\tupdating User: \n";
@@ -396,23 +469,48 @@ class UserGraphAPI
                 ->attachBody($newGroup)
                 ->execute();
             echo "\n- \t\t Group [$uID] updated \n";
+            $this->settingManagement->detailLogger($scimInfo);
+
             return $newGroup;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
             return null;
         }
     }
 
-    public function deleteResource($id, $table): void
+    // public function deleteResource($id, $table): void
+    public function deleteResource($id, $table)
     {
+        $scimInfo = array(
+            'provisoning' => 'AzureAD',
+            'scimMethod' => 'delete',
+            'table' => $table,
+            'itemId' => $id,
+            'itemName' => '',
+            'message' => '',
+        );
+
         if ($table == 'User') {
             $resource = 'users';
         } elseif ($table == 'Group') {
             $resource = 'groups';
-        } else return;
-        $userDeleted = $this->graph->createRequest("DELETE", "/$resource/" . $id)
+        } else return null;
+
+        try {
+            $userDeleted = $this->graph->createRequest("DELETE", "/$resource/" . $id)
             // ->setReturnType(User::class)
             ->execute();
+            $this->settingManagement->detailLogger($scimInfo);
+            return $userDeleted;
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage());
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        return null;
     }
 
     public function getUsersList(): array
