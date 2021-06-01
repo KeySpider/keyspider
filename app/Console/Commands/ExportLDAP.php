@@ -35,6 +35,7 @@ class ExportLDAP extends Command
      * @var string
      */
     protected $signature = "command:export_ldap";
+
     /**
      * The console command description.
      *
@@ -82,8 +83,8 @@ class ExportLDAP extends Command
     {
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule["setting"];
-            $exportor = new DBExtractor($setting);
-            $exportor->processExtractToLDAP();
+            $extractor = new DBExtractor($setting);
+            $extractor->processExtractToLDAP();
         }
     }
 }

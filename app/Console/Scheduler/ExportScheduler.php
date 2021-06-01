@@ -3,7 +3,7 @@
 namespace App\Console\Scheduler;
 
 use App\Commons\Consts;
-use App\Jobs\DBExtractorJob;
+use App\Jobs\DBToCSVExtractorJob;
 use App\Ldaplibs\Extract\ExtractQueueManager;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
 use Exception;
@@ -47,7 +47,7 @@ class ExportScheduler
 
     protected function getJob($setting)
     {
-        return new DBExtractorJob($setting);
+        return new DBToCSVExtractorJob($setting);
     }
 
     protected function getServiceConfig()

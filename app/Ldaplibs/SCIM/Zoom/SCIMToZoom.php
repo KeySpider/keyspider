@@ -11,35 +11,26 @@ class SCIMToZoom
 {
     protected $setting;
 
+    private $externalIdName;
+    private $token;
+
     /**
      * SCIMToZoom constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
     {
-        $this->setting = $setting;
         $this->settingManagement = new SettingsManager();
     }
 
-    function urlsafe_base64_encode($str)
+    public function initialize($setting, $externalIdName)
     {
-        return str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode($str));
+        $this->setting = $setting;
+        $this->externalIdName = $externalIdName;
+        $this->token = $this->makeToken();
     }
 
-    public function makeToken()
-    {
-        $zoom_api_key = env('ZOOM_CLIENT_KEY');
-        $zoom_api_secret = env('ZOOM_CLIENT_SECRET');
-
-        $expiration = time() + (60 * 60 * 24); // Token expiration date(SEC)
-
-        $header = $this->urlsafe_base64_encode('{"alg":"HS256","typ":"JWT"}');
-        $payload = $this->urlsafe_base64_encode('{"iss":"' . $zoom_api_key . '","exp":' . $expiration . '}');
-        $signature = $this->urlsafe_base64_encode(hash_hmac('sha256', "$header.$payload", $zoom_api_secret, TRUE));
-        $token = "$header.$payload.$signature";
-
-        Log::debug($token);
-        return $token;
+    public function getServiceName() {
+        return "ZOOM";
     }
 
     public function createResource($resourceType, $item)
@@ -54,6 +45,128 @@ class SCIMToZoom
             $externalID = $this->createGroup($tmpl);
         }
         return $externalID;
+    }
+
+    public function updateResource($resourceType, $item)
+    {
+        $tmpl = $this->replaceResource($resourceType, $item);
+
+        $externalID = null;
+        if ($resourceType == 'User') {
+            $externalID = $this->updateUser($tmpl);
+        } elseif ($resourceType == 'Role') {
+            $externalID = $this->updateRole($tmpl);
+        } elseif ($resourceType == 'Group') {
+            $externalID = $this->updateGroup($tmpl);
+        }
+        return $externalID;
+    }
+
+    public function deleteResource($resourceType, $item)
+    {
+        $tmpl = $this->replaceResource($resourceType, $item);
+
+        $externalID = null;
+        if ($resourceType == 'User') {
+            $externalID = $this->deleteUser($resourceType, $item);
+        } elseif ($resourceType == 'Role') {
+            $externalID = $this->deleteRole($resourceType, $item);
+        } elseif ($resourceType == 'Group') {
+            $externalID = $this->deleteGroup($resourceType, $item);
+        }
+        // return $externalID;
+        return true;
+    }
+
+    public function passwordResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId)
+    {
+        if ($resourceType == "User") {
+            // Import data group info
+            $memberOf = $this->getListOfGroupsUserBelongedTo($item, 'ZOOM');
+
+            // Now store data group info
+            $groupIDListOnZOOM = $this->getGroupMemberOfsZOOM($item, $resourceType);
+
+            foreach ($memberOf as $groupID) {
+                if (!in_array($groupID, $groupIDListOnZOOM)) {
+                    $this->addMemberToGroup($item, $groupID);
+                }
+            }
+
+            foreach ($groupIDListOnZOOM as $groupID) {
+                if (!in_array($groupID, $memberOf)) {
+                    $this->removeMemberOfGroup($item, $groupID);
+                }
+            }
+        }
+    }
+
+    public function userRole($resourceType, $item, $externalId)
+    {
+        if ($resourceType == "User") {
+            // Import data Role info
+            $memberOf = $this->getListOfRoleUserBelongedTo($item, 'ZOOM');
+
+            // Now store data group info
+            $RoleIDOnZOOM = $this->getRoleMemberOfsZOOM($item, $resourceType);
+
+            foreach ($memberOf as $roleID) {
+                if (!in_array($roleID, $RoleIDOnZOOM)) {
+                    $this->assignMemberToRole($item, $roleID);
+                }
+            }
+
+            /* No need to use */
+            foreach ($RoleIDOnZOOM as $roleID) {
+                if (!in_array($roleID, $memberOf)) {
+                    if (!is_numeric($roleID)) {
+                        $this->unassignMemberOfRole($item, $roleID);
+                    }
+                }
+            }
+        }
+    }
+
+    private function replaceResource($resourceType, $item)
+    {
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
+
+        foreach ($item as $key => $value) {
+            $twColumn = "ZOOM.$key";
+
+            if (in_array($twColumn, $getEncryptedFields)) {
+                $item[$key] = $settingManagement->passwordDecrypt($value);
+            }
+        }
+        return $item;
+    }
+
+    private function makeToken()
+    {
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["Zoom Keys"];
+        $clientId = $scimOptions["clientId"];
+        $clientSecret = $scimOptions["clientSecret"];
+
+        $expiration = time() + (60 * 60 * 24); // Token expiration date(SEC)
+
+        $header = $this->urlsafe_base64_encode('{"alg":"HS256","typ":"JWT"}');
+        $payload = $this->urlsafe_base64_encode('{"iss":"' . $clientId . '","exp":' . $expiration . '}');
+        $signature = $this->urlsafe_base64_encode(hash_hmac('sha256', "$header.$payload", $clientSecret, TRUE));
+        $token = "$header.$payload.$signature";
+
+        Log::debug($token);
+        return $token;
+    }
+
+    private function urlsafe_base64_encode($str)
+    {
+        return str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode($str));
     }
 
     private function createUser($tmpl)
@@ -102,6 +215,39 @@ class SCIMToZoom
         }
     }
 
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/');
+        curl_setopt($tuCurl, CURLOPT_POST, 1);
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
+
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Create User faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            } else {
+                $return_id = $responce['id'];
+                Log::info('Create User ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return $return_id;
+            };
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
+        }
+        curl_close($tuCurl);
+        return null;
+    }
+
     private function createRole($tmpl)
     {
         $scimInfo = array(
@@ -115,7 +261,7 @@ class SCIMToZoom
 
         Log::info('Zoom Create Role -> ' . $tmpl['name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $json = '{
@@ -142,25 +288,25 @@ class SCIMToZoom
 
         try {
 
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
 
-                if ((int)$info['http_code'] >= 300) {
+            if ((int)$info['http_code'] >= 300) {
                     $scimInfo['message'] = 'Create Role faild : ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
-                    return null;
+                return null;
                 }
 
                 if ( array_key_exists('id', $responce)) {
-                    $return_id = $responce['id'];
-                    Log::info('Create Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
+                $return_id = $responce['id'];
+                Log::info('Create Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
                     $this->settingManagement->detailLogger($scimInfo);
 
-                    return $return_id;
-                };
+                return $return_id;
+            };
 
                 if ( array_key_exists('status', $responce)) {
                     $curl_status = $responce['status'];
@@ -175,20 +321,20 @@ class SCIMToZoom
                     return null;
                 }
                 Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = sprintf("Curl error: %s", curl_error($tuCurl));
                 $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
+        }
+        curl_close($tuCurl);
+        return null;
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     private function createGroup($tmpl)
@@ -204,7 +350,7 @@ class SCIMToZoom
 
         Log::info('Zoom Create Group -> ' . $tmpl['name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $json = '{
@@ -225,25 +371,25 @@ class SCIMToZoom
 
         try {
 
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
 
-                if ((int)$info['http_code'] >= 300) {
+            if ((int)$info['http_code'] >= 300) {
                     $scimInfo['message'] = 'Create Group faild ststus = ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return null;
+                curl_close($tuCurl);
+                return null;
                 }
 
                 if ( array_key_exists('id', $responce)) {
-                    $return_id = $responce['id'];
+                $return_id = $responce['id'];
                     Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                     $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $return_id;
-                };
+                curl_close($tuCurl);
+                return $return_id;
+            };
 
                 if ( array_key_exists('status', $responce)) {
                     $curl_status = $responce['status'];
@@ -257,20 +403,20 @@ class SCIMToZoom
                     return null;
                 }
                 Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
+        }
+        curl_close($tuCurl);
+        return null;
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
 
     }
 
@@ -302,7 +448,7 @@ class SCIMToZoom
 
         Log::info('Zoom Update User -> ' . $tmpl['last_name'] . ' ' . $tmpl['first_name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $json = '{
@@ -317,7 +463,7 @@ class SCIMToZoom
         $json = str_replace("(User.job_title)", $tmpl['job_title'], $json);
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $tmpl[$this->externalIdName]);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
         curl_setopt(
             $tuCurl,
@@ -328,21 +474,21 @@ class SCIMToZoom
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-    
-                if ((int)$info['http_code'] >= 300) {
-                    $zoom_status = $responce['code'];
-                    Log::error('Update User faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Update User faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
 
                     $scimInfo['message'] = 'Update User faild : ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
     
-                    curl_close($tuCurl);
-                    return null;
-                } else {
+                curl_close($tuCurl);
+                return null;
+            } else {
     
                     if ( array_key_exists('locked', $tmpl) ) {
                         $userStatus = 'activate';
@@ -355,17 +501,17 @@ class SCIMToZoom
 
                     $this->settingManagement->detailLogger($scimInfo);
         
-                    Log::info('Update User ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-                    return $tmpl['externalZOOMID'];
-                }
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+                Log::info('Update User ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return $tmpl[$this->externalIdName];
+            }
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
+        }
+        curl_close($tuCurl);
+        return null;
     
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -374,7 +520,7 @@ class SCIMToZoom
             $this->settingManagement->faildLogger($scimInfo);
             curl_close($tuCurl);
             return null;
-        }
+    }
 
         curl_close($tuCurl);
         return null;
@@ -408,7 +554,7 @@ class SCIMToZoom
         $json = str_replace("(Role.name)", $tmpl['name'], $json);
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl[$this->externalIdName]);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
         curl_setopt(
             $tuCurl,
@@ -419,41 +565,41 @@ class SCIMToZoom
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-    
-                if ((int)$info['http_code'] >= 300) {
-                    $zoom_status = $responce['code'];
-                    Log::error('Replace Role faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Replace Role faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                     $scimInfo['message'] = 'Replace Role faild : ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
    
-                    curl_close($tuCurl);
-                    return null;
-                } else {
-                    Log::info('Replace Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            } else {
+                Log::info('Replace Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
 
                     $this->settingManagement->detailLogger($scimInfo);
 
-                    curl_close($tuCurl);
+                curl_close($tuCurl);
                     return $tmpl['externalZOOMID'];
-                }
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+            }
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
+        }
             return null;
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
-            curl_close($tuCurl);
-            return null;
-        }
+        curl_close($tuCurl);
+        return null;
+    }
         curl_close($tuCurl);
         return null;
     }
@@ -471,7 +617,7 @@ class SCIMToZoom
 
         Log::info('Zoom Update Role -> ' . $tmpl['name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $json = '{
@@ -480,7 +626,7 @@ class SCIMToZoom
         $json = str_replace("(Group.disylayName)", $tmpl['name'], $json);
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl[$this->externalIdName]);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
         curl_setopt(
             $tuCurl,
@@ -491,56 +637,78 @@ class SCIMToZoom
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $json);
 
         try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-    
-                if ((int)$info['http_code'] >= 300) {
-                    $zoom_status = $responce['code'];
-                    Log::error('Replace Group faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Replace Group faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
 
                     $scimInfo['message'] = 'Replace Group faild : ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
         
-                    curl_close($tuCurl);
-                    return null;
-                } else {
-                    Log::info('Replace Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $tmpl['externalZOOMID'];
-                }
+                curl_close($tuCurl);
+                return null;
             } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+                Log::info('Replace Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                    $this->settingManagement->detailLogger($scimInfo);
+                curl_close($tuCurl);
+                    return $tmpl['externalZOOMID'];
+            }
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
+        }
+        curl_close($tuCurl);
+        return null;
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
-    public function deleteResource($resourceType, $item)
+    private function deleteUser($resourceType, $tmpl)
     {
-        $tmpl = $this->replaceResource($resourceType, $item);
+        Log::info('Zoom Delete -> ' . $tmpl['last_name'] . ' ' . $tmpl['first_name']);
 
-        $externalID = null;
-        if ($resourceType == 'User') {
-            $externalID = $this->deleteUser($resourceType, $item);
-        } elseif ($resourceType == 'Role') {
-            $externalID = $this->deleteRole($resourceType, $item);
-        } elseif ($resourceType == 'Group') {
-            $externalID = $this->deleteGroup($resourceType, $item);
+        $auth = sprintf("Bearer %s", $this->token);
+        $accept = 'application/json';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $tmpl[$this->externalIdName]);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Delete User faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
+            } else {
+                $return_id = $responce['id'];
+                Log::info('Delete User ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return $return_id;
+            }
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
         }
-        return $externalID;
-    }
 
     private function deleteUser($resourceType, $item)
     {
@@ -566,7 +734,7 @@ class SCIMToZoom
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
+    }
     }
 
     private function deleteRole($resourceType, $tmpl)
@@ -582,11 +750,11 @@ class SCIMToZoom
 
         Log::info('Zoom delete Role -> ' . $tmpl['name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $tmpl[$this->externalIdName]);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt(
             $tuCurl,
@@ -596,33 +764,33 @@ class SCIMToZoom
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
 
-                if ((int)$info['http_code'] >= 300) {
-                    $zoom_status = $responce['code'];
-                    Log::error('Delete Role faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Delete Role faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
 
                     $scimInfo['message'] = 'Delete Role faild : ' . $responce['message'];
                     $this->settingManagement->faildLogger($scimInfo);
         
-                    curl_close($tuCurl);
-                    return null;
-                } else {
-                    Log::info('Delete Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $tmpl['externalZOOMID'];
-                }
+                curl_close($tuCurl);
+                return null;
             } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+                Log::info('Delete Role ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                    $this->settingManagement->detailLogger($scimInfo);
+                curl_close($tuCurl);
+                    return $tmpl['externalZOOMID'];
+            }
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
+        }
+        curl_close($tuCurl);
+        return null;
     
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
@@ -630,8 +798,8 @@ class SCIMToZoom
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
             return null;
-        }
-       
+    }
+
     }
 
     private function deleteGroup($resourceType, $tmpl)
@@ -647,11 +815,11 @@ class SCIMToZoom
 
         Log::info('Zoom delete Group -> ' . $tmpl['name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl['externalZOOMID']);
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/groups/' . $tmpl[$this->externalIdName]);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt(
             $tuCurl,
@@ -661,43 +829,43 @@ class SCIMToZoom
         curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
 
-                if ((int)$info['http_code'] >= 300) {
-                    $zoom_status = $responce['code'];
-                    Log::error('Delete Group faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+            if ((int)$info['http_code'] >= 300) {
+                $zoom_status = $responce['code'];
+                Log::error('Delete Group faild ststus = ' . $zoom_status . ' ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                     $scimInfo['message'] = 'Delete Group faild : ' . $responce['message'];;
                     $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return null;
-                } else {
-                    Log::info('Delete Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $tmpl['externalZOOMID'];
-                }
-                Log::info('Delete Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                curl_close($tuCurl);
+                return null;
             } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+                Log::info('Delete Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+                    $this->settingManagement->detailLogger($scimInfo);
+                curl_close($tuCurl);
+                    return $tmpl['externalZOOMID'];
+            }
+            Log::info('Delete Group ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
+        } else {
+            Log::error('Curl error: ' . curl_error($tuCurl));
                 $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-            }
+        }
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
-            curl_close($tuCurl);
-            return null;
-        }
+        curl_close($tuCurl);
+        return null;
+    }
         curl_close($tuCurl);
         return null;
     }
 
-    public function replaceResource($resourceType, $item)
+    private function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
     {
         $settingManagement = new SettingsManager();
         $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -769,34 +937,58 @@ class SCIMToZoom
         return $memberOf;
     }
 
-    public function getGroupMemberOfsZOOM($userAttibutes, $table)
+    private function getGroupMemberOfsZOOM($userAttibutes, $table)
     {
-        $user = Zoom::user()->find($userAttibutes['email']);
-        $arrayUser = json_decode($user, true);
+        $auth = sprintf("Bearer %s", $this->token);
+        $accept = 'application/json';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $userAttibutes[$this->externalIdName]);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'GET');
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $groupIDList = [];
-        foreach ($arrayUser['group_ids'] as $key => $value) {
-            $groupIDList[] = $value;
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if (array_key_exists("group_ids", $responce)) {
+                foreach ($responce['group_ids'] as $key => $value) {
+                    $groupIDList[] = $value;
+                }
+                curl_close($tuCurl);
+                return $groupIDList;
+            };
+        } else {
+            Log::error("Curl error: " . curl_error($tuCurl));
         }
+        curl_close($tuCurl);
         return $groupIDList;
     }
 
-    public function addMemberToGroup($item, $groupID)
+    private function addMemberToGroup($item, $groupID)
     {
         Log::info('Zoom add member to Group -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
+        $externalIdName = $this->externalIdName;
         $json = '{
             "members": [
                 {
-                  "id": "(User.externalZOOMID)",
+                  "id": "(User.externalId)",
                   "email": "(User.mail)"
                 }
               ]
         }';
-        $json = str_replace("(User.externalZOOMID)", $item['externalZOOMID'], $json);
+        $json = str_replace("(User.externalId)", $item[$this->externalIdName], $json);
         $json = str_replace("(User.mail)", $item['email'], $json);
 
         $tuCurl = curl_init();
@@ -837,14 +1029,14 @@ class SCIMToZoom
     {
         Log::info('Zoom remove member of Group -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $tuCurl = curl_init();
         curl_setopt(
             $tuCurl,
             CURLOPT_URL,
-            'https://api.zoom.us/v2/groups/' . $groupID . '/members/' . $item['externalZOOMID']
+            'https://api.zoom.us/v2/groups/' . $groupID . '/members/' . $item[$this->externalIdName]
         );
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt(
@@ -877,40 +1069,63 @@ class SCIMToZoom
         return null;
     }
 
-    public function getListOfRoleUserBelongedTo($userAttibutes, $scims = ''): array
+    private function getListOfRoleUserBelongedTo($userAttibutes, $scims = ''): array
     {
         $memberOf = [];
         $memberOf = (new RegExpsManager())->getRoleInExternalID($userAttibutes['ID'], $scims);
         return $memberOf;
     }
 
-    public function getRoleMemberOfsZOOM($userAttibutes, $table)
+    private function getRoleMemberOfsZOOM($userAttibutes, $table)
     {
-        $user = Zoom::user()->find($userAttibutes['email']);
-        $arrayUser = json_decode($user, true);
+        $auth = sprintf("Bearer %s", $this->token);
+        $accept = 'application/json';
+
+        $tuCurl = curl_init();
+        curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/users/' . $userAttibutes[$this->externalIdName]);
+        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'GET');
+        curl_setopt(
+            $tuCurl,
+            CURLOPT_HTTPHEADER,
+            array("Authorization: $auth", "Content-type: $accept", "accept: $accept")
+        );
+        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
 
         $groupIDList = [];
-        if (!empty($arrayUser['role_name'])) {
-            $groupIDList[] = $arrayUser['role_id'];
+        $tuData = curl_exec($tuCurl);
+        if (!curl_errno($tuCurl)) {
+            $info = curl_getinfo($tuCurl);
+            $responce = json_decode($tuData, true);
+
+            if (!empty($responce['role_name'])) {
+                $groupIDList[] = $responce['role_id'];
+                curl_close($tuCurl);
+                return $groupIDList;
+            };
+        } else {
+            Log::error("Curl error: " . curl_error($tuCurl));
         }
+        curl_close($tuCurl);
+
         return $groupIDList;
     }
 
-    public function assignMemberToRole($item, $roleID)
+    private function assignMemberToRole($item, $roleID)
     {
         Log::info('Zoom add member to Role -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
+        $externalIdName = $this->externalIdName;
         $json = '{
             "members": [
                 {
-                "id": "(User.externalZOOMID)"
+                "id": "(User.externalId)"
                 }
             ]
         }';
-        $json = str_replace("(User.externalZOOMID)", $item['externalZOOMID'], $json);
+        $json = str_replace("(User.externalId)", $item[$this->externalIdName], $json);
 
         $tuCurl = curl_init();
         curl_setopt($tuCurl, CURLOPT_URL, 'https://api.zoom.us/v2/roles/' . $roleID . '/members');
@@ -947,14 +1162,14 @@ class SCIMToZoom
     {
         Log::info('Zoom remove member of Role -> ' . $item['first_name'] . ' ' . $item['last_name']);
 
-        $auth = sprintf("Bearer %s", $this->makeToken());
+        $auth = sprintf("Bearer %s", $this->token);
         $accept = 'application/json';
 
         $tuCurl = curl_init();
         curl_setopt(
             $tuCurl,
             CURLOPT_URL,
-            'https://api.zoom.us/v2/roles/' . $roleID . '/members/' . $item['externalZOOMID']
+            'https://api.zoom.us/v2/roles/' . $roleID . '/members/' . $item[$this->externalIdName]
         );
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt(

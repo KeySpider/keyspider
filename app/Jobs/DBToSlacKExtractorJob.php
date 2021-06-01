@@ -22,6 +22,7 @@ namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\QueueManager;
+use App\Ldaplibs\SCIM\Slack\SCIMToSlack;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -58,7 +59,8 @@ class DBToSlackExtractorJob extends DBExtractor implements ShouldQueue, JobInter
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::processExtractToSlack();
+        $scimLib = new SCIMToSlack();
+        parent::processExtractToSCIM($scimLib);
     }
 
     /**

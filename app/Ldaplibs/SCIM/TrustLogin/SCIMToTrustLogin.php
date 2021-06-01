@@ -7,48 +7,31 @@ use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use MacsiDigital\Zoom\Facades\Zoom;
 
 class SCIMToTrustLogin
 {
     protected $setting;
     protected $regExpManagement;
 
+    private $externalIdName;
+
     /**
      * SCIMToTrustLogin constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
+        $this->externalIdName = $externalIdName;
         $this->regExpManagement = new RegExpsManager();
         $this->settingManagement = new SettingsManager();
     }
 
-    private function requiredItemCheck($scimInfo, $item)
-    {
-        $rules = [
-            "mail" => ["required", "email:strict"],
-            "givenName" => "required",
-            "surname" => "required",
-            // "department" => "required",
-        ];
-
-        $validate = Validator::make($item, $rules);
-        if ($validate->fails()) {
-            $reqStr = "Validation error :";
-            foreach ($validate->getMessageBag()->keys() as $index => $value) {
-                if ($index != 0) {
-                    $reqStr = $reqStr . ",";                    
-                }
-                $reqStr = $reqStr . " " . $value;
-            }
-            $scimInfo["message"] = $reqStr;
-
-            $this->settingManagement->validationLogger($scimInfo);
-            return false;
-        }
-        return true;
+    public function getServiceName() {
+        return "TrustLogin";
     }
 
     public function createResource($resourceType, $item)
@@ -88,8 +71,8 @@ class SCIMToTrustLogin
         curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
 
         try {
-
             $tuData = curl_exec($tuCurl);
+var_dump($tuData);
             if(!curl_errno($tuCurl)){
                 $info = curl_getinfo($tuCurl);
                 $responce = json_decode($tuData, true);
@@ -155,7 +138,7 @@ class SCIMToTrustLogin
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
-        $externalID = $item["externalTLID"];
+        $externalID = $item[$this->externalIdName];
 
         $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["TrustLogin Keys"];
         $url = $scimOptions["url"];
@@ -235,7 +218,7 @@ class SCIMToTrustLogin
             "message" => "",
         );
 
-        $externalID = $item["externalTLID"];
+        $externalID = $item[$this->externalIdName];
 
         $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["TrustLogin Keys"];
         $url = $scimOptions["url"];
@@ -268,7 +251,8 @@ class SCIMToTrustLogin
                 curl_close($tuCurl);
                 $this->settingManagement->detailLogger($scimInfo);
 
-                return $externalID;
+                // return $externalID;
+                return true;
             } else {
                 Log::error("Curl error: " . curl_error($tuCurl));
                 $scimInfo["message"] = sprintf("Curl error: %s", curl_error($tuCurl));
@@ -287,7 +271,22 @@ class SCIMToTrustLogin
 
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userRole($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    private function replaceResource($resourceType, $item)
     {
         $settingManagement = new SettingsManager();
         $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -326,5 +325,31 @@ class SCIMToTrustLogin
         $tmp = str_replace("accountLockStatus\n", '', $tmp);
 
         return $tmp;
+    }
+
+    private function requiredItemCheck($scimInfo, $item)
+    {
+        $rules = [
+            "mail" => ["required", "email:strict"],
+            "givenName" => "required",
+            "surname" => "required",
+            // "department" => "required",
+        ];
+
+        $validate = Validator::make($item, $rules);
+        if ($validate->fails()) {
+            $reqStr = "Validation error :";
+            foreach ($validate->getMessageBag()->keys() as $index => $value) {
+                if ($index != 0) {
+                    $reqStr = $reqStr . ",";                    
+                }
+                $reqStr = $reqStr . " " . $value;
+            }
+            $scimInfo["message"] = $reqStr;
+
+            $this->settingManagement->validationLogger($scimInfo);
+            return false;
+        }
+        return true;
     }
 }

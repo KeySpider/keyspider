@@ -14,14 +14,24 @@ class SCIMToBox
 {
     protected $setting;
 
+    private $externalIdName;
+
     /**
      * SCIMToBox constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
         $this->settingManagement = new SettingsManager();
+        $this->externalIdName = $externalIdName;
+    }
+
+    public function getServiceName() {
+        return "BOX";
     }
 
     private function getAccessToken()
@@ -190,10 +200,10 @@ class SCIMToBox
                     Log::error($responce['error_description']);
                     $scimInfo['message'] = $responce['error_description'];
                     $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
+                curl_close($tuCurl);
                     return null;
                 }
-                
+
                 if (array_key_exists('id', $responce)) {
                     Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
                     $this->settingManagement->detailLogger($scimInfo);
@@ -269,12 +279,49 @@ class SCIMToBox
             $this->settingManagement->faildLogger($scimInfo);
         }
         curl_close($tuCurl);
-        return null;
+
+        // return $externalId;
+        return true;
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
     {
-        $getEncryptedFields = $this->settingManagement->getEncryptedFields();
+        return;
+    }
+
+    public function userGroup($resourceType, $id, $externalId): void
+    {
+        if ($resourceType != "User" || empty($externalId)) {
+            return;
+        }
+
+        // Import data role info
+        $memberOf = $this->getListOfGroupsUserBelongedTo($id, "BOX");
+
+        // Now stored role info
+        $groupIDListOnAD = $this->getMemberOfsBOX($externalId);
+
+        foreach ($memberOf as $groupID) {
+            if (!empty($groupID) && !array_key_exists($groupID, $groupIDListOnAD)) {
+                $this->addMemberToGroup($externalId, $groupID);
+            }
+        }
+
+        foreach ($groupIDListOnAD as $key => $groupID) {
+            if (!in_array($key, $memberOf)) {
+                $this->removeMemberOfGroup($externalId, $groupID);
+            }
+        }
+    }
+
+    public function userRole($resourceType, $id, $externalId) {
+        return;
+    }
+
+    private function replaceResource($resourceType, $item)
+    {
+        $settingManagement = new SettingsManager();
+        $getEncryptedFields = $settingManagement->getEncryptedFields();
 
         $tmp = Config::get("scim-box.createUser");
         if ($resourceType === "Group") {
@@ -313,31 +360,10 @@ class SCIMToBox
         return $tmp;
     }
 
-    public function addMemberToGroups($userAttibutes, $uPN): void
-    {
-        // Import data role info
-        $memberOf = $this->getListOfGroupsUserBelongedTo($userAttibutes, "BOX");
-
-        // Now stored role info
-        $groupIDListOnBOX = $this->getMemberOfBOX($uPN);
-
-        foreach ($memberOf as $groupID) {
-            if (!array_key_exists($groupID, $groupIDListOnBOX)) {
-                $this->addMemberToGroup($uPN, $groupID);
-            }
-        }
-
-        foreach ($groupIDListOnBOX as $key => $groupID) {
-            if (!in_array($key, $memberOf)) {
-                $this->removeMemberOfGroup($uPN, $groupID);
-            }
-        }
-    }
-
-    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ""): array
+    private function getListOfGroupsUserBelongedTo($id, $scims = ""): array
     {
         $memberOf = [];
-        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes["ID"], $scims);
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($id, $scims);
         return $memberOf;
     }
 
@@ -469,7 +495,7 @@ class SCIMToBox
         curl_close($tuCurl);
     }
 
-    public function removeMemberOfGroup($uPCN, $groupId)
+    private function removeMemberOfGroup($uPCN, $groupId)
     {
         $scimInfo = array(
             'provisoning' => 'BOX',

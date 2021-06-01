@@ -6,6 +6,7 @@ use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\Ldaplibs\SCIM\Slack\SCIMToSlack;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -71,7 +72,8 @@ class ExportSlack extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
-            $extractor->processExtractToSlack();
+            $scimLib = new SCIMToSlack();
+            $extractor->processExtractToSCIM($scimLib);
         }
     }
 }

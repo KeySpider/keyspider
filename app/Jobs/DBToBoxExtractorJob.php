@@ -22,6 +22,7 @@ namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\QueueManager;
+use App\Ldaplibs\SCIM\Box\SCIMToBox;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -58,7 +59,8 @@ class DBToBoxExtractorJob extends DBExtractor implements ShouldQueue, JobInterfa
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::processExtractToBOX();
+        $scimLib = new SCIMToBox();
+        parent::processExtractToSCIM($scimLib);
     }
 
     /**

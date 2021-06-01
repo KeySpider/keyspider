@@ -22,6 +22,7 @@ namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\QueueManager;
+use App\Ldaplibs\SCIM\Zoom\SCIMToZoom;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -58,7 +59,8 @@ class DBToZoomExtractorJob extends DBExtractor implements ShouldQueue, JobInterf
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::processExtractToZOOM();
+        $scimLib = new SCIMToZoom();
+        parent::processExtractToSCIM($scimLib);
     }
 
     /**

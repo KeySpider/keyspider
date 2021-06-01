@@ -22,6 +22,7 @@ namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\QueueManager;
+use App\Ldaplibs\SCIM\OneLogin\SCIMToOneLogin;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -58,7 +59,8 @@ class DBToOLExtractorJob extends DBExtractor implements ShouldQueue, JobInterfac
     public function handle()
     {
         sleep((int)$this->queueSettings['sleep']);
-        parent::processExtractToOL();
+        $scimLib = new SCIMToOneLogin();
+        parent::processExtractToSCIM($scimLib);
     }
 
     /**

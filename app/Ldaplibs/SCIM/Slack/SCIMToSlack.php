@@ -9,22 +9,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
-use MacsiDigital\Zoom\Facades\Zoom;
-
 class SCIMToSlack
 {
     protected $setting;
     protected $settingManagement;
 
+    private $externalIdName;
+
     /**
      * SCIMToSlack constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
+        $this->externalIdName = $externalIdName;
         $this->settingManagement = new SettingsManager();
+    }
 
+    public function getServiceName() {
+        return "Slack";
     }
 
     public function createResource($resourceType, $item)
@@ -40,10 +47,10 @@ class SCIMToSlack
 
         if ($camelTableName == 'User') {
             $scimInfo['itemName'] = $item['userName'];
-        $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
-        if (!$isContinueProcessing) {
-            return null;
-        }
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
+            if (!$isContinueProcessing) {
+                return null;
+            }
         } else {
             $scimInfo['itemName'] = $item['displayName'];
         }
@@ -85,7 +92,7 @@ class SCIMToSlack
                     return null;
                 }
 
-                if ( array_key_exists("id", $responce)) {
+                if (array_key_exists("id", $responce)) {
                     $return_id = $responce["id"];
                     Log::info("Create " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
                     curl_close($tuCurl);
@@ -100,7 +107,6 @@ class SCIMToSlack
 
                 $scimInfo["message"] = curl_error($tuCurl);
                 $this->settingManagement->faildLogger($scimInfo);
-
             }
             curl_close($tuCurl);
             return null;
@@ -126,16 +132,16 @@ class SCIMToSlack
 
         if ($camelTableName == 'User') {
             $scimInfo['itemName'] = $item['userName'];
-        $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
-        if (!$isContinueProcessing) {
-            return null;
-        }
+            $isContinueProcessing = $this->requiredItemCheck($scimInfo, $item);
+            if (!$isContinueProcessing) {
+                return null;
+            }
         } else {
             $scimInfo['itemName'] = $item['displayName'];
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
-        $externalID = $item["externalSlackID"];
+        $externalId = $item[$this->externalIdName];
 
         $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
         $url = $scimOptions["url"] . $resourceType . "s/";
@@ -145,7 +151,7 @@ class SCIMToSlack
         $return_id = "";
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
+        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalId);
         // curl_setopt($tuCurl, CURLOPT_POST, 1);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, "PUT");
         curl_setopt(
@@ -173,7 +179,7 @@ class SCIMToSlack
                     return null;
                 }
 
-                if ( array_key_exists("id", $responce)) {
+                if (array_key_exists("id", $responce)) {
                     $return_id = $responce["id"];
                     Log::info("Replace " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
                     curl_close($tuCurl);
@@ -181,8 +187,7 @@ class SCIMToSlack
                     $this->settingManagement->detailLogger($scimInfo);
 
                     return $return_id;
-                };
-
+                }
             } else {
                 Log::error("Curl error: " . curl_error($tuCurl));
 
@@ -202,23 +207,29 @@ class SCIMToSlack
 
     public function deleteResource($resourceType, $item)
     {
+        $camelTableName = ucfirst(strtolower($resourceType));
         $scimInfo = array(
-            "provisoning" => "Slack",
-            "scimMethod" => "delete",
-            "table" => ucfirst(strtolower($resourceType)),
-            "itemId" => $item["ID"],
-            "itemName" => $item["userName"],
-            "message" => "",
+            'provisoning' => 'Slack',
+            'scimMethod' => 'delete',
+            'table' => $camelTableName,
+            'itemId' => $item['ID'],
+            'message' => '',
         );
 
-        $externalID = $item["externalSlackID"];
+        if ($camelTableName == 'User') {
+            $scimInfo['itemName'] = $item['userName'];
+        } else {
+            $scimInfo['itemName'] = $item['displayName'];
+        }
+
+        $externalId = $item[$this->externalIdName];
 
         $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
         $url = $scimOptions["url"] . $resourceType . "s/";
         $auth = $scimOptions["authorization"];
 
         $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
+        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalId);
         curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_setopt(
             $tuCurl,
@@ -249,10 +260,13 @@ class SCIMToSlack
 
                 $this->settingManagement->detailLogger($scimInfo);
 
-                return $externalID;
+                if ($camelTableName == "User") {
+                    return $externalId;
+                } else {
+                    return true;
+                }
             }
             return null;
-            
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
@@ -263,7 +277,30 @@ class SCIMToSlack
 
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId)
+    {
+        if (strtolower($resourceType) == "user") {
+            $memberOf = $this->getListOfGroupsUserBelongedTo($item["ID"], "Slack");
+            foreach ($memberOf as $groupID) {
+                $addMemberResult = $this->addMemberToGroups($externalId, $groupID, "0");
+                echo "\nAdd member to group result:\n";
+                var_dump($addMemberResult);
+            }
+            $addMemberResult = $this->removeMemberToGroup($item["ID"], $externalId);
+        }
+    }
+
+    public function userRole($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    private function replaceResource($resourceType, $item)
     {
         if ($resourceType == "User") {
             $settingManagement = new SettingsManager();
@@ -300,7 +337,6 @@ class SCIMToSlack
         } else {
             $tmp = Config::get("scim-slack.createGroup");
             $tmp = str_replace("(Organization.DisplayName)", $item["displayName"], $tmp);
-            $tmp = str_replace("(Organization.externalID)", $item["externalSlackID"], $tmp);
         }
         $pattern = '/"\((.*)\)"/';
         $nullable = preg_replace($pattern, '""', $tmp);
@@ -308,27 +344,14 @@ class SCIMToSlack
         return $nullable;
     }
 
-    public function updateGroupMemebers($resourceType, $item, $externalID)
-    {
-        if (strtolower($resourceType) == "user") {
-            $memberOf = $this->getListOfGroupsUserBelongedTo($item, "Slack");
-            foreach ($memberOf as $groupID) {
-                $addMemberResult = $this->addMemberToGroups($externalID, $groupID, "0");
-                echo "\nAdd member to group result:\n";
-                var_dump($addMemberResult);
-            }
-            $addMemberResult = $this->removeMemberToGroup($item["ID"], $externalID);
-        }
-    }
-
-    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ""): array
+    private function getListOfGroupsUserBelongedTo($id, $scims = ""): array
     {
         $memberOf = [];
-        $memberOf = (new RegExpsManager())->getOrganizationInExternalID($userAttibutes["ID"], $scims);
+        $memberOf = (new RegExpsManager())->getOrganizationInExternalID($id, $scims);
         return $memberOf;
     }
 
-    public function addMemberToGroups($memberId, $groupId, $delFlag)
+    private function addMemberToGroups($memberId, $groupId, $delFlag)
     {
         try {
             return $this->addMemberToGroup($memberId, $groupId, $delFlag);
@@ -388,24 +411,25 @@ class SCIMToSlack
         }
     }
 
-    private function removeMemberToGroup($uid, $externalID)
+    private function removeMemberToGroup($id, $externalId)
     {
         $table = "UserToOrganization";
         $queries = DB::table($table)
                     ->select("Organization_ID")
-                    ->where("User_ID", $uid)
+                    ->where("User_ID", $id)
                     ->where("DeleteFlag", "1")->get();
 
         foreach ($queries as $key => $value) {
 
             $table = "Organization";
             $slackQueries = DB::table($table)
-                        ->select("externalSlackID")
+                        ->select($this->externalIdName)
                         ->where("ID", $value->Organization_ID)
                         ->get();
-                       
+
+            $externalIdName = $this->externalIdName;
             foreach ($slackQueries as $key => $value) {
-                $addMemberResult = $this->addMemberToGroup($externalID, $value->externalSlackID, "1");
+                $addMemberResult = $this->addMemberToGroup($externalId, $value->$externalIdName, "1");
             }
         }
     }
@@ -422,7 +446,7 @@ class SCIMToSlack
             $reqStr = "Validation error :";
             foreach ($validate->getMessageBag()->keys() as $index => $value) {
                 if ($index != 0) {
-                    $reqStr = $reqStr . ",";                    
+                    $reqStr = $reqStr . ",";
                 }
                 $reqStr = $reqStr . " " . $value;
             }
@@ -434,6 +458,4 @@ class SCIMToSlack
         return true;
     }
 }
-
-
 

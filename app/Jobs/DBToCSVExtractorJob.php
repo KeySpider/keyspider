@@ -28,7 +28,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class DBExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
+class DBToCSVExtractorJob extends DBExtractor implements ShouldQueue, JobInterface
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Log;
 class SCIMToGoogleWorkspace
 {
     protected $setting;
+
+    private $externalIdName;
     private $client;
     private $data;
 
@@ -26,11 +28,20 @@ class SCIMToGoogleWorkspace
      * SCIMToGoogleWorkspace constructor.
      * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
+        $this->externalIdName = $externalIdName;
         $this->client = $this->getClient();
         $this->settingManagement = new SettingsManager();
+    }
+
+    public function getServiceName() {
+        return "Google Workspace";
     }
 
     private function getClient()
@@ -128,14 +139,14 @@ class SCIMToGoogleWorkspace
                 $this->data = new Role($this->client, $customerId);
             }
 
-            $result = $this->getResourceDetail($item["externalGWID"], $resourceType);
+            $result = $this->getResourceDetail($item[$this->externalIdName], $resourceType);
             if ($result == null) {
                 return null;
             }
 
             $this->data->setResource($result);
             $this->data->setAttributes($item);
-            $result = $this->data->update($item["externalGWID"]);
+            $result = $this->data->update($item[$this->externalIdName]);
             if ($result) {
                 $this->settingManagement->detailLogger($scimInfo);
             return $this->data->getPrimaryKey($result);
@@ -172,7 +183,7 @@ class SCIMToGoogleWorkspace
                 $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Organization($this->client, $customerId);
             } else if ($resourceType == "Role") {
-                $this->userRole($resourceType, $item["ID"], $item["externalGWID"]);
+                $this->userRole($resourceType, $item["ID"], $item[$this->externalIdName]);
                 $customerId = $this->setting[Consts::SCIM_AUTHENTICATION_CONFIGURATION]["customerId"];
                 $this->data = new Role($this->client, $customerId);
             }
@@ -199,7 +210,33 @@ class SCIMToGoogleWorkspace
         return null;
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId)
+    {
+        $this->data = new Member($this->client);
+
+        if ($resourceType == "User") {
+            $result = $this->userGroupByUser($item["ID"], $externalId);
+        } else if ($resourceType == "Group") {
+            $result = $this->userGroupByGroup($item["ID"], $externalId);
+        }
+    }
+
+    public function userRole($resourceType, $item, $externalId)
+    {
+        $reg = new RegExpsManager();
+        if ($resourceType == "User") {
+            $this->userRoleByUser($item["ID"], $externalId);
+        } else if ($resourceType == "Role") {
+            $this->userRoleByRole($item["ID"], $externalId);
+        }
+    }
+
+    private function replaceResource($resourceType, $item)
     {
         $settingManagement = new SettingsManager();
         $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -213,7 +250,7 @@ class SCIMToGoogleWorkspace
         return $item;
     }
 
-    public function getResourceDetail($resourceId, $resourceType)
+    private function getResourceDetail($resourceId, $resourceType)
     {
         try {
             $result = $this->data->get($resourceId);
@@ -247,66 +284,55 @@ class SCIMToGoogleWorkspace
         return $result;
     }
 
-    public function userGroup($resourceType, $item, $id)
-    {
-        $this->data = new Member($this->client);
-
-        if ($resourceType == "User") {
-            $result = $this->userGroupByUser($item, $id);
-        } else if ($resourceType == "Group") {
-            $result = $this->userGroupByGroup($item, $id);
-        }
-    }
-
-    public function userGroupByUser($item, $id)
+    private function userGroupByUser($id, $externalId)
     {
         $reg = new RegExpsManager();
-        $groupIds = $reg->getGroupsInUser($item["ID"]);
+        $groupIds = $reg->getGroupsInUser($externalId);
         if (empty($groupIds)) {
             return;
         }
 
         foreach ($groupIds as $groupId) {
-            $extGroupId = $reg->getAttrFromID("Group", $groupId, "externalGWID");
+            $extGroupId = $reg->getAttrFromID("Group", $groupId, $this->externalIdName);
             if (empty($extGroupId) || empty($extGroupId[0])) {
                 // skip
                 continue;
             }
-            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($item["ID"], $groupId);
-            $result = $this->hasMember($extGroupId, $id);
+            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($externalId, $groupId);
+            $result = $this->hasMember($extGroupId, $externalId);
             if ($result->getIsMember() != true && $deleteFlag != true) {
                 // add
-                $this->insertMember($extGroupId, $id);
+                $this->insertMember($extGroupId, $externalId);
             } else if ($result->getIsMember() == true && $deleteFlag == true) {
                 // delete
-                $this->deleteMember($extGroupId, $id);
+                $this->deleteMember($extGroupId, $externalId);
             }
         }
     }
 
-    public function userGroupByGroup($item, $id)
+    private function userGroupByGroup($id, $externalId)
     {
         $reg = new RegExpsManager();
-        $userIds = $reg->getUsersInGroup($item["ID"]);
+        $userIds = $reg->getUsersInGroup($externalId);
         if (empty($userIds)) {
             $externalUserIds = array();
         } else {
-            $externalUserIds = $reg->getAttrFromID("User", $userIds, "externalGWID");
+            $externalUserIds = $reg->getAttrFromID("User", $userIds, $this->externalIdName);
         }
         $addUserIds = $externalUserIds;
         $deleteUserIds = array();
 
         foreach ($userIds as $userId) {
-            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($userId, $item["ID"]);
+            $deleteFlag = $reg->getDeleteFlagFromUserToGroup($userId, $externalId);
             if ($deleteFlag == true) {
-                $externalUserId = $reg->getAttrFromID("User", $userId, "externalGWID");
+                $externalUserId = $reg->getAttrFromID("User", $userId, $this->externalIdName);
                 $key = array_search($externalUserId, $addUserIds);
                 unset($addUserIds[$key]);
                 array_push($deleteUserIds, $externalUserId);
             }
         }
 
-        $result = $this->getResourceDetail($id, "Member");
+        $result = $this->getResourceDetail($externalId, "Member");
         if ($result != null) {
             foreach ($result->getMembers() as $key => $value) {
                 if (in_array($value->getId(), $externalUserIds) === true) {
@@ -319,15 +345,15 @@ class SCIMToGoogleWorkspace
         }
 
         foreach ($addUserIds as $key => $value) {
-            $this->insertMember($id, $value);
+            $this->insertMember($externalId, $value);
         }
 
         foreach ($deleteUserIds as $key => $value) {
-            $this->deleteMember($id, $value);
+            $this->deleteMember($externalId, $value);
         }
     }
 
-    public function hasMember($groupKey, $userKey)
+    private function hasMember($groupKey, $userKey)
     {
         try {
             $result = $this->data->hasMember($groupKey, $userKey);
@@ -360,7 +386,7 @@ class SCIMToGoogleWorkspace
         return $result;
     }
 
-    public function insertMember($groupKey, $userKey)
+    private function insertMember($groupKey, $userKey)
     {
         try {
             $this->data->insert($groupKey, $userKey);
@@ -392,7 +418,7 @@ class SCIMToGoogleWorkspace
         }
     }
 
-    public function deleteMember($groupKey, $userKey)
+    private function deleteMember($groupKey, $userKey)
     {
         try {
             $this->data->delete($groupKey, $userKey);
@@ -424,17 +450,7 @@ class SCIMToGoogleWorkspace
         }
     }
 
-    public function userRole($resourceType, $id, $externalId)
-    {
-        $reg = new RegExpsManager();
-        if ($resourceType == "User") {
-            $this->userRoleByUser($resourceType, $id, $externalId);
-        } else if ($resourceType == "Role") {
-            $this->userRoleByRole($resourceType, $id, $externalId);
-        }
-    }
-
-    public function userRoleByUser($resourceType, $id, $externalId)
+    private function userRoleByUser($id, $externalId)
     {
         $reg = new RegExpsManager();
         $result = $reg->getAttrs("UserToRole", "User_ID", $id);
@@ -456,7 +472,7 @@ class SCIMToGoogleWorkspace
         foreach ($result as $value) {
             $roleAssignmentId = null;
             if ($value["DeleteFlag"] == "0") {
-                $extRoleId = $reg->getAttrFromID("Role", $value["Role_ID"], "externalGWID");
+                $extRoleId = $reg->getAttrFromID("Role", $value["Role_ID"], $this->externalIdName);
                 if (empty($extRoleId) || empty($extRoleId[0])) {
                     continue;
                 }
@@ -540,7 +556,7 @@ class SCIMToGoogleWorkspace
         }
     }
 
-    public function userRoleByRole($resourceType, $id, $externalId)
+    private function userRoleByRole($id, $externalId)
     {
         $reg = new RegExpsManager();
         $result = $reg->getAttrs("UserToRole", "Role_ID", $id);
@@ -562,7 +578,7 @@ class SCIMToGoogleWorkspace
         foreach ($result as $value) {
             $roleAssignmentId = null;
             if ($value["DeleteFlag"] == "0") {
-                $extUserId = $reg->getAttrFromID("User", $value["User_ID"], "externalGWID");
+                $extUserId = $reg->getAttrFromID("User", $value["User_ID"], $this->externalIdName);
                 if (empty($extUserId) || empty($extUserId[0])) {
                     continue;
                 }

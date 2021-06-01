@@ -6,6 +6,7 @@ use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\Ldaplibs\SCIM\OneLogin\SCIMToOneLogin;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -70,7 +71,8 @@ class ExportOneLogin extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
-            $extractor->processExtractToOL();
+            $scimLib = new SCIMToOneLogin();
+            $extractor->processExtractToSCIM($scimLib);
         }
     }
 }

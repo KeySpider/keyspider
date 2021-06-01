@@ -6,6 +6,7 @@ use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\Ldaplibs\SCIM\Box\SCIMToBox;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -70,7 +71,8 @@ class ExportBOX extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
-            $extractor->processExtractToBOX();
+            $scimLib = new SCIMToBox();
+            $extractor->processExtractToSCIM($scimLib);
         }
     }
 }

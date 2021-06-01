@@ -17,6 +17,12 @@ class Consts
     public const OUTPUT_PROCESS_CONVERSION                 =  "Output Process Conversion";
     public const SCIM_AUTHENTICATION_CONFIGURATION         =  "SCIM Authentication Configuration";
 
+    public const EXTRACTION_PROCESS_ID  =  "ExtractionProcessID";
+    public const OUTPUT_TYPE            =  "OutputType";
+    public const EXTRACTION_TABLE       =  "ExtractionTable";
+    public const EXTERNAL_ID            =  "ExternalID";
+    public const EXECUTION_TIME         =  "ExecutionTime";
+
     // Keyspider.ini
     public const MASTER_DB_CONFIGURATION              =  "Master DB Configurtion";
     public const AD_EXTRACT_PROCESS_CONFIGURATION     =  "Azure Extract Process Configuration";
