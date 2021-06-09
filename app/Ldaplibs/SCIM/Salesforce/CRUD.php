@@ -44,11 +44,8 @@ class CRUD
     public function create($object, array $data)
     {
         $camelTableName = ucfirst(strtolower($object));
-        $scimInfo = array(
-            'provisoning' => 'SalesForce',
-            'scimMethod' => 'create',
-            'table' => $camelTableName,
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "SalesForce", "create", $camelTableName, "", "", ""
         );
 
         if ($camelTableName == 'User') {
@@ -131,11 +128,8 @@ class CRUD
     public function update($object, $id, array $data)
     {
         $camelTableName = ucfirst(strtolower($object));
-        $scimInfo = array(
-            'provisoning' => 'SalesForce',
-            'scimMethod' => 'update',
-            'table' => $camelTableName,
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "SalesForce", "update", $camelTableName, "", "", ""
         );
 
         if ($camelTableName == 'User') {
@@ -214,13 +208,8 @@ class CRUD
 
     public function delete($object, $id)
     {
-        $scimInfo = array(
-            'provisoning' => 'SalesForce',
-            'scimMethod' => 'delete',
-            'table' => ucfirst(strtolower($object)),
-            'itemId' => $id,
-            'itemName' => '',
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "SalesForce", "delete", ucfirst(strtolower($object)), $id, "", ""
         );
 
         $url = "$this->instance_url/services/data/v39.0/sobjects/$object/$id";

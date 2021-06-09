@@ -62,10 +62,10 @@ class ImportSettingsManager extends SettingsManager
 
         $timeArray = array();
         foreach ($rule as $tableContents) {
-            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
                 $filesFromPattern = $this->getFilesFromPattern(
-                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FilePath"],
-                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FileName"]
+                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_PATH],
+                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_NAME]
                 );
 
                 if (count($filesFromPattern) === 0) {
@@ -113,7 +113,7 @@ class ImportSettingsManager extends SettingsManager
             $tableContents["IniFileName"] = $iniImportSettingsFile;
 
             // Set destination table in database
-            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
+            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
             $tableNameOutput = $master[(string)$tableNameInput][(string)$tableNameInput];
             $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
@@ -212,14 +212,14 @@ class ImportSettingsManager extends SettingsManager
             "IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath" => "required"
         ];
         if (
-            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"]["FilePath"]) &&
-            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"]["ProcessedFilePath"])
+            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::FILE_PATH]) &&
+            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::PROCESSED_FILE_PATH])
         ) {
             return Validator::make($tempIniArray, $rules);
         }
         Log::error("Double check folders are existed or not");
-        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"]["FilePath"]);
-        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"]["ProcessedFilePath"]);
+        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::FILE_PATH]);
+        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::PROCESSED_FILE_PATH]);
         return null;
     }
 
@@ -292,7 +292,7 @@ class ImportSettingsManager extends SettingsManager
         $importSettings = parse_ini_file(storage_path("ini_configs/import/UserInfoSCIMInput.ini"), true);
         $masterDBConf = parse_ini_file(storage_path("ini_configs/MasterDBConf.ini"), true);
 
-        $tableName = $importSettings[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
+        $tableName = $importSettings[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
         $formatConversion = $importSettings[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         $dbConfigOfTable = $masterDBConf[$tableName];
         $result = [];
@@ -379,7 +379,7 @@ class ImportSettingsManager extends SettingsManager
     private function getSCIMInputFormatConversion($filePath)
     {
         $iniSCIMSettingsArray = parse_ini_file($filePath, true);
-        $tableNameInput = $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"];
+        $tableNameInput = $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
         $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
         $columnNameConversion = $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         foreach ($columnNameConversion as $key => $value) {

@@ -80,10 +80,10 @@ class ImportCSV extends Command
             $setting = $data["setting"];
             $files = $data["files"];
 
-            if (!is_dir($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FilePath"])) {
+            if (!is_dir($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_PATH])) {
                 Log::error(
-                    "ImportTable: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ImportTable"]}
-                        FilePath: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["FilePath"]} is not available"
+                    "ImportTable: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE]}
+                        FilePath: {$setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_PATH]} is not available"
                 );
                 break;
             }

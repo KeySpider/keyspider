@@ -14,7 +14,7 @@ class ImportScheduler
 {
     public function execute(Schedule $schedule)
     {
-        Log::debug('service name is ' . $this->getServiceName());
+        Log::debug("service name is " . $this->getServiceName());
         // return;
 
         $importSettingManager = $this->getSettingManager($this->getServiceConfig());
@@ -27,7 +27,7 @@ class ImportScheduler
                 })->dailyAt($timeExecutionString);
             }
         } else {
-            Log::info('Currently, there is no ' . $this->getServiceName() . ' import to process.');
+            Log::info("Currently, there is no " . $this->getServiceName() . " import to process.");
         }
     }
 
@@ -44,8 +44,8 @@ class ImportScheduler
 
     protected function queue($data)
     {
-        $setting = $data['setting'];
-        $files = $data['files'];
+        $setting = $data["setting"];
+        $files = $data["files"];
         $queue = new ImportQueueManager();
         
         foreach ($files as $file) {
@@ -71,6 +71,6 @@ class ImportScheduler
 
     protected function getServiceName()
     {
-        return 'CSV';
+        return "CSV";
     }
 }

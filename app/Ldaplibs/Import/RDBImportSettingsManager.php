@@ -67,7 +67,7 @@ class RDBImportSettingsManager extends SettingsManager
 
         $timeArray = array();
         foreach ($rule as $tableContents) {
-            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
                 $filesArray["setting"] = $tableContents;
                 $timeArray[$specifyTime][] = $filesArray;
             }
@@ -106,7 +106,7 @@ class RDBImportSettingsManager extends SettingsManager
             // set filename in json file
             $tableContents["IniFileName"] = $iniImportSettingsFile;
             // Set destination table in database
-            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["OutputTable"];
+            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
 
             // $masterDBConversion = $master[$tableNameInput];
 
@@ -185,28 +185,5 @@ class RDBImportSettingsManager extends SettingsManager
         Log::error(("Error file: " . $fileName) ? $fileName : "");
         /** @noinspection PhpUndefinedMethodInspection */
         Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
-    }
-
-    /**
-     * Based on MasterDBConf.ini, convert columns name from SCIM to our DB
-     * @param $filePath
-     * @return array|bool
-     */
-    private function getRDBInputFormatConversion($filePath)
-    {
-        $iniRDBSettingsArray = parse_ini_file($filePath, true);
-        $tableNameInput = $iniRDBSettingsArray[self::RDBM_INPUT_BACIC_CONFIGURATION]["ImportTable"];
-        $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
-        $columnNameConversion = $iniRDBSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
-        foreach ($columnNameConversion as $key => $value) {
-            if (isset($masterDBConversion[$key])) {
-                $columnNameConversion[$masterDBConversion[$key]] = $value;
-                if ($masterDBConversion[$key] !== $key) {
-                    unset($columnNameConversion[$key]);
-                }
-            }
-        }
-        $iniRDBSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
-        return $iniRDBSettingsArray;
     }
 }

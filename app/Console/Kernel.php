@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
-    // [Master DB Configurtion] と [SCIM Input Process Configration] は 実行時間を定義しないため "none" をマッピングします。
+    // [Master DB Configuration] と [SCIM Input Process Configuration] は 実行時間を定義しないため "none" をマッピングします。
     private const OPERATIONS = array(
         Consts::MASTER_DB_CONFIGURATION             =>  "none",
         Consts::CSV_IMPORT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ImportScheduler",
@@ -45,6 +45,7 @@ class Kernel extends ConsoleKernel
         Consts::SLACK_EXTRACT_PROCESS_CONFIGURATION =>  "App\Console\Scheduler\ExportSlackScheduler",
         Consts::TL_EXTRACT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\ExportTLScheduler",
         Consts::ZOOM_EXTRACT_PROCESS_CONFIGURATION  =>  "App\Console\Scheduler\ExportZoomScheduler",
+        Consts::RDB_EXTRACT_PROCESS_CONFIGURATION   =>  "App\Console\Scheduler\ExportRDBScheduler",
         Consts::CSV_OUTPUT_PROCESS_CONFIGURATION    =>  "App\Console\Scheduler\OutputScheduler",
     );
 

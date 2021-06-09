@@ -6,19 +6,10 @@ class User
 {
     private $client;
     private $user = array();
-    private $useLockflag = false;
-
-    const FORMAT_CONVERSION = 'Extraction Process Format Conversion';
-    const INI_PATH = 'ini_configs/extract/UserToOLExtraction.ini';
 
     public function __construct($client)
     {
         $this->client = $client;
-
-        $fcSection = parse_ini_file(storage_path(self::INI_PATH), true) [self::FORMAT_CONVERSION];
-        if ( array_key_exists('status', $fcSection) ) {
-            $this->useLockflag = true;
-        }
     }
 
     public function getUser()
@@ -56,9 +47,14 @@ class User
         return $this->client->getUser($id);
     }
 
-    public function password($id, $password)
+    public function setPassword($id, $password)
     {
         return $this->client->setPasswordUsingClearText($id, $password, $password);
+    }
+
+    public function setStatus($id, $status)
+    {
+        return $this->client->updateUser($id, array("status" => $status));
     }
 
     public function getUserRoles($id)
@@ -108,18 +104,19 @@ class User
             case $key == 'username':
                 $this->setValue($key, $value);
                 break;
-                //            case $key == 'password':
-                //                $this->setValue($key, $value);
-                //                break;
-                //            case $key == 'password_confirmation':
-                //                $this->setValue($key, $value);
-                //                break;
-                //            case $key == 'password_algorithm':
-                //                $this->setValue($key, $value);
-                //                break;
-                //            case $key == 'salt':
-                //                $this->setValue($key, $value);
-                //                break;
+            // case $key == 'password':
+            //     $this->setValue($key, $value);
+            //     $this->setValue('password_confirmation', $value);
+            //     break;
+            // case $key == 'password_confirmation':
+            //     $this->setValue($key, $value);
+            //     break;
+            // case $key == 'password_algorithm':
+            //     $this->setValue($key, $value);
+            //     break;
+            // case $key == 'salt':
+            //     $this->setValue($key, $value);
+            //     break;
             case $key == 'title':
                 $this->setValue($key, $value);
                 break;
@@ -144,15 +141,9 @@ class User
             case $key == 'state':
                 $this->setValue($key, $value);
                 break;
-            case $key == 'status':
-                if ($this->useLockflag) {
-                    $convBool = true;
-                    if ((int)$value == 1) {
-                        $convBool = false;
-                    }                    
-                    $this->setValue($key, $convBool);
-                }
-                break;
+            // case $key == 'status':
+            //     $this->setValue($key, $value);
+            //     break;
             case $key == 'directory_id':
                 $this->setValue($key, $value);
                 break;

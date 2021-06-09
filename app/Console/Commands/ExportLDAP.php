@@ -24,6 +24,7 @@ use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
+use App\Ldaplibs\Extract\ExtractToLdap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -84,7 +85,8 @@ class ExportLDAP extends Command
         foreach ($settings as $dataSchedule) {
             $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
-            $extractor->processExtractToLDAP();
+            $worker = new ExtractToLdap();
+            $extractor->processExtractToLDAP($worker);
         }
     }
 }

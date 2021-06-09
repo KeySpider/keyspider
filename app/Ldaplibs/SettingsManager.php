@@ -526,8 +526,8 @@ class SettingsManager
             foreach ($filePaths as $filePath) {
                 if (is_file($filePath)) {
                     $file = parse_ini_file($filePath);
-                    if ($tableName == $file['ExtractionTable'] ?? '') {
-                        $extractionProcessIDs[] = $file['ExtractionProcessID'] ?? '';
+                    if ($tableName == $file[Consts::EXTRACTION_TABLE] ?? '') {
+                        $extractionProcessIDs[] = $file[Consts::EXTRACTION_PROCESS_ID] ?? '';
                     }
                 }
             }
@@ -628,6 +628,17 @@ class SettingsManager
             Log::error($exception->getMessage());
             return false;
         }
+    }
+
+    public function makeScimInfo($provisoning, $scimMethod, $table, $itemId, $itemName, $message) {
+        return array(
+            'provisoning' => $provisoning,
+            'scimMethod' => $scimMethod,
+            'table' => $table,
+            'itemId' => $itemId,
+            'itemName' => $itemName,
+            'message' => $message,
+        );
     }
 
     public function faildLogger($scimInfo)

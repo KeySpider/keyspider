@@ -34,7 +34,7 @@ use App\UserToGroup;
 
 class RegExpsManager
 {
-    const OPERATIONS = array(
+    private const OPERATIONS = array(
         'EQ' => '=',  // EQual
         'GE' => '>=', // Greater Equal
         'GT' => '>',  // Greater Than
@@ -297,7 +297,6 @@ class RegExpsManager
             ->select('DeleteFlag')
             ->where('User_ID', $userId)->where('Group_ID', $groupId)
             ->first();
-
         return $queries->DeleteFlag;
     }
 

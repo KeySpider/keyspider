@@ -48,7 +48,7 @@ class RDBReader
      */
     public function importFromRDBData($dataPost, $setting)
     {
-        $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['Prefix'];
+        $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
         var_dump($this->prefix . ' is processing now');
 
         // get real config
@@ -56,11 +56,11 @@ class RDBReader
 
         try {
             // Get data from Oracle.
-            $conn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['Connection'];
-            $table = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['ImportTable'];
-            $pkColumn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]['PrimaryColmn'];
+            $conn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::CONNECTION_TYPE];
+            $table = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::IMPORT_TABLE];
+            $pkColumn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::PRIMARY_COLUMN];
+            $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
             $conversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
-            $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
 
             // Initialize
             $this->rdbRecords = [];
@@ -180,7 +180,7 @@ class RDBReader
      */
     private function insertTodayData($mode, $setting, $records)
     {
-        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
         try {
             DB::beginTransaction();
             DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
@@ -202,7 +202,7 @@ class RDBReader
 
     private function CRUDRecord($setting)
     {
-        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
 
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
@@ -247,9 +247,9 @@ class RDBReader
      */
     private function doCudOperation($mode, $setting, $sarray)
     {
-        $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['OutputTable'];
-        $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]['Prefix'];
-        $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]["ExternalID"];
+        $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
+        $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
+        $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
 
         // Sanitize ID array
         $varray = json_decode(json_encode($sarray), true);

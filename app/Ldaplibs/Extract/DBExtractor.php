@@ -37,19 +37,7 @@ class DBExtractor
     /**
      * define const
      */
-    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
-    const RDB_CONFIGRATION = "Extraction RDB Connecting Configration";
-    const DB_CONNECTION = "database.connections";
-
-    // see set attribute value detail
-    // https://support.microsoft.com/ja-jp/help/305144/how-to-use-useraccountcontrol-to-manipulate-user-account-properties
-    private const NORMAL_ACCOUNT = 544;
-    private const DISABLE_ACCOUNT = 514;
-    // private const HOLDING_ACCOUNT = 66082;
-    private const HOLDING_ACCOUNT = 66050;
-
-    private const GROUP_TYPE_365 = 2;
-    private const GROUP_TYPE_SECURITY = -2147483646;
+    private const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
     protected $setting;
     protected $regExpManagement;
@@ -119,8 +107,8 @@ class DBExtractor
             $results = null;
             $dataType = "csv";
             $setting = $this->setting;
-            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
-            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_PROCESS_ID];
             $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
 
@@ -371,16 +359,16 @@ class DBExtractor
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $tempPath = $settingOutput["TempPath"];
-            $fileName = $settingOutput["FileName"];
+            $tempPath = $settingOutput[Consts::TEMP_PATH];
+            $fileName = $settingOutput[Consts::FILE_NAME];
 
             $setting = $this->setting;
-            $nameTable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
-            $nameProcess = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];            
+            $nameTable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
+            $nameProcess = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_PROCESS_ID];
 
             $groupDelimiter = null;
             if ($nameTable == "User") {
-                $groupDelimiter = $settingOutput["GroupDelimiter"];
+                $groupDelimiter = $settingOutput[Consts::GROUP_DELIMITER];
             }
 
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
@@ -585,9 +573,9 @@ class DBExtractor
             preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $value, $matches);
             if (!empty($matches)) {
                 $item[$key] = $this->executeExtend($value, $matches, $item["ID"]);
+            }
         }
-        }
-        $item['UpdateDate'] = Carbon::now()->format('Y/m/d H:i:s');
+        $item["UpdateDate"] = Carbon::now()->format("Y/m/d H:i:s");
         return $item;
     }
 
@@ -626,8 +614,10 @@ class DBExtractor
     {
         try {
             $setting = $this->setting;
-            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
-            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
+
+            $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
+            $extractedId = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_PROCESS_ID];
+            $externalIdName = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
 
             $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $settingManagement = new SettingsManager();
@@ -641,19 +631,18 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $table . " Provisioning start --> Azure Active Directory";
+            $cmd = $table . " Provisioning Start --> Azure Active Directory";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
             $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
             $allSelectedColumns = $this->getColumnsSelect($table, $formatConvention);
+
             $selectColumns = $allSelectedColumns[0];
             $aliasColumns = $allSelectedColumns[1];
-            //Append 'ID' to selected Columns to query and process later
 
-            $getEncryptedFields = $settingManagement->getEncryptedFields();
-            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, "externalID", "DeleteFlag"]);
+            $selectColumnsAndID = array_merge($aliasColumns, [$primaryKey, $externalIdName, "DeleteFlag"]);
 
             if ($table == "User") {
                 $allRoleFlags = $settingManagement->getRoleFlags();
@@ -676,7 +665,6 @@ class DBExtractor
             $query = $query->select($selectColumnsAndID)
                 ->where($whereData);
             $extractedSql = $query->toSql();
-            // Log::info($extractedSql);
             $results = $query->get()->toArray();
 
             // Traceing
@@ -692,7 +680,7 @@ class DBExtractor
             $linkageLockFlag = array_key_exists('accountEnabled', $formatConvention);
 
             if ($results) {
-                $userGraph = new UserGraphAPI();
+                $userGraph = new UserGraphAPI($externalIdName);
 
                 //Set updateFlags for key ('ID')
                 //{"processID":0}
@@ -718,24 +706,24 @@ class DBExtractor
                     // check resource is existed on AD or not
                     //TODO: need to change because userPrincipalName is not existed in group.
                     $uPN = $item->userPrincipalName ?? null;
-                    if (($item->externalID) && ($userGraph->getResourceDetails($item->externalID, $table, $uPN))) {
+                    if (($item->$externalIdName) && ($userGraph->getResourceDetails($item->$externalIdName, $table, $uPN))) {
                         if ($item->DeleteFlag == 1) {
                             //Delete resource
                             Log::info("Delete $table [$uPN] on AzureAD");
 
-                            $userGraph->removeLicenseDetail($item->externalID);
-                            $userDeleted = $userGraph->deleteResource($item->externalID, $table);
+                            $userGraph->removeLicenseDetail($item->$externalIdName, $table);
+                            $userDeleted = $userGraph->deleteResource($item->$externalIdName, $table);
                             if ($userDeleted != null) {
-                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
-                            $updateQuery->where($primaryKey, $item->{"$primaryKey"});
-                            $updateQuery->update(["externalID" => null]);
+                                $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE]);
+                                $updateQuery->where($primaryKey, $item->{"$primaryKey"});
+                                $updateQuery->update([$externalIdName => null]);
 
-                            if ($table == "Group") {
-                                $updateQuery = DB::table("UserToGroup");
-                                $updateQuery->where("Group_ID", $item->{"$primaryKey"});
-                                $updateQuery->delete();
-                            }
-                            $deleteCount++;
+                                if ($table == "Group") {
+                                    $updateQuery = DB::table("UserToGroup");
+                                    $updateQuery->where("Group_ID", $item->{"$primaryKey"});
+                                    $updateQuery->delete();
+                                }
+                                $deleteCount++;
                             }
                         } else {
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
@@ -782,9 +770,9 @@ class DBExtractor
                         }
                         // TODO: create user on AD, update UpdateFlags and externalID.
                         $userOnDB = $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
-                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE]);
                         $updateQuery->where($primaryKey, $item->{"$primaryKey"});
-                        $updateQuery->update(["externalID" => $userOnAD->getID()]);
+                        $updateQuery->update([$externalIdName => $userOnAD->getID()]);
                         $createCount++;
                         var_dump($userOnAD);
                     }
@@ -921,7 +909,7 @@ class DBExtractor
                             if ($ext_id == "1") $ext_id = null;
                             DB::beginTransaction();
                             $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
+                            $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE]);
                             $updateQuery->where($primaryKey, $item["$primaryKey"]);
                             $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
                             $updateQuery->update([$externalIdName => $ext_id]);
@@ -936,23 +924,24 @@ class DBExtractor
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id != null) {
-                        $updateCount++;
+                            $updateCount++;
                         }
                     } else {
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
                         if ($ext_id != null) {
-                        $createCount++;
-                    }
+                            $createCount++;
+                        }
                     }
 
                     if ($ext_id !== null) {
                         $scimLib->passwordResource($table, $item, $ext_id);
+                        $scimLib->statusResource($table, $item, $ext_id);
                         $scimLib->userGroup($table, $item, $ext_id);
                         $scimLib->userRole($table, $item, $ext_id);
                         DB::beginTransaction();
                         $settingManagement->setUpdateFlags($extractedId, $item["$primaryKey"], $table, $value = 0);
-                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"]);
+                        $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE]);
                         $updateQuery->where($primaryKey, $item["$primaryKey"]);
                         $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
                         $updateQuery->update([$externalIdName => $ext_id]);
@@ -1011,19 +1000,19 @@ class DBExtractor
         }
     }
 
-
     public function processExtractToRDB()
     {
         try {
             $setting = $this->setting;
-            $extractiontable = $setting[self::EXTRACTION_CONFIGURATION]["ExtractionTable"];
-            $extractionProcessID = $setting[self::EXTRACTION_CONFIGURATION]["ExtractionProcessID"];
-            $extractCondition = $setting[self::EXTRACTION_CONDITION];
-            $connectionType = $setting[self::RDB_CONFIGRATION]["ConnectionType"];
-            $exportTable = $setting[self::RDB_CONFIGRATION]["ExportTable"];
-            $primaryColumn = $setting[self::RDB_CONFIGRATION]["PrimaryColumn"];
-            $externalId = $setting[self::RDB_CONFIGRATION]["ExternalId"];
-            $rdbDeleteType = config(self::DB_CONNECTION)[$connectionType]["deleteType"] ?? Null;
+
+            $extractiontable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
+            $extractionProcessID = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_PROCESS_ID];
+            $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
+            $connectionType = $setting[Consts::RDB_CONNECTING_CONFIGURATION][Consts::CONNECTION_TYPE];
+            $exportTable = $setting[Consts::RDB_CONNECTING_CONFIGURATION][Consts::EXPORT_TABLE];
+            $primaryColumn = $setting[Consts::RDB_CONNECTING_CONFIGURATION][Consts::PRIMARY_COLUMN];
+            $externalId = $setting[Consts::RDB_CONNECTING_CONFIGURATION][Consts::EXTERNAL_ID];
+            $rdbDeleteType = config("database.connections")[$connectionType][Consts::DELETE_TYPE] ?? Null;
 
             $settingManagement = new SettingsManager();
             $nameColumnUpdate = $settingManagement->getUpdateFlagsColumnName($extractiontable);
@@ -1033,6 +1022,7 @@ class DBExtractor
             // Configuration file validation
             if (!$settingManagement->isExtractSettingsFileValid()) {
                 return;
+            }
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
@@ -1040,7 +1030,7 @@ class DBExtractor
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
-            $formatConvention = $setting[self::EXTRACTION_PROCESS_FORMAT_CONVERSION];
+            $formatConvention = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
             $primaryKey = $settingManagement->getTableKey();
 
             $allSelectedColumns = $this->getColumnsSelect($extractiontable, $formatConvention);
@@ -1074,6 +1064,14 @@ class DBExtractor
                     $item = $this->overlayItem($formatConvention, $item);
                     $exportDate = array_intersect_key($item, $formatConvention);
 
+                    $getEncryptedFields = $settingManagement->getEncryptedFields();
+                    foreach ($exportDate as $kv => $iv) {
+                        $twColumn = "$extractiontable.$kv";
+                        if (in_array($twColumn, $getEncryptedFields)) {
+                            $exportDate[$kv] = $settingManagement->passwordDecrypt($iv);
+                        }
+                    }
+
                     DB::beginTransaction();
                     $rdbTable = DB::connection($connectionType)->table($exportTable);
 
@@ -1087,7 +1085,7 @@ class DBExtractor
                             } elseif ($rdbDeleteType == "physical") {
                                 // Physical Delete
                                 $deleteData->delete();
-                                $item[$externalId] = "";
+                                $item[$externalId] = null;
                                 $deleteCount++;
                             } else {
                                 Log::error("Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.");
@@ -1150,11 +1148,14 @@ class DBExtractor
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
         }
     }
-    public function processExtractToLDAP()
+
+    public function processExtractToLDAP($worker)
     {
         try {
             $setting = $this->setting;
-            $tableMaster = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
+            $worker->initialize($setting);
+
+            $tableMaster = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
             $extractCondition = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
             $nameColumnUpdate = "UpdateFlags";
 
@@ -1162,10 +1163,10 @@ class DBExtractor
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
             // If a successful connection is made to your server, the provider will be returned.
-            $this->provider = $this->configureLDAPServer()->connect();
+            $worker->setProvider($worker->configureLDAPServer()->connect());
 
-            $whereData = $this->extractCondition2($extractCondition, $nameColumnUpdate);
-            $this->tableMaster = $tableMaster;
+            $whereData = $worker->extractCondition2($extractCondition, $nameColumnUpdate);
+            $worker->setTableMaster($tableMaster);
 
             $query = DB::table($tableMaster);
             $query = $query->where($whereData);
@@ -1183,434 +1184,29 @@ class DBExtractor
                     // Skip because 'cn' cannot be created
                     if (empty($array["Name"])) {
                         if (empty($array["displayName"])) {
-                        $this->setUpdateFlags2($array["ID"]);
-                        continue;
-}
+                            $worker->setUpdateFlags2($array["ID"]);
+                            continue;
+                        }
+                    }
 
-                    switch ($this->tableMaster) {
+                    switch ($worker->getTableMaster()) {
                     case "User":
-                        $this->exportUserFromKeyspider($array);
+                        $worker->exportUserFromKeyspider($array);
                         break;
                     // case "Role":
-                    //     $this->exportRoleFromKeyspider($array);
+                    //     $worker->exportRoleFromKeyspider($array);
                     //     break;
                     case "Group":
-                        $this->exportGroupFromKeyspider($array);
+                        $worker->exportGroupFromKeyspider($array);
                         break;
                     case "Organization":
-                        $this->exportOrganizationUnitFromKeyspider($array);
+                        $worker->exportOrganizationUnitFromKeyspider($array);
                         break;
                     }
                 }
             }
         } catch (Exception $exception) {
             Log::error($exception);
-        }
-    }
-
-    /**
-     * Add a connection provider to Adldap.
-     *
-     */
-    private function configureLDAPServer()
-    {
-        $setting = $this->setting;
-        $ldapHosts =    $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapHosts"];
-        $ldapPort =     $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapPort"];
-        $LdapBaseDn =   $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
-        $LdapUsername = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapUsername"];
-        $LdapPassword = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapPassword"];
-        $UseSSL =       $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseSSL"];
-        $UseTLS =       $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseTLS"];
-
-        $adLdap = new \Adldap\Adldap();
-
-        $config = [  
-//            "hosts"    => [ $ldapHosts ],
-            "hosts"    => explode(",", $ldapHosts),
-            "port"     => $ldapPort,
-            "base_dn"  => $LdapBaseDn,
-            "username" => $LdapUsername,
-            "password" => $LdapPassword,
-            "use_ssl"  => ($UseSSL == true),
-            "use_tls"  => ($UseTLS == true),
-        ];
-
-        // Add a connection provider to Adldap.
-        $adLdap->addProvider($config);
-
-        return $adLdap;
-    }
-
-    public function extractCondition2($extractCondition, $nameColumnUpdate)
-    {
-        $whereData = [];
-        foreach ($extractCondition as $key => &$condition) {
-            if (!is_array($condition)) {
-                // Add/Sub EffectiveDate
-                if (strpos((string)$condition, "TODAY()") !== false) {
-                    $condition = $this->regExpManagement->getEffectiveDate($condition);
-                    array_push($whereData, [$key, "<=", $condition]);
-                    continue;
-                }
-
-                // Logical operation setting or Regular expressions?
-                $match = $this->regExpManagement->hasLogicalOperation($condition);
-                if (!empty($match)) {
-                    $whereData = $this->regExpManagement->makeExpLOCondition($key, $match, $whereData);
-                    continue;
-                }
-            }
-
-            // make standard condition
-            if ($condition === "TODAY() + 7") {
-                $condition = Carbon::now()->addDay(7)->format("Y/m/d");
-                array_push($whereData, [$key, "<=", $condition]);
-            } elseif (is_array($condition)) {
-                // JSON Columns(Use UpdateFlags)
-                foreach ($condition as $keyJson => $valueJson) {
-                    array_push($whereData, ["{$nameColumnUpdate}->$keyJson", "=", "{$valueJson}"]);
-                }
-                continue;
-            } else {
-                array_push($whereData, [$key, "=", $condition]);
-            }
-        }
-        return $whereData;
-    }    
-
-    private function conversionArrayValue($array)
-    {
-        $setting = $this->setting;
-        $conversions = $setting[Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION];
-
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-        $regExpManagement = new RegExpsManager();
-
-        $prefixArray = $this->array_key_prefix($array, $this->tableMaster);
-        
-        $fields = [];
-
-        foreach ($conversions as $key => $nameTable) {
-            $explodeItem = explode(".", $nameTable);
-            $item = $explodeItem[count($explodeItem) -1];
-
-            if ($explodeItem[0] == "(".$this->tableMaster){
-                $item = $nameTable;
-            }
-
-            if ($item === "admin") {
-                $fields[$key] = "admin";
-            } elseif ($item === "TODAY()") {
-                $fields[$key] = Carbon::now()->format("Y/m/d");
-            } elseif ($item === "0") {
-                $fields[$key] = "0";
-            } else {
-                // Set ini file const value
-                $itemValue = $item;
-                // Swap const value and record value
-                if (array_key_exists($nameTable, $prefixArray)) {
-                    $itemValue = $array[$item];
-                }
-
-                // Need a decrypt?
-                if (in_array($nameTable, $getEncryptedFields)) {
-                    $itemValue = $settingManagement->passwordDecrypt($itemValue);
-                }
-                // process with regular expressions?
-                $columnName = $regExpManagement->checkRegExpRecord($itemValue);
-
-                if (isset($columnName)) {
-                    // $slow = strtolower($columnName);
-                    // if (array_key_exists($slow, $array)) {
-                    if (array_key_exists($columnName, $array)) {
-                        $recValue = $array[$columnName];
-                        $fields[$key] = $regExpManagement->convertDataFollowSetting($itemValue, $recValue);
-                    }
-                } else {
-                    $fields[$key] = $itemValue;
-                }
-            }
-        }
-        return $fields;
-    }
-
-    private function array_key_prefix(array $array, $prefix = "")
-    {
-        $result = array();
-        foreach ($array as $key => $value) {
-            $result[$prefix . "." . $key] = $value;
-        }
-        return $result;
-    }
-
-    public function exportUserFromKeyspider($user)
-    {
-        try {
-            $setting = $this->setting;
-            $ldapSearchPath =  $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapSearchPath"];
-            $ldapSearchColum = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapSearchColum"];
-            $ldapBasePath =    $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
-            $useSSL =          $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["UseSSL"];
-            $defaultPassword = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["DefaultPassword"];
-
-            $ldapBaseDn = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
-
-            // Finding a record.
-            try {
-                $entry = $this->provider->search()
-                    ->whereEquals($ldapSearchPath, $user[$ldapSearchColum])->firstOrFail();
-            } catch (Exception $exception) {
-                // Record wasn't found!
-                Log::info("Record wasn't found! : $ldapSearchPath = $user[$ldapSearchColum]");
-                $entry = false;
-            }
-
-            $ldapUser = $this->conversionArrayValue($user);
-
-            $is_success = false;
-            if ($entry) {
-                // Update or Delete LDAP entry. Setting a model's attribute.
-                // disble user
-                if ($user["DeleteFlag"] == "1") {
-                    $ldapUser["userAccountControl"] = self::DISABLE_ACCOUNT;
-                }
-                $is_success = $entry->update($ldapUser);
-            } else {
-                // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                // $ldapUser["userAccountControl"] = self::HOLDING_ACCOUNT;
-                // $ldapUser["userAccountControl"] = self::NORMAL_ACCOUNT;
-                // $ldapUser["pwdLastSet"] = 0;
-
-                $entry =  $this->provider->make()->user();
-                foreach ($ldapUser as $key => $value) {
-                    if ($key == "dn") {
-                        $entry->setAttribute($key, "${ldapSearchPath}=${value},${ldapBaseDn}");
-                    } else if ($key == "objectclass") {
-                        $entry->setAttribute($key, explode(",", $value));
-                    } else {
-                        $entry->setAttribute($key, $value);
-                    }
-                }
-                if ($useSSL) {
-                    $entry->setPassword($defaultPassword);
-                }
-                $is_success = $entry->save();
-
-//                if ($is_success) {
-//                    $is_success = $entry->update($ldapUser);    
-//                }
-            }
-
-            // remove & add memberOf
-            $removeGroups = $entry->getGroups();
-            foreach ($removeGroups as $group) {
-                $entry->removeGroup($group);
-            }
-
-            $addGroups = $this->getMemberOfLDAP($user["ID"]);
-            foreach ($addGroups as $index => $group) {
-                $fmt = sprintf("CN=%s,%s", $group, $ldapBaseDn);
-                $entry->addGroup($fmt);
-            }
-
-            // Saving the changes to your LDAP server.
-            if ($is_success) {
-                // User was saved!
-                $this->resetTransferredFlag($user["ID"]);
-            }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
-            // There was an issue binding / connecting to the server.
-        } catch (Exception $exception) {
-            Log::error($exception);
-        }
-    }
-
-    private function getMemberOfLDAP($uid)
-    {
-        $table = "UserToGroup";
-        $queries = DB::table($table)
-                    ->select("Group_ID")
-                    ->where("User_ID", $uid)
-                    ->where("DeleteFlag", "0")->get();
-
-        $groupIds = [];
-        foreach ($queries as $key => $value) {
-            $groupIds[] = $value->Group_ID;
-        }
-
-        $table = "Group";
-        $queries = DB::table($table)
-                    ->select("displayName")
-                    ->whereIn("ID", $groupIds)
-                    ->get();
-
-        $addGroupIDs = [];
-
-        foreach ($queries as $key => $value) {
-            $cnv = (array)$value;
-            foreach ($cnv as $key => $value) {
-                $addGroupIDs[] = $value;
-            }    
-        }
-        return $addGroupIDs; 
-
-    }
-
-
-    public function exportGroupFromKeyspider($data)
-    {
-        try {
-            $setting = $this->setting;
-            $ldapBasePath = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
-
-            $ldapGroup = $this->conversionArrayValue($data);
-
-            $ldapGroup["groupType"] = self::GROUP_TYPE_365;
-            if (!empty($data["groupTypes"])) {
-                if ($data["groupTypes"] == "Security") {
-                    $ldapGroup["groupType"] = self::GROUP_TYPE_SECURITY;
-                }
-            }
-
-            // Finding a record.
-            try {
-                $group = $this->provider->search()->groups()->find($data["displayName"]);
-            } catch (Exception $exception) {
-                // Record wasn't found!
-                Log::info(sprintf("Group wasn't found! : %s = %s", $ldapBasePath, $data["displayName"]));
-                $group = false;
-            }
-
-            $is_success = false;
-            if ($group) {
-               // Update or Delete LDAP entry. Setting a model's attribute.
-                // $is_success = $group->update($ldapGroup);
-                try {
-                    $is_success = $group->update($ldapGroup);
-                } catch (Exception $exception) {
-                    Log::info($ldapGroup);
-                    Log::error($exception);
-                    $is_success = false;
-                }
-
-                // disble user
-                if ($data["DeleteFlag"] == "1") {
-                    $group->delete();
-                }
-
-            } else {
-                // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                $group =  $this->provider->make()->group([
-                    "cn"     => $ldapGroup["cn"],
-                ]);
-
-                $is_success = $group->save();
-                if ($is_success) {
-                    try {
-                        $is_success = $group->update($ldapGroup);
-                    } catch (Exception $exception) {
-                        Log::info($ldapGroup);
-                        Log::error($exception);
-                        $is_success = false;
-                    }
-                }
-            }
-
-            // Saving the changes to your LDAP server.
-            if ($is_success) {
-                // User was saved!
-                $this->resetTransferredFlag($data["ID"]);
-            }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
-            // There was an issue binding / connecting to the server.
-        } catch (Exception $exception) {
-            Log::error($exception);
-        }
-    }
-
-    public function exportOrganizationUnitFromKeyspider($data)
-    {
-        try {
-            $setting = $this->setting;
-            $ldapBasePath = $setting[Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION]["LdapBaseDn"];
-            $ldapOu = $this->conversionArrayValue($data);
-
-            // Finding a record.
-            try {
-                $ou = $this->provider->search()->ous()->find($data["Name"]);
-            } catch (Exception $exception) {
-                // Record wasn't found!
-                Log::info(sprintf("Organization wasn't found! : [%s] = [%s]", $ldapBasePath, $data["Name"]));
-                $ou = false;
-            }
-
-            $is_success = false;
-            if ($ou) {
-               // Update or Delete LDAP entry. Setting a model's attribute.
-                $is_success = $ou->update($ldapOu);
-                // disble ou
-                if ($data["DeleteFlag"] == "1") {
-                    $ou->delete();
-                }
-
-            } else {
-                // Creating a new LDAP entry. You can pass in attributes into the make methods.
-                $rdn = sprintf("ou=%s,%s", $ldapOu["cn"], $ldapBasePath);
-                $ou =  $this->provider->make()->ou([
-                    "cn"     => $ldapOu["cn"],
-                    "dn"     => $rdn,
-                ]);
-                $is_success = $ou->save();
-            }
-
-            // Saving the changes to your LDAP server.
-            if ($is_success) {
-                // User was saved!
-                $this->resetTransferredFlag($data["ID"], true);
-            }
-        } catch (\Adldap\Auth\BindException $e) {
-            Log::error($e);
-            // There was an issue binding / connecting to the server.
-        } catch (Exception $exception) {
-            Log::error($exception);
-        }
-    }
-
-    private function resetTransferredFlag($id, $ouFlag = false)
-    {
-        $this->setUpdateFlags2($id);
-    }
-
-    private function setUpdateFlags2($id)
-    {
-        $setting = $this->setting;
-        $itemTable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionTable"];
-        $addFlagName = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExtractionProcessID"];
-
-        try {
-            DB::beginTransaction();
-            $userRecord = DB::table($itemTable)->where("ID", $id)->first();
-
-            $userRecord = (array)DB::table($itemTable)
-                ->where("ID", $id)
-                ->get(["UpdateFlags"])->toArray()[0];
-    
-            $updateFlags = json_decode($userRecord["UpdateFlags"], true);
-            $updateFlags[$addFlagName] = "0";
-            $setValues["UpdateFlags"] = json_encode($updateFlags);
-    
-            DB::table($itemTable)->where("ID", $id)
-                ->update($setValues);
-            DB::commit();
-    
-        } catch (Exception $e) {
-            DB::rollback();
-            Log::error($e);
         }
     }
 

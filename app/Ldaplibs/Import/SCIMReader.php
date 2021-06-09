@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Exceptions\SCIMException;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
@@ -70,13 +71,12 @@ class SCIMReader
     public function getTableName($setting): ?string
     {
         $name = null;
-        if (is_array($setting) && isset($setting[config('const.scim_input')])) {
-            $importTable = $setting[config('const.scim_input')];
-            $resourceType = $importTable['ImportTable'];
+        if (is_array($setting) && isset($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION])) {
+            $resourceType = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
             $this->updateFlagsColumnName = $this->settingImport->getUpdateFlagsColumnName($resourceType);
             $this->deleteFlagColumnName = $this->settingImport->getDeleteFlagColumnName($resourceType);
             $this->primaryKey = $this->settingImport->getTableKey();
-            return $importTable['ImportTable'];
+            return $resourceType;
         }
     }
 
@@ -105,7 +105,8 @@ class SCIMReader
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
-            $scimInputFormat = $setting[config('const.scim_format')];
+            $externalIdName = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
+            $scimInputFormat = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
             $colUpdateFlag = $this->updateFlagsColumnName;
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
             $primaryKey = $this->primaryKey;
@@ -118,7 +119,7 @@ class SCIMReader
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
                 $keyWithoutTableName = explode('.', $key)[1] ?? null;
-                if ($keyWithoutTableName == config('const.JOB_TITLE')) {
+                if ($keyWithoutTableName == Consts::JOB_TITLE) {
                     $dataCreate = $settingManagement->resetRoleFlagX($dataCreate);
                     $xIndex = $settingManagement->getRoleFlagX($scimValue, $roleMaps);
                     if (!empty($xIndex)) {
@@ -147,7 +148,7 @@ class SCIMReader
                 DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
             } else {
                 // Log::info($dataCreate);
-                $uObjectId = $this->getAzureUserObjectId($dataCreate);
+                $uObjectId = $this->getAzureUserObjectId($dataCreate, $externalIdName);
                 $dataCreate['externalID'] = $uObjectId;
 
                 $query = DB::table($nameTable);
@@ -162,9 +163,9 @@ class SCIMReader
         }
     }
 
-    private function getAzureUserObjectId($uObject) {
+    private function getAzureUserObjectId($uObject, $externalIdName) {
         // Get AAD User ObjectID
-        $userGraphAPI = new UserGraphAPI();
+        $userGraphAPI = new UserGraphAPI($externalIdName);
 
         $uID = 'Non-existent-user';
         $uPN = $uObject['user-PrincipalName'];
@@ -182,7 +183,7 @@ class SCIMReader
     private function getValueFromScimFormat($value, $dataPost)
     {
         if ($value == 'TODAY()') {
-            $nowString = Carbon::now()->format('Y/m/d');
+            $nowString = Carbon::now()->format(Consts::DATE_FORMAT_YMD);
             return $nowString;
         }
 
@@ -312,7 +313,7 @@ class SCIMReader
         $retValue = $entAttrs[$entAttr];
         return $retValue;
     }
-    
+
     public function updateRsource($memberId, $inputRequest, $setting)
     {
         $resourceType = $this->getTableName($setting);
@@ -320,7 +321,7 @@ class SCIMReader
         $pathToColumn = $this->getScimPathToColumnMap($setting);
 
         // Bug fix: UpdateUserID not contain SCIM Object
-        $formatConversions = $setting['SCIM Input Format Conversion'];
+        $formatConversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         $UpdateUserID = null;
         foreach ($formatConversions as $fcKey => $fcValue) {
             if ($fcKey == 'User.UpdateUserID') {
@@ -336,11 +337,11 @@ class SCIMReader
 
         foreach ($formattedOperations as $operation) {
             //Update user attribute. Replace or Add is both ok.
-            if (in_array(array_get($operation, 'op'), ["Replace", "Add"])) //
+            if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))
             {
                 // Convert Operation double coat to single coat
                 $operation['path'] = str_replace('"', "'", $operation['path']);
-        
+
                 if (isset($pathToColumn[array_get($operation, 'path')])) {
                     $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
                     foreach ($mapColumnsInDB as $column) {
@@ -359,7 +360,7 @@ class SCIMReader
         }
 
         // Bugfix : UpdateDate and UpdateUserID columns not updated
-        $nowString = Carbon::now()->format('Y/m/d');
+        $nowString = Carbon::now()->format(Consts::DATE_FORMAT_YMD);
         $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
         if (!empty($UpdateUserID)) {
             $this->updateSCIMResource($memberId, ['UpdateUserID' => $UpdateUserID], $resourceType);
@@ -492,7 +493,7 @@ class SCIMReader
     private function getScimPathToColumnMap($setting): array
     {
         try {
-            $scimFormatConversion = $setting['SCIM Input Format Conversion'];
+            $scimFormatConversion = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
 
             $results = [];
             foreach ($scimFormatConversion as $column => $scimFormat) {

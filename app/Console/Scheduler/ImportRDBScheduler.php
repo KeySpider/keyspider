@@ -8,26 +8,26 @@ use App\Ldaplibs\Import\ImportQueueManager;
 use App\Ldaplibs\Import\RDBImportSettingsManager;
 use Illuminate\Support\Facades\DB;
 
-class ImportRDBScheduler extends ExportScheduler
+class ImportRDBScheduler extends ImportScheduler
 {
 
     public function queue($data)
     {
-        $setting = $data['setting'];
+        $setting = $data["setting"];
         $config = $this->getServiceConfig();
         $queue = new ImportQueueManager();
 
-        $con = $setting[$config]['Connection'];
-        $sql = sprintf("select count(*) as cnt from %s", $setting[$config]['ImportTable']);
+        $con = $setting[$config][Consts::CONNECTION_TYPE];
+        $sql = sprintf("select count(*) as cnt from %s", $setting[$config][Consts::IMPORT_TABLE]);
 
         $rows = DB::connection($con)->select($sql);
         $array = json_decode(json_encode($rows), true);
-        $cnt = (int)$array[0]['cnt'];
+        $cnt = (int)$array[0]["cnt"];
 
         // $cnt = 1;
 
         if ($cnt > 0) {
-            $dbImporter = $this->getjob($setting, $file = 'dummy');
+            $dbImporter = $this->getjob($setting, $file = "dummy");
             $queue->push($dbImporter);
         }
     }
@@ -44,7 +44,7 @@ class ImportRDBScheduler extends ExportScheduler
 
     protected function getServiceName()
     {
-        return 'RDB Import';
+        return "RDB Import";
     }
 
     protected function getServiceConfig()

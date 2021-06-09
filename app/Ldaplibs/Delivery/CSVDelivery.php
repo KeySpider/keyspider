@@ -50,10 +50,10 @@ class CSVDelivery implements DataDelivery
      */
     public function delivery()
     {
-        $deliverySource = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["TempPath"];
-        $deliveryDestination = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["FilePath"];
-        $filePattern = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["FileName"];
-        $outputType = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["OutputType"];
+        $deliverySource = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::TEMP_PATH];
+        $deliveryDestination = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::FILE_PATH];
+        $filePattern = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::FILE_NAME];
+        $outputType = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::OUTPUT_TYPE];
 
         Log::info("From: " . $deliverySource);
         Log::info("To  : " . $deliveryDestination);

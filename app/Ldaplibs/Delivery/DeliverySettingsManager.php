@@ -45,7 +45,7 @@ class DeliverySettingsManager extends SettingsManager
         if (true) {
             foreach ($this->iniDeliverySettingsFiles as $iniDeliverySettingsFile) {
                 $tableContent = parse_ini_file($iniDeliverySettingsFile, true);
-                foreach ($tableContent[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+                foreach ($tableContent[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
                     $filesArray["setting"] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
                 }

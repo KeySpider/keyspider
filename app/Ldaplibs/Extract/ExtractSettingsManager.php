@@ -67,7 +67,7 @@ class ExtractSettingsManager extends SettingsManager
                 );
 
                 $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
-                foreach ($tableContent[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION]["ExecutionTime"] as $specifyTime) {
+                foreach ($tableContent[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
                     $filesArray["setting"] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
                 }

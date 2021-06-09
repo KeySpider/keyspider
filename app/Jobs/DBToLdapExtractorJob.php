@@ -21,6 +21,7 @@
 namespace App\Jobs;
 
 use App\Ldaplibs\Extract\DBExtractor;
+use App\Ldaplibs\Extract\ExtractToLdap;
 use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -59,7 +60,8 @@ class DBToLdapExtractorJob extends DBExtractor implements ShouldQueue, JobInterf
     public function handle(): void
     {
         sleep((int)$this->queueSettings['sleep']);
-        $this->processExtractToLDAP();
+        $worker = new ExtractToLdap();
+        parent::processExtractToLdap($worker);
     }
 
     /**

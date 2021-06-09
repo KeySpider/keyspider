@@ -77,8 +77,8 @@ class ImportRDB extends Command
     {
         foreach ($dataSchedule as $data) {
             $setting = $data["setting"];
-            $con = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]["Connection"];
-            $sql = sprintf("select count(*) as cnt from %s", $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION]["ImportTable"]);
+            $con = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::CONNECTION_TYPE];
+            $sql = sprintf("select count(*) as cnt from %s", $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::IMPORT_TABLE]);
 
             try {
                 $rows = DB::connection($con)->select($sql);

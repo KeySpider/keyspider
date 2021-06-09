@@ -17,7 +17,9 @@ use MongoDB\Driver\Exception\ExecutionTimeoutException;
 
 class UserGraphAPI
 {
-    public function __construct()
+    private $externalIdName;
+
+    public function __construct($externalIdName)
     {
         $options = parse_ini_file(
             storage_path('ini_configs/GeneralSettings.ini'),
@@ -53,6 +55,8 @@ class UserGraphAPI
 
         $this->settingManagement = new SettingsManager();
         $this->getOfficeLicenseField = $this->settingManagement->getOfficeLicenseFields();
+
+        $this->externalIdName = $externalIdName;
     }
 
     private function createUserObject($userAttibutes = []): User
@@ -151,7 +155,7 @@ class UserGraphAPI
             echo "\n- \t\tupdating User: \n";
             // $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
             $uPN = $userAttibutes['userPrincipalName'];
-            $uID = $userAttibutes['externalID'];
+            $uID = $userAttibutes[$this->externalIdName];
             //Can not update userPrincipalName
             unset($userAttibutes['userPrincipalName']);
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
@@ -461,7 +465,7 @@ class UserGraphAPI
             Log::info("Update group: " . json_encode($groupAttibutes));
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $groupAttibutes['DeleteFlag'] == 0 ? true : false;
-            $uID = $groupAttibutes['externalID'];
+            $uID = $groupAttibutes[$this->externalIdName];
             $groupAttibutes = array_only($groupAttibutes, ['displayName']);
             $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($groupAttibutes));
             var_dump($newGroup);
@@ -532,8 +536,11 @@ class UserGraphAPI
         return $groups;
     }
 
-    public function removeLicenseDetail($uID)
+    public function removeLicenseDetail($uID, $table)
     {
+        if ($table != 'User') {
+            return;
+        }
         echo "--- RemoveUserLicense ---\n";
         // $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
         // $data = str_replace("($field)", $license, $data);

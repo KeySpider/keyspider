@@ -58,7 +58,7 @@ class DBImporter
     public function import()
     {
         try {
-            $processedFilePath = $this->setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["ProcessedFilePath"];
+            $processedFilePath = $this->setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PROCESSED_FILE_PATH];
             mkDirectory($processedFilePath);
 
             // get name table base
