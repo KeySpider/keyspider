@@ -38,7 +38,7 @@ class Consts
     public const GROUP_DELIMITER        =  "GroupDelimiter";
 
     // Keyspider.ini
-    public const MASTER_DB_CONFIGURATION              =  "Master DB Configurtion";
+    public const MASTER_DB_CONFIGURATION              =  "Master DB Configuration";
     public const AD_EXTRACT_PROCESS_CONFIGURATION     =  "Azure Extract Process Configuration";
     public const BOX_EXTRACT_PROCESS_CONFIGURATION    =  "BOX Extract Process Configuration";
     public const CSV_EXTRACT_PROCESS_CONFIGURATION    =  "CSV Extract Process Configuration";

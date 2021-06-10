@@ -104,7 +104,7 @@ class SettingsManager
             $this->keySpider = $this->getAllConfigsFromKeyspiderIni();
 
             $validate = Validator::make($this->keySpider, [
-                'Master DB Configurtion' => 'required',
+                'Master DB Configuration' => 'required',
             ]);
             if ($validate->fails()) {
                 Log::error('Key spider INI is not correct!');
