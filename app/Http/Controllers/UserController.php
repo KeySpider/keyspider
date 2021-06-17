@@ -186,9 +186,10 @@ class UserController extends LaravelController
         // save user resources model
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
+        $userId = DB::table("User")->select("ID")->where("user-PrincipalName", $dataPost["userName"])->first();
         $dataResponse = $dataPost;
-        $dataResponse['id'] = array_get($dataPost, 'externalId', null);
-        $dataResponse['meta']['location'] = $request->fullUrl() . '/' . $dataPost['externalId'];
+        $dataResponse["id"] = $userId->{"ID"};
+        $dataResponse["meta"]["location"] = $request->fullUrl() . "/" . $dataResponse["id"];
         return $this->response($dataResponse, $code = 201);
     }
 
@@ -314,8 +315,8 @@ class UserController extends LaravelController
         if (!empty($dataFormat)) {
             $jsonData = [
                 "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                'id' => $dataFormat['externalId'],
-                "externalId" => $dataFormat['externalId'],
+                'id' => $userResouce['ID'],
+                "externalId" => $userResouce['externalID'],
                 "userName" => $dataFormat['userName'],
                 "active" => $userRecord->{"{$columnDeleted}"} === '1' ? false : true,
                 "displayName" => $dataFormat['userName'],

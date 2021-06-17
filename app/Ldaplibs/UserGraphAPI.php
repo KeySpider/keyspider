@@ -26,8 +26,8 @@ class UserGraphAPI
 
         $tenantId = $options['tenantId'];
         $clientId = $options['clientId'];
-        $clientSecret = $options['clientSecret'];;
-        $this->initialPassword = $options['initialPassword'];;
+        $clientSecret = $options['clientSecret'];
+        $this->initialPassword = $options['initialPassword'];
 
         $guzzle = new \GuzzleHttp\Client();
         $url = 'https://login.microsoftonline.com/' . $tenantId . '/oauth2/token?api-version=1.0';
