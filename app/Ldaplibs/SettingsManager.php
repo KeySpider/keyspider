@@ -729,7 +729,7 @@ class SettingsManager
 
     public function makeIdBasedOnMicrotime($table)
     {
-        $prefix = self::TABLEPREFIX[$table] ?? "k";
+        $prefix = self::TABLE_PREFIX[$table] ?? "k";
         $tableKey = $this->getTableKey();
 
         $makeId = $this->makeId($prefix);
