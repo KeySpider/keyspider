@@ -105,7 +105,7 @@ class SCIMReader
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
-            $externalIdName = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
+            $externalId = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
             $scimInputFormat = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
             $colUpdateFlag = $this->updateFlagsColumnName;
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
@@ -143,17 +143,16 @@ class SCIMReader
                 }
             }
             $dataCreate[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($nameTable);
-            $data = DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->first();
+            $data = DB::table($nameTable)->where("user-PrincipalName", $dataCreate["user-PrincipalName"])->first();
             if ($data) {
-                DB::table($nameTable)->where($primaryKey, $dataCreate[$primaryKey])->update($dataCreate);
+                DB::table($nameTable)->where("user-PrincipalName", $dataCreate["user-PrincipalName"])->update($dataCreate);
             } else {
                 // Log::info($dataCreate);
-                $uObjectId = $this->getAzureUserObjectId($dataCreate, $externalIdName);
+                $uObjectId = $this->getAzureUserObjectId($dataCreate, $externalId);
                 $dataCreate['externalID'] = $uObjectId;
 
-                $query = DB::table($nameTable);
-                $query->insert($dataCreate);
-                // Log::info($query->toSql());
+                $dataCreate[$primaryKey] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
+                DB::table($nameTable)->insert($dataCreate);
             }
 
             return true;
@@ -163,7 +162,8 @@ class SCIMReader
         }
     }
 
-    private function getAzureUserObjectId($uObject, $externalIdName) {
+    private function getAzureUserObjectId($uObject, $externalIdName)
+    {
         // Get AAD User ObjectID
         $userGraphAPI = new UserGraphAPI($externalIdName);
 
@@ -222,7 +222,7 @@ class SCIMReader
         try {
             if ($isMatched) {
                 // take a phone number
-                if (strncmp($matchedValue[1], $phoneStr, strlen($phoneStr)) === 0 ) {
+                if (strncmp($matchedValue[1], $phoneStr, strlen($phoneStr)) === 0) {
                     return $this->getPhoneNumber($matchedValue[1], $dataPost[$phoneStr]);
                 }
 
@@ -232,12 +232,12 @@ class SCIMReader
                 }
 
                 // take a email address
-                if (strncmp($matchedValue[1], $emailStr, strlen($emailStr)) === 0 ) {
+                if (strncmp($matchedValue[1], $emailStr, strlen($emailStr)) === 0) {
                     return $this->getMailAddress($matchedValue[1], $dataPost[$emailStr]);
                 }
 
                 // take a enterprise attribute
-                if (strncmp($matchedValue[1], self::SCIM_ENT, strlen(self::SCIM_ENT)) === 0 ) {
+                if (strncmp($matchedValue[1], self::SCIM_ENT, strlen(self::SCIM_ENT)) === 0) {
                     return $this->getEnterpriseAttribute($matchedValue[1], $dataPost[self::SCIM_ENT]);
                 }
 
@@ -309,7 +309,7 @@ class SCIMReader
 
     public function getEnterpriseAttribute($entAttrType, $entAttrs)
     {
-        $entAttr = str_replace(self::SCIM_ENT. ':', '', $entAttrType);
+        $entAttr = str_replace(self::SCIM_ENT . ':', '', $entAttrType);
         $retValue = $entAttrs[$entAttr];
         return $retValue;
     }
@@ -347,7 +347,7 @@ class SCIMReader
                     foreach ($mapColumnsInDB as $column) {
                         // Bugfix : logical delete flag value is not boolean
                         if ($column == 'LockFlag') {
-                            if ( $operation['value'] == 'False' ) {
+                            if ($operation['value'] == 'False') {
                                 $operation['value'] = 1;
                             } else {
                                 $operation['value'] = 0;
@@ -502,7 +502,7 @@ class SCIMReader
                 $shortColumnName = explode('.', $column)[1];
                 $isMatched = preg_match($pattern, $scimFormat, $matchedValue);
                 if ($isMatched) {
-                        $results[$matchedValue[1]] = [$shortColumnName];
+                    $results[$matchedValue[1]] = [$shortColumnName];
                 }
             }
         } catch (\Exception $exception) {

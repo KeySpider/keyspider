@@ -37,7 +37,7 @@ use League\Csv\Statement;
  *
  * @package App\Ldaplibs\Import
  */
-class CSVReader implements DataInputReader
+class CSVReader
 {
     protected $setting;
 
@@ -122,13 +122,28 @@ class CSVReader implements DataInputReader
      * @param $processedFilePath
      * @return void
      */
-    public function getDataFromOneFile($fileCSV, $options, $columns, $nameTable, $processedFilePath)
+    public function getDataFromOneFile($fileCSV, $setting)
     {
         try {
             DB::beginTransaction();
 
             $regExpManagement = new RegExpsManager();
             $settingManagement = new SettingsManager();
+
+            // get name table base
+            $nameTable = $this->getNameTableBase($setting);
+            $columns = $this->getAllColumnFromSetting($setting);
+
+            $primaryColumn = $setting[self::CONFIGURATION]["PrimaryColumn"];
+            $externalId = $setting[self::CONFIGURATION]["ExternalID"];
+
+            $conversion = $setting[self::CONVERSION];
+            $conversion[$nameTable . "." . $externalId] = $primaryColumn;
+
+            $params = ['CONVERSATION' => $conversion];
+
+            $processedFilePath = $setting[self::CONFIGURATION]['ProcessedFilePath'];
+            mkDirectory($processedFilePath);
 
             $getEncryptedFields = $settingManagement->getEncryptedFields();
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
@@ -163,7 +178,7 @@ class CSVReader implements DataInputReader
             $updateCount = 0;
 
             foreach ($records as $key => $record) {
-                $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+                $getDataAfterConvert = $this->getDataAfterProcess($record, $params);
                 if (
                     $nameTable == "UserToGroup" ||
                     $nameTable == "UserToOrganization" ||
@@ -183,7 +198,8 @@ class CSVReader implements DataInputReader
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
-                    unset($getDataAfterConvert["ID"]);
+                    // unset($getDataAfterConvert['ID']);
+                    $getDataAfterConvert['ID'] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert["User_ID"]);
@@ -217,23 +233,19 @@ class CSVReader implements DataInputReader
                     }
                 }
 
-                $primaryKeyValue = array_get($getDataAfterConvert, $primaryKey, null);
-                if ($primaryKeyValue)
-                    $data = DB::table($nameTable)->where("{$primaryKey}", $primaryKeyValue)->first();
-                else {
-                    throw (new \Exception("Not found the key $primaryKey in MasterDBConf.ini"));
-                }
-
                 // set UpdateFlags
                 $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
                 $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($nameTable);
                 $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
+                $externalIdValue = $getDataAfterConvert[$externalId];
+                $data = DB::table($nameTable)->where($externalId, $externalIdValue)->first();
                 if ($data) {
-                    DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
+                    DB::table($nameTable)->where($externalId, $getDataAfterConvert[$externalId])
                         ->update($getDataAfterConvert);
                     $updateCount++;
                 } else {
+                    $getDataAfterConvert[$primaryKey] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
                     $createCount++;
                 }
@@ -241,7 +253,6 @@ class CSVReader implements DataInputReader
 
             // move file
             $now = Carbon::now()->format("Ymdhis") . random_int(1000, 9999);
-            // $fileName = "hogehoge_{$now}.csv";
             $fileName = $nameTable . "_{$now}.csv";
             moveFile($fileCSV, $processedFilePath . "/" . $fileName);
 

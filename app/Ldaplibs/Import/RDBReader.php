@@ -35,11 +35,13 @@ class RDBReader
 {
     protected $prefix;
     protected $rdbRecords;
+    protected $settingManagement;
 
     public function __construct()
     {
         $this->prefix = null;
         $this->rdbRecords = [];
+        $this->settingManagement = new SettingsManager;
     }
 
     /**
@@ -181,6 +183,7 @@ class RDBReader
     private function insertTodayData($mode, $setting, $records)
     {
         $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
+        $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
         try {
             DB::beginTransaction();
             DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
@@ -188,7 +191,7 @@ class RDBReader
             foreach ($records as $record) {
                 ksort($record);
                 $data = [
-                    'ID' => $record['ID'],
+                    'ID' => $record[$externalID],
                     'jsonColumn' => json_encode($record, JSON_UNESCAPED_UNICODE),
                 ];
                 DB::table($table . $mode)->insert($data);
@@ -249,24 +252,24 @@ class RDBReader
     {
         $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
         $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
-        $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
+        $externalId = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
 
         // Sanitize ID array
         $varray = json_decode(json_encode($sarray), true);
-        $validNumber = array_column($varray, 'ID');
+        $validNumber = array_column($varray, "ID");
 
         try {
             // Master table CUD -CU process
-            if ($mode == 'del') {
+            if ($mode == "del") {
                 foreach ($validNumber as $id) {
                     DB::beginTransaction();
                     //DB::enableQueryLog();
-                    DB::table($itemTable)->where("ID", $id)
-                        ->update(['DeleteFlag' => '1', $externalID => NULL]);
+                    DB::table($itemTable)->where($externalId, $id)
+                        ->update(["DeleteFlag" => '1', $externalId => NULL]);
                     //var_dump(DB::getQueryLog());
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($id, $itemTable);
+                    $this->setUpdateFlags($id, $itemTable, "ID");
                     DB::commit();
                 }
                 return;
@@ -275,18 +278,19 @@ class RDBReader
             // Master table CUD -D process
             foreach ($this->rdbRecords as $rdbRecord) {
                 // Target of processing 
-                if (in_array($rdbRecord['ID'], $validNumber)) {
+                if (in_array($rdbRecord[$externalId], $validNumber)) {
                     DB::beginTransaction();
 
-                    $data = DB::table($itemTable)->where("ID", $rdbRecord['ID'])->first();
+                    $data = DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->first();
                     if ($data) {
-                        DB::table($itemTable)->where("ID", $rdbRecord['ID'])->update($rdbRecord);
+                        DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->update($rdbRecord);
                     } else {
+                        $rdbRecord["ID"] = $this->settingManagement->makeIdBasedOnMicrotime($itemTable);
                         DB::table($itemTable)->insert($rdbRecord);
                     }
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($rdbRecord['ID'], $itemTable);
+                    $this->setUpdateFlags($rdbRecord[$externalId], $itemTable, $externalId);
                     DB::commit();
                 }
             }
@@ -300,13 +304,13 @@ class RDBReader
      * Update flag reset process
      * 
      */
-    private function setUpdateFlags($id, $itemTable)
+    private function setUpdateFlags($id, $itemTable, $searchClumn)
     {
         $settingManagement = new SettingsManager();
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($itemTable);
         $setValues[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($itemTable);
 
-        DB::table($itemTable)->where("ID", $id)
+        DB::table($itemTable)->where($searchClumn, $id)
             ->update($setValues);
     }
 }
