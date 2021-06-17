@@ -203,8 +203,8 @@ class CSVReader
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
-                    // unset($getDataAfterConvert['ID']);
-                    $getDataAfterConvert['ID'] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
+                    unset($getDataAfterConvert['ID']);
+                    // $getDataAfterConvert['ID'] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert['User_ID']);
