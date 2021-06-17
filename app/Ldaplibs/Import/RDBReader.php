@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Import;
 
 use App\Commons\Consts;
+use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
@@ -183,7 +184,7 @@ class RDBReader
     private function insertTodayData($mode, $setting, $records)
     {
         $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
-        $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
+        $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
         try {
             DB::beginTransaction();
             DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
@@ -285,7 +286,7 @@ class RDBReader
                     if ($data) {
                         DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->update($rdbRecord);
                     } else {
-                        $rdbRecord["ID"] = $this->settingManagement->makeIdBasedOnMicrotime($itemTable);
+                        $rdbRecord["ID"] = (new Creator())->makeIdBasedOnMicrotime($itemTable);
                         DB::table($itemTable)->insert($rdbRecord);
                     }
 

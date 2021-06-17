@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Import;
 
 use App\Commons\Consts;
+use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use http\Exception;
@@ -134,15 +135,18 @@ class CSVReader
             $nameTable = $this->getNameTableBase($setting);
             $columns = $this->getAllColumnFromSetting($setting);
 
-            $primaryColumn = $setting[self::CONFIGURATION]["PrimaryColumn"];
-            $externalId = $setting[self::CONFIGURATION]["ExternalID"];
+            $primaryColumn = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PRIMARY_COLUMN];
+            $externalId = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
 
-            $conversion = $setting[self::CONVERSION];
-            $conversion[$nameTable . "." . $externalId] = $primaryColumn;
+            $conversion = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
+
+            if (strpos($nameTable, "UserTo") === false) { 
+                $conversion[$nameTable . "." . $externalId] = $primaryColumn;
+            }
 
             $params = ['CONVERSATION' => $conversion];
 
-            $processedFilePath = $setting[self::CONFIGURATION]['ProcessedFilePath'];
+            $processedFilePath = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PROCESSED_FILE_PATH];
             mkDirectory($processedFilePath);
 
             $getEncryptedFields = $settingManagement->getEncryptedFields();
@@ -198,14 +202,13 @@ class CSVReader
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
-                    unset($getDataAfterConvert['ID']);
-                    // $getDataAfterConvert['ID'] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
+                    // unset($getDataAfterConvert['ID']);
+                    $getDataAfterConvert['ID'] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert["User_ID"]);
 
                     $createCount++;
-                    
                     continue;
                 }
 
@@ -245,7 +248,7 @@ class CSVReader
                         ->update($getDataAfterConvert);
                     $updateCount++;
                 } else {
-                    $getDataAfterConvert[$primaryKey] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
+                    $getDataAfterConvert[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
                     $createCount++;
                 }

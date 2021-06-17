@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Import;
 
 use App\Commons\Consts;
+use App\Commons\Creator;
 use App\Exceptions\SCIMException;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
@@ -151,7 +152,7 @@ class SCIMReader
                 $uObjectId = $this->getAzureUserObjectId($dataCreate, $externalId);
                 $dataCreate['externalID'] = $uObjectId;
 
-                $dataCreate[$primaryKey] = $settingManagement->makeIdBasedOnMicrotime($nameTable);
+                $dataCreate[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                 DB::table($nameTable)->insert($dataCreate);
             }
 

@@ -32,20 +32,6 @@ class SettingsManager
     private const GENERAL_SETTINGS_INI_PATH = 'ini_configs/GeneralSettings.ini';
     private const ENCRYPT_STANDARD_METHOD = 'aes-256-cbc';
 
-
-    private const TABLE_PREFIX = array(
-        "User" => "u",
-        "Group" => "g",
-        "Organization" => "o",
-        "Role" => "r",
-        "Privilege" => "p",
-        "UserToGroup" => "m",
-        "UserToOrganization" => "s",
-        "UserToRole" => "e",
-        "UserToPrivilege" => "t", 
-        "RoleToPrivilege" => "y"
-    );
-
     public $iniMasterDBFile;
     public $masterDBConfigData;
     public $generalKeys;
@@ -725,28 +711,5 @@ class SettingsManager
         } else {
             Log::channel('summary')->info($logStr);
         }
-    }
-
-    public function makeIdBasedOnMicrotime($table)
-    {
-        $prefix = self::TABLE_PREFIX[$table] ?? "k";
-        $tableKey = $this->getTableKey();
-
-        $makeId = $this->makeId($prefix);
-        while (DB::table($table)->where($tableKey, $makeId)->exists())
-        {
-            $makeId = $this->makeId($prefix);
-        }
-        return $makeId;
-    }
-
-    private function makeId($prefix)
-    {
-        list($msec, $sec) = explode(" ", microtime());
-        $hashCreateTime = $sec . floor($msec * 1000000);
-        $hashCreateTime = strrev($hashCreateTime);
-        $makeId = base_convert($hashCreateTime, 10, 36);     
-        $makeId = sprintf("$prefix%011s", $makeId);
-        return $makeId;
     }
 }
