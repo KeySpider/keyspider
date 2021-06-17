@@ -19,7 +19,7 @@ User.state = User.state
 User.city = User.city
 User.streetAddress = User.streetAddress
 User.Organization = User.Organization
-User.OfficeLicense = User.OfficeLicense
+User.user-PrincipalName = User.user-PrincipalName
 User.LockFlag = User.LockFlag
 User.DeleteFlag = User.DeleteFlag
 User.UpdateUserID = User.UpdateUserID
@@ -27,9 +27,17 @@ User.UpdateDate = User.UpdateDate
 User.externalID = User.externalID
 User.externalSFID = User.externalSFID
 User.externalTLID = User.externalTLID
+User.externalBOXID = User.externalBOXID
+User.externalZOOMID = User.externalZOOMID
+User.externalSlackID = User.externalSlackID
+User.externalGWID = User.externalGWID
+User.externalOLID = User.externalOLID
+User.externalRDBID = User.externalRDBID
+User.externalCSVID = User.externalCSVID
 User.EffectiveDate = User.EffectiveDate
 User.RoleFlag = User.RoleFlag
 User.UpdateFlags = User.UpdateFlags
+User.OfficeLicense = User.OfficeLicense
 
 [Group]
 Group = Group
@@ -46,6 +54,8 @@ Group.UpdateUserID = Group.UpdateUserID
 Group.externalID = Group.externalID
 Group.externalSFID = Group.externalSFID
 Group.externalTLID = Group.externalTLID
+Group.externalCSVID = Group.externalCSVID
+; Group.externalRDBID = Group.externalRDBID
 
 [Group]
 Group = Group
@@ -72,6 +82,8 @@ Role.UpdateFlags = Role.UpdateFlags
 Role.UpdateDate = Role.UpdateDate
 Role.UpdateUserID = Role.UpdateUserID
 Role.DeleteFlag = Role.DeleteFlag
+Role.externalID = Role.externalID
+Role.externalCSVID = Role.externalCSVID
 
 [Organization]
 Organization = Organization
@@ -83,13 +95,12 @@ Organization.UpdateUserID = Organization.UpdateUserID
 Organization.EffectiveDate = Organization.EffectiveDate
 Organization.DeleteFlag = Organization.DeleteFlag
 Organization.UpdateFlags = Organization.UpdateFlags
+Organization.externalCSVID = Organization.externalCSVID
 
 [RoleMap]
-RoleID[] = "g1"
-RoleID[] = "g2"
-RoleID[] = "g3"
-RoleID[] = "g4"
-RoleID[] = "g5"
+RoleID[] = "権限1"
+RoleID[] = "権限2"
+RoleID[] = "権限3"
 
 [UserToGroup]
 UserToGroup = UserToGroup
