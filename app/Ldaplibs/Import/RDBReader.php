@@ -38,14 +38,20 @@ class RDBReader
     public const RDB_IMPORT_DATABASE_CONFIGRATION = 'RDB Import Database Configuration';
     public const RDB_INPUT_BASIC_CONFIGURATION = 'RDB Input Basic Configuration';
     public const CONVERSION = 'RDB Input Format Conversion';
+    public const ORACLE = 'oracle';
+
+    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
     protected $prefix;
     protected $rdbRecords;
+
+    private $cnvMethod = array('ins'=>'create', 'upd'=>'update', 'del'=>'delete');
 
     public function __construct()
     {
         $this->prefix = null;
         $this->rdbRecords = [];
+        $this->settingManagement = new SettingsManager();
     }
 
     /**
@@ -71,11 +77,11 @@ class RDBReader
             // Initialize
             $this->rdbRecords = [];
             DB::connection($conn)->table($table)->orderBy($pkColumn, 'ASC')
-                ->chunk(1000, function ($bulkDatas) use ($conversions, $pkColumn, $externalID) {
+                ->chunk(1000, function ($bulkDatas) use ($conn, $conversions, $pkColumn, $externalID) {
                     foreach ($bulkDatas as $bulkData) {
                         $array = json_decode(json_encode($bulkData), true);
                         $conversions[$this->prefix . "." . $externalID] = $pkColumn;
-                        $this->rdbRecords[] = $this->createWorkFromRdb($pkColumn, $conversions, $array);
+                        $this->rdbRecords[] = $this->createWorkFromRdb($conn, $pkColumn, $conversions, $array);
                     }
                 });
 
@@ -101,7 +107,7 @@ class RDBReader
      * TODO : Set the required columns
      * 
      */
-    private function createWorkFromRdb($pkColumn, $conversions, $array)
+    private function createWorkFromRdb($conn, $pkColumn, $conversions, $array)
     {
         $fields = [];
 
@@ -114,6 +120,12 @@ class RDBReader
             $explodeKey = explode('.', $key);
             $key = $explodeKey[1];
 
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $item, $matches);
+            if (!empty($matches)) {
+                $fields[$key] = $this->executeImportExtend($item, $matches, $array);
+                continue;
+            }
+
             if ($item === 'admin') {
                 $fields[$key] = 'admin';
             } elseif (0 === strpos($item, 'nameJoin')) {
@@ -125,7 +137,13 @@ class RDBReader
             } else {
                 $itemValue = $item;
 
-                $slow = strtolower($item);
+                $slow = $item;
+
+                // In the case of Oracle, the column name is returned in lowercase
+                if ($conn == self::ORACLE) {
+                    $slow = strtolower($item);
+                }
+
                 if (array_key_exists($slow, $array)) {
                     $itemValue = $array[$slow];
                 }
@@ -155,7 +173,31 @@ class RDBReader
                 }
             }
         }
+        unset($fields["UpdateDate"]);
+
         return $fields;
+    }
+
+    private function executeImportExtend($value, $matches, $dataLine) {
+
+        $className = self::PLUGINS_DIR . "$matches[1]";
+        if (!class_exists($className)) {
+            return $value;
+        }
+        $clazz = new $className;
+        if (!method_exists($clazz, $matches[2])) {
+            return $value;
+        }
+
+        $methodName = $matches[2];
+        $parameters = [];
+        if (!empty($matches[3])) {
+            $params = explode(",", $matches[3]);
+            foreach ($params as $columnIndex) {
+                array_push($parameters, $dataLine[$columnIndex]);
+            }
+        }
+        return $clazz->$methodName($parameters);
     }
 
     /**
@@ -213,13 +255,19 @@ class RDBReader
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
 
+        $casesHandle = 0;
+        $insertCount = 0;
+        $updateCount = 0;
+        $deleteCount = 0;
+
         $inserts = DB::table($table . "New")->select($table . "New.ID")
             ->leftJoin($table . "Old", $table . "New.ID", '=', $table . "Old.ID")
             ->whereNull($table . "Old.ID")->get();
 
         // Intentionally indented
         if (count($inserts) != 0) {
-            $this->doCudOperation('ins', $setting, $inserts);
+            $casesHandle += count($inserts);
+            $insertCount = $this->doCudOperation('ins', $setting, $inserts);
             echo "debug ==== insert (" . count($inserts) . ")\n";
             Log::info("== " . $this->prefix . " import insert record(s) = " . count($inserts));
         }
@@ -230,7 +278,8 @@ class RDBReader
 
         // Intentionally indented
         if (count($deletes) != 0) {
-            $this->doCudOperation('del', $setting, $deletes);
+            $casesHandle += count($deletes);
+            $deleteCount = $this->doCudOperation('del', $setting, $deletes);
             echo "debug ==== delete (" . count($deletes) . ")\n";
             Log::info("== " . $this->prefix . " import delete record(s) = " . count($deletes));
         }
@@ -241,10 +290,22 @@ class RDBReader
 
         // Intentionally indented
         if (count($updates) != 0) {
-            $this->doCudOperation('upd', $setting, $updates);
+            $casesHandle += count($updates);
+            $updateCount = $this->doCudOperation('upd', $setting, $updates);
             echo "debug ==== update (" . count($updates) . ")\n";
             Log::info("== " . $this->prefix . " import update record(s) = " . count($updates));
         }
+
+        $scimInfo = array(
+            'provisoning' => 'RDBImport',
+            'table' => ucfirst(strtolower($this->prefix)),
+            'casesHandle' => $casesHandle,
+            'createCount' => $insertCount,
+            'updateCount' => $updateCount,
+            'deleteCount' => $deleteCount,
+        );
+        $this->settingManagement->summaryLogger($scimInfo);
+
     }
 
     /**
@@ -261,6 +322,17 @@ class RDBReader
         $varray = json_decode(json_encode($sarray), true);
         $validNumber = array_column($varray, 'ID');
 
+        $scimInfo = array(
+            'provisoning' => 'RDBImport',
+            'scimMethod' => $this->cnvMethod[$mode],
+            'table' => ucfirst(strtolower($itemTable)),
+            'itemId' => '',
+            'itemName' => '',
+            'message' => '',
+        );
+
+        $recCount = 0;
+        
         try {
             // Master table CUD -CU process
             if ($mode == 'del') {
@@ -274,8 +346,12 @@ class RDBReader
                     // Add 'LDAP status' to UpdateFlags
                     $this->setUpdateFlags($id, $itemTable);
                     DB::commit();
+
+                    $scimInfo['itemId'] = $id;
+                    $this->settingManagement->detailLogger($scimInfo);
+                    $recCount++;
                 }
-                return;
+                return $recCount;
             }
 
             // Master table CUD -D process
@@ -294,11 +370,22 @@ class RDBReader
                     // Add 'LDAP status' to UpdateFlags
                     $this->setUpdateFlags($rdbRecord['ID'], $itemTable);
                     DB::commit();
+
+                    $scimInfo['itemId'] = $rdbRecord['ID'];
+                    $this->settingManagement->detailLogger($scimInfo);
+                    $recCount++;
                 }
             }
-        } catch (\Exception $e) {
+            return $recCount;
+        } catch (\Exception $exception) {
             DB::rollback();
-            Log::error($e);
+
+            Log::debug($exception->getMessage());
+
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+
+            return $recCount;
         }
     }
 

@@ -22,10 +22,10 @@ namespace App\Ldaplibs\Import;
 
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use Carbon\Carbon;
 use http\Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use League\Csv\Reader;
@@ -45,6 +45,7 @@ class CSVReader implements DataInputReader
      */
     public const CONVERSION = 'CSV Import Process Format Conversion';
     public const CONFIGURATION = 'CSV Import Process Basic Configuration';
+    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
     /**
      * CSVReader constructor.
@@ -53,6 +54,7 @@ class CSVReader implements DataInputReader
     public function __construct(SettingsManager $setting)
     {
         $this->setting = $setting;
+        $this->settingManagement = new SettingsManager();
     }
 
     /** Get name table from setting file
@@ -154,6 +156,10 @@ class CSVReader implements DataInputReader
             $stmt = new Statement();
             $records = $stmt->process($csv);
 
+            if (count($records) == 0) {
+                return;                
+            }
+
             // Traceing
             $cmd = 'Start';
             $message = "";
@@ -169,6 +175,16 @@ class CSVReader implements DataInputReader
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $options);
+
+                $scimInfo = array(
+                    'provisoning' => 'CSVImport',
+                    'scimMethod' => 'import',
+                    'table' => ucfirst(strtolower($nameTable)),
+                    'itemId' => $getDataAfterConvert['ID'],
+                    'itemName' => '',
+                    'message' => '',
+                );
+
                 if (
                     $nameTable == 'UserToGroup' ||
                     $nameTable == 'UserToOrganization' ||
@@ -183,7 +199,7 @@ class CSVReader implements DataInputReader
                         // ->where('DeleteFlag', '0')
                         ->delete();
 
-                    // set UpdateFlags
+                    // set UpdateFlags(re-build UpdateFlags, not update)
                     $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($aliasTable);
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
@@ -192,9 +208,6 @@ class CSVReader implements DataInputReader
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert['User_ID']);
-
-                    $createCount++;
-                    
                     continue;
                 }
 
@@ -237,11 +250,15 @@ class CSVReader implements DataInputReader
                 if ($data) {
                     DB::table($nameTable)->where($primaryKey, $getDataAfterConvert[$primaryKey])
                         ->update($getDataAfterConvert);
+                        $scimInfo['scimMethod'] = 'update';
                     $updateCount++;
+
                 } else {
                     DB::table($nameTable)->insert($getDataAfterConvert);
+                    $scimInfo['scimMethod'] = 'create';
                     $createCount++;
                 }
+                $this->settingManagement->detailLogger($scimInfo);
             }
 
             // move file
@@ -259,11 +276,33 @@ class CSVReader implements DataInputReader
                 $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
                 DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}" => '0']);
             } else {
+                // cleanup dupe recorde
                 $this->sanitizeRecord($nameTable);
             }
+
+            $scimInfo = array(
+                'provisoning' => 'CSVImport',
+                'table' => ucfirst(strtolower($nameTable)),
+                'casesHandle' => count($records),
+                'createCount' => $createCount,
+                'updateCount' => $updateCount,
+                'deleteCount' => 0,
+            );
+            $settingManagement->summaryLogger($scimInfo);
+
             DB::commit();
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $exception) {
+            Log::debug($exception->getMessage());
+
+            $scimInfo = array(
+                'provisoning' => 'CSVImport',
+                'scimMethod' => 'import',
+                'table' => ucfirst(strtolower($nameTable)),
+                'itemId' => '',
+                'itemName' => '',
+                'message' => $exception->getMessage(),
+            );
+            $this->settingManagement->faildLogger($scimInfo);
         }
     }
 
@@ -321,10 +360,16 @@ class CSVReader implements DataInputReader
         }
 
         foreach ($fields as $col => $pattern) {
+            preg_match("/^(\w+)\.(\w+)\(([\w\.\,]*)\)$/", $pattern, $matches);
+            if (!empty($matches)) {
+                $data[$col] = $this->executeImportExtend($pattern, $matches, $dataLine);
+                continue;
+            }
+
             if ($pattern === 'admin') {
                 $data[$col] = 'admin';
             } elseif ($pattern === 'TODAY()') {
-                $data[$col] = Carbon::now()->format('Y/m/d');
+                $data[$col] = Carbon::now()->format('Y/m/d H:i:s');
             } elseif ($pattern === '0') {
                 $data[$col] = '0';
             } else {
@@ -340,6 +385,27 @@ class CSVReader implements DataInputReader
             }
         }
         return $data;
+    }
+
+    private function executeImportExtend($value, $matches, $dataLine) {
+        $className = self::PLUGINS_DIR . "$matches[1]";
+        if (!class_exists($className)) {
+            return $value;
+        }
+        $clazz = new $className;
+        if (!method_exists($clazz, $matches[2])) {
+            return $value;
+        }
+
+        $methodName = $matches[2];
+        $parameters = [];
+        if (!empty($matches[3])) {
+            $params = explode(",", $matches[3]);
+            foreach ($params as $columnIndex) {
+                array_push($parameters, $dataLine[$columnIndex-1]);
+            }
+        }
+        return $clazz->$methodName($parameters);
     }
 
     /**

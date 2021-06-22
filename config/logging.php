@@ -42,7 +42,7 @@ return [
         'summary' => [
             'driver' => 'custom',
             'via' => App\Logging\CreateSummaryLogger::class,
-            'path' => storage_path('logs/summary.log'),
+            'path' => storage_path('logs/summary/summary.log'),
             'level' => 'debug',
             'days' => 14,
         ],
@@ -50,7 +50,7 @@ return [
         'detail' => [
             'driver' => 'custom',
             'via' => App\Logging\CreateDetailLogger::class,
-            'path' => storage_path('logs/detail.log'),
+            'path' => storage_path('logs//detail/detail.log'),
             'level' => 'debug',
             'days' => 14,
         ],
@@ -58,7 +58,7 @@ return [
         'validation' => [
             'driver' => 'custom',
             'via' => App\Logging\CreateValidationLogger::class,
-            'path' => storage_path('logs/validation.log'),
+            'path' => storage_path('logs/validation/validation.log'),
             'level' => 'debug',
             'days' => 14,
         ],
@@ -66,7 +66,7 @@ return [
         'faild' => [
             'driver' => 'custom',
             'via' => App\Logging\CreateFaildLogger::class,
-            'path' => storage_path('logs/error.log'),
+            'path' => storage_path('logs/error/error.log'),
             'level' => 'debug',
             'days' => 14,
         ],

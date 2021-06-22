@@ -39,6 +39,8 @@ class LDAPExportor
     const EXTRACTION_PROCESS_FORMAT_CONVERSION = "Extraction Process Format Conversion";
     const LDAP_CONFIGRATION = "Extraction LDAP Connecting Configration";
 
+    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
+
     // see set attribute value detail
     // https://support.microsoft.com/ja-jp/help/305144/how-to-use-useraccountcontrol-to-manipulate-user-account-properties
     const NORMAL_ACCOUNT = 544;
@@ -46,8 +48,17 @@ class LDAPExportor
     // const HOLDING_ACCOUNT = 66082;
     const HOLDING_ACCOUNT = 66050;
 
+    const GROUP_SCOPE_DOMAIN_LOCAL = -2147483644;
+    const GROUP_SCOPE_GLOBAL = -2147483646;
+    const GROUP_SCOPE_UNIVERSAL = -2147483640;
+
     const GROUP_TYPE_365 = 2;
-    const GROUP_TYPE_SECURITY = -2147483646;
+    const GROUP_TYPE_SECURITY = self::GROUP_SCOPE_GLOBAL;
+
+    const AD_GROUP_TYPE = array(
+        "Microsoft 365" => self::GROUP_TYPE_365,
+        "Security" => self::GROUP_TYPE_SECURITY
+    );
 
     protected $setting;
     protected $tableMaster;
@@ -93,6 +104,8 @@ class LDAPExportor
             $whereData = $this->extractCondition($extractCondition, $nameColumnUpdate);
             $this->tableMaster = $tableMaster;
 
+            // DB::enableQueryLog();
+
             $query = DB::table($tableMaster);
             $query = $query->where($whereData);
 
@@ -100,6 +113,7 @@ class LDAPExportor
             // Log::info($extractedSql);
 
             $results = $query->get()->toArray();
+            // Log::debug(DB::getQueryLog());
 
             if ($results) {
                 Log::info("Export to AD from " . $tableMaster . " entry(" . count($results) . ")");
@@ -379,7 +393,7 @@ class LDAPExportor
                 // $ldapUser['pwdLastSet'] = 0;
 
                 $entry =  $this->provider->make()->user([
-                    'cn' => $ldapUser['name'],
+                    'cn' => $ldapUser['cn'],
                     'userAccountControl' => self::HOLDING_ACCOUNT,
                     // 'userAccountControl' => self::NORMAL_ACCOUNT,
                     // 'pwdLastSet' => 0,
@@ -465,11 +479,15 @@ class LDAPExportor
 
             $ldapGroup = $this->conversionArrayValue($data);
 
-            $ldapGroup['groupType'] = self::GROUP_TYPE_365;
-            if (!empty($data['groupTypes'])) {
-                if ($data['groupTypes'] == 'Security') {
-                    $ldapGroup['groupType'] = self::GROUP_TYPE_SECURITY;
+            if ( array_key_exists('groupTypes', $data) ) {
+
+                if ( array_key_exists($data['groupTypes'], self::AD_GROUP_TYPE) ) {
+                    $ldapGroup['groupType'] = self::AD_GROUP_TYPE[$data['groupTypes']];
+                } else {
+                    // TODO : Nothing to do, Because it is processed externally
                 }
+            } else {
+                $ldapGroup['groupType'] = self::GROUP_TYPE_365;
             }
 
             $scimInfo = array(
@@ -490,13 +508,34 @@ class LDAPExportor
                 $group = false;
             }
 
+            $saveManagedBy = null;
+            if ( array_key_exists('managedBy', $ldapGroup) ) {
+                $saveManagedBy = $ldapGroup["managedBy"];
+                unset($ldapGroup["managedBy"]);
+            }
+
             $is_success = false;
             if ($group) {
                 // Update or Delete LDAP entry. Setting a model's attribute.
                 try {
-                    $is_success = $group->update($ldapGroup);
-                    $scimInfo['scimMethod'] = 'update';
-                    $this->updateCount++;
+                    // disble user
+                    if ($data['DeleteFlag'] == '1') {
+                        $group->delete();
+                        $scimInfo['scimMethod'] = 'delete';
+                        $this->deleteCount++;
+                    } else {
+                        // Group scope can be converted to...
+                        $storedGroupType = $group->groupType[0];
+                        if ((int)$storedGroupType != (int)$ldapGroup['groupType']) {
+                            $storedGroupType = $ldapGroup['groupType'];
+                            $ldapGroup['groupType'] = self::GROUP_SCOPE_UNIVERSAL;
+                            $is_success = $group->update($ldapGroup);
+                            $ldapGroup['groupType'] = $storedGroupType;
+                        }
+                        $is_success = $group->update($ldapGroup);
+                        $scimInfo['scimMethod'] = 'update';
+                        $this->updateCount++;
+                    }
                 } catch (Exception $exception) {
                     Log::info($ldapGroup);
                     Log::error($exception);
@@ -505,12 +544,6 @@ class LDAPExportor
                     $this->settingManagement->faildLogger($scimInfo);
         
                     $is_success = false;
-                }
-                // disble user
-                if ($data['DeleteFlag'] == '1') {
-                    $group->delete();
-                    $scimInfo['scimMethod'] = 'delete';
-                    $this->deleteCount++;
                 }
             } else {
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
@@ -521,6 +554,13 @@ class LDAPExportor
                 $is_success = $group->save();
                 if ($is_success) {
                     try {
+                        // Group scope can be converted to...
+                        if ($ldapGroup['groupType'] == self::GROUP_SCOPE_DOMAIN_LOCAL) {
+                            $ldapGroup['groupType'] = self::GROUP_SCOPE_UNIVERSAL;
+                            $is_success = $group->update($ldapGroup);
+                            $ldapGroup['groupType'] = self::GROUP_SCOPE_DOMAIN_LOCAL;
+                        }
+
                         $is_success = $group->update($ldapGroup);
                         $scimInfo['scimMethod'] = 'create';
                         $this->createCount++;
@@ -587,10 +627,10 @@ class LDAPExportor
 
             // Finding a record.
             try {
-                $ou = $this->provider->search()->ous()->find($data['Name']);
+                $ou = $this->provider->search()->ous()->find($data['ID']);
             } catch (Exception $exception) {
                 // Record wasn't found!
-                Log::info(sprintf("Organization wasn't found! : [%s] = [%s]", $ldapBasePath, $data['Name']));
+                Log::info(sprintf("Organization wasn't found! : [%s] = [%s]", $ldapBasePath, $data['ID']));
                 $ou = false;
             }
 
@@ -615,6 +655,7 @@ class LDAPExportor
                     'dn'     => $rdn,
                 ]);
                 $is_success = $ou->save();
+                $is_success = $ou->update($ldapOu);
             }
 
             // Saving the changes to your LDAP server.

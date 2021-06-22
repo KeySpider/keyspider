@@ -50,6 +50,8 @@ class DBExtractor
     const RDB_CONFIGRATION = "Extraction RDB Connecting Configration";
     const DB_CONNECTION = "database.connections";
 
+    const REMOVE_LICENSES = "removeLicenses";
+
     protected $setting;
     protected $regExpManagement;
     protected $settingManagement;
@@ -683,9 +685,6 @@ class DBExtractor
             $updateCount = 0;
             $deleteCount = 0;
 
-            // Linkage LockFlag
-            $linkageLockFlag = array_key_exists('accountEnabled', $formatConvention);
-
             if ($results) {
                 $userGraph = new UserGraphAPI();
 
@@ -695,15 +694,36 @@ class DBExtractor
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
 
-                    if ($table == 'User') {
-                        if ($linkageLockFlag) {
-                            $eaLocked = True;
-                            if ((int)$item['LockFlag'] == 1) {
-                                $eaLocked = False;
+                    // TODO：この処理はここですべきではない。
+                    // if ($table == 'User') {
+                    //     if ($linkageLockFlag) {
+                    //         $eaLocked = true;
+                    //         if ((int)$item['LockFlag'] == 1) {
+                    //             $eaLocked = false;
+                    //         }
+                    //         $item['accountEnabled'] = $eaLocked;
+                    //     } else {
+                    //         unset($item['accountEnabled']);
+                    //     }
+                    // }
+
+                    // Check POST or OTHER. `empty` mean CREATE.
+                    $isSoftwareDelete = false;
+                    if (empty($item['externalID'])) {
+                        // POST
+                        if (!array_key_exists('accountEnabled', $item)) {
+                            // $item['accountEnabled'] = true;
+                            $item['accountEnabled'] = 0;
                             }
-                            $item['accountEnabled'] = $eaLocked;
                         } else {
-                            unset($item['accountEnabled']);
+                        // PATCH
+                        if ( array_key_exists(self::REMOVE_LICENSES, $item) ) {
+                            // This mean Softwaredelete
+                            if ((int)$item['DeleteFlag'] === 1) {
+                                // $item['accountEnabled'] = false;
+                                $item['accountEnabled'] = 1;
+                                $isSoftwareDelete = true;
+                            }
                         }
                     }
                     
@@ -718,6 +738,15 @@ class DBExtractor
                             //Delete resource
                             Log::info("Delete $table [$uPN] on AzureAD");
 
+                            if ($isSoftwareDelete) {
+                                $userUpdated = $userGraph->updateResource((array)$item, $table);
+                                if ($userUpdated == null) {
+                                    DB::commit();
+                                    continue;
+                                }
+                                $userGraph->removeLicenseDetail($item->externalID);
+                                $deleteCount++;
+                            } else {
                             $userGraph->removeLicenseDetail($item->externalID);
                             $userDeleted = $userGraph->deleteResource($item->externalID, $table);
                             if ($userDeleted != null) {
@@ -731,6 +760,7 @@ class DBExtractor
                                     $updateQuery->delete();
                                 }
                                 $deleteCount++;
+                            }
                             }
                         } else {
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
@@ -749,28 +779,23 @@ class DBExtractor
 
                             $nowTbl = ucfirst(strtolower($table));
                             $kspId = $item->{"$primaryKey"};
-                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on TrustLogin, do nothing!");
+                            Log::info("$nowTbl [$kspId] has DeleteFlag = 1 and not existed on AzureAD, do nothing!");
 
                             $scimInfo = array(
-                                'provisoning' => 'TrustLogin',
+                                'provisoning' => 'AzureAD',
                                 'scimMethod' => 'create',
                                 'table' => $nowTbl,
                                 'itemId' => $kspId,
                                 'itemName' => 'Throw of creating',
-                                'message' => "DeleteFlag = 1 and not existed on TrustLogn, do nothing!",
+                                'message' => "DeleteFlag = 1 and not existed on AzureAD, do nothing!",
                             );
                             $this->settingManagement->faildLogger($scimInfo);
 
                             DB::commit();
                             continue;
                         }
-                        // Error occurrd without accountEnabled
-                        $userItem = (array)$item;
-                        if (!array_key_exists('accountEnabled', $userItem)) {
-                            $userItem['accountEnabled']  = True;
-                        }
 
-                        $userOnAD = $userGraph->createResource($userItem, $table);
+                        $userOnAD = $userGraph->createResource((array)$item, $table);
                         if ($userOnAD == null) {
                             DB::commit();
                             continue;
@@ -2073,7 +2098,7 @@ class DBExtractor
             $connectionType = $setting[self::RDB_CONFIGRATION]["ConnectionType"];
             $exportTable = $setting[self::RDB_CONFIGRATION]["ExportTable"];
             $primaryColumn = $setting[self::RDB_CONFIGRATION]["PrimaryColumn"];
-            $externalId = $setting[self::RDB_CONFIGRATION]["ExternalId"];
+            $externalId = $setting[self::RDB_CONFIGRATION]["ExternalID"];
             $rdbDeleteType = config(self::DB_CONNECTION)[$connectionType]["deleteType"] ?? Null;
 
             $settingManagement = new SettingsManager();
@@ -2088,7 +2113,7 @@ class DBExtractor
 
             // Traceing
             $dbt = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            $cmd = $extractiontable . " Provisioning start --> RDB";
+            $cmd = $extractiontable . " Extracting start --> RDB";
             $message = "";
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
@@ -2113,7 +2138,7 @@ class DBExtractor
 
             // Traceing
             $cmd = "Count --> RDB";
-            $message = sprintf("Processing %s Object %d records", $extractiontable, count($results));
+            $message = sprintf("Extracting %s Object %d records", $extractiontable, count($results));
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
             $createCount = 0;
@@ -2126,6 +2151,15 @@ class DBExtractor
                     $item = $this->overlayItem($formatConvention, $item);
                     $exportDate = array_intersect_key($item, $formatConvention);
 
+                    $scimInfo = array(
+                        'provisoning' => 'RDB',
+                        'scimMethod' => '',
+                        'table' => ucfirst(strtolower($extractiontable)),
+                        'itemId' => $item['ID'],
+                        'itemName' => '',
+                        'message' => '',
+                    );
+            
                     DB::beginTransaction();
                     $rdbTable = DB::connection($connectionType)->table($exportTable);
 
@@ -2136,13 +2170,19 @@ class DBExtractor
                                 // Logical Delete
                                 $deleteData->update($exportDate);
                                 $deleteCount++;
+                                $scimInfo['scimMethod'] = "delete";
+
                             } elseif ($rdbDeleteType == "physical") {
                                 // Physical Delete
                                 $deleteData->delete();
                                 $item[$externalId] = "";
                                 $deleteCount++;
+                                $scimInfo['scimMethod'] = "delete";
                             } else {
                                 Log::error("Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.");
+                                $scimInfo['message'] = "Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.";
+                                $this->settingManagement->faildLogger($scimInfo);
+                    
                                 continue;
                             }
                         }
@@ -2151,6 +2191,8 @@ class DBExtractor
                         $updateQuery->update(["UpdateDate" => $item["UpdateDate"]]);
                         $updateQuery->update([$externalId => $item[$externalId]]);
                         DB::commit();
+                        $this->settingManagement->detailLogger($scimInfo);
+
                         continue;
                     }
 
@@ -2159,47 +2201,66 @@ class DBExtractor
                         // UPDATE
                         $rdbTable->where($primaryColumn, $item[$externalId])->update($exportDate);
                         $updateCount++;
+                        $scimInfo['scimMethod'] = "update";
+
                     } else {
                         // CREATE
                         $rdbId = $rdbTable->insertGetId($exportDate, $primaryColumn);
                         $createCount++;
+                        $scimInfo['scimMethod'] = "create";
                     }
                     $settingManagement->setUpdateFlags($extractionProcessID, $item["$primaryKey"], $extractiontable, $value = 0);
                     $updateQuery = DB::table($extractiontable)->where($primaryKey, $item["$primaryKey"]);
                     $updateQuery->update(["UpdateDate" => $item["UpdateDate"]]);
                     $updateQuery->update([$externalId => $rdbId]);
                     DB::commit();
+
+                    $this->settingManagement->detailLogger($scimInfo);
                 }
             }
 
             // Traceing
-            $cmd = $extractiontable . ' Provisioning done --> RDB';
+            $cmd = $extractiontable . ' Extracting done --> RDB';
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
             if (count($results) == 0) {
                 $summarys = "";
             }
             $message = sprintf(
-                "Provisioning %s Object Success. %d objects affected.\n%s",
+                "Extracting %s Object Success. %d objects affected.\n%s",
                 $extractiontable,
                 $updateCount + $createCount + $deleteCount,
                 $summarys
             );
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
-        } catch (Exception $exception) {
+
+            $scimInfo = array(
+                'provisoning' => 'RDB',
+                'table' => ucfirst(strtolower($extractiontable)),
+                'casesHandle' => count($results),
+                'createCount' => $createCount,
+                'updateCount' => $updateCount,
+                'deleteCount' => $deleteCount,
+            );
+            $settingManagement->summaryLogger($scimInfo);
+
+        } catch (\Exception $exception) {
             DB::rollback();
             echo ("\e[0;31;47m [$extractionProcessID] $exception \e[0m \n");
             Log::debug($exception);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $cmd = $extractiontable . ' Provisioning Faild --> RDB';
+            $cmd = $extractiontable . ' Extracting Faild --> RDB';
             $message = sprintf(
-                "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
+                "Extracting %s Object Faild. %d objects faild.\n%s\n%s",
                 $extractiontable,
                 $faildCnt,
                 "create = $createCount, update = $updateCount, delete = $deleteCount",
                 $exception->getMessage()
             );
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+
+            $scimInfo['message'] = $exception->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
     }
 }

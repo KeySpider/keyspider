@@ -9,6 +9,7 @@ use Exception;
 use Faker\Factory;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Group;
@@ -17,6 +18,8 @@ use MongoDB\Driver\Exception\ExecutionTimeoutException;
 
 class UserGraphAPI
 {
+    const PLUGINS_DIR = "App\\Commons\\Plugins\\";
+
     public function __construct()
     {
         $options = parse_ini_file(
@@ -82,15 +85,8 @@ class UserGraphAPI
             'message' => '',
         );
 
-        $swapUser = array();
-        foreach ($userAttibutes as $attr => $value) {
-            if (!empty($value)) {
-                $swapUser[$attr] = $value;
-            } elseif ($value === "0") {
-                $swapUser[$attr] = $value;
-            }
-        }
-        $userAttibutes = $swapUser;
+        // Remove null value
+        $userAttibutes = $this->sanitizeAttributes($userAttibutes);
 
         try {
             Log::info("Create user: " . json_encode($userAttibutes));
@@ -103,10 +99,6 @@ class UserGraphAPI
 
             $newUser->setUsageLocation('JP');
 
-            if ( array_key_exists('accountEnabled', $userAttibutes) ) {
-                $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? True : False);
-            }
-            // $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? true : false);
             $userCreated = $this->graph->createRequest("POST", "/users")
                 ->attachBody($newUser)
                 ->setReturnType(User::class)
@@ -135,6 +127,23 @@ class UserGraphAPI
         }
     }
 
+    private function sanitizeAttributes($userAttibutes)
+    {
+        $sanitizeUserAttributes = [];
+        foreach ($userAttibutes as $key => $value) {
+            if (!is_null($value)) {
+                $sanitizeUserAttributes[$key] = $value;
+            }
+        }
+
+        // Conversion int to bool
+        if ( array_key_exists("accountEnabled", $sanitizeUserAttributes) ) {
+            $accountEnabled = (int)$sanitizeUserAttributes["accountEnabled"];
+            $sanitizeUserAttributes["accountEnabled"] = $accountEnabled == 0 ? true : false;
+        }
+        return $sanitizeUserAttributes;
+    }
+
     public function updateUser($userAttibutes)
     {
         $scimInfo = array(
@@ -147,6 +156,8 @@ class UserGraphAPI
         );
 
         try {
+            $userAttibutes = $this->sanitizeAttributes($userAttibutes);
+
             Log::info("Update user: " . json_encode($userAttibutes));
             echo "\n- \t\tupdating User: \n";
             // $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
@@ -156,10 +167,6 @@ class UserGraphAPI
             unset($userAttibutes['userPrincipalName']);
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
 
-            if ( array_key_exists('accountEnabled', $userAttibutes) ) {
-                $newUser->setAccountEnabled($userAttibutes['LockFlag'] == 0 ? True : False);
-            }
-            // $newUser->setAccountEnabled($accountEnable);
             var_dump($newUser);
             $this->graph->createRequest("PATCH", "/users/$uPN")
                 ->attachBody($newUser)
@@ -260,6 +267,11 @@ class UserGraphAPI
         Log::info("creating Group: " . json_encode($groupAttributes));
         echo "\n- \t\tcreating Group: \n";
         $groupAttributes = $this->getGroupAttributesAfterRemoveUnused($groupAttributes);
+        $dupeGroupAttributes = $groupAttributes;
+
+        unset($groupAttributes["owners"]);
+        unset($groupAttributes["team"]);
+
         if (empty($ext)) {
             $newGroup = $this->createGroupObject($groupAttributes);
         } else {
@@ -271,6 +283,23 @@ class UserGraphAPI
                 ->attachBody($newGroup)
                 ->setReturnType(Group::class)
                 ->execute();
+
+            $createdGroup = (array)$group;
+
+            $createdGroupID = null;
+            foreach ($createdGroup as $key => $item) {
+                $sitem = (array)$item;
+                $createdGroupID = $sitem["id"];
+            }
+
+            $uID = $createdGroupID;
+            if (array_key_exists('owners', $dupeGroupAttributes)) {
+                $this->checkGroupOwner($uID, $dupeGroupAttributes["owners"]);
+            }
+        
+            if (array_key_exists('team', $dupeGroupAttributes)) {
+                $this->createTeamFromGroup($uID);
+            }
             echo "\n- \t\tGroup created: \n";
             $this->settingManagement->detailLogger($scimInfo);
 
@@ -308,12 +337,20 @@ class UserGraphAPI
         $userArray = json_decode($userJson, true);
         $newGroup = new Group($groupAttributes);
 
+        // Group type
         $newGroup->setGroupTypes([]);
         if (!empty($groupConf['groupTypes'])) {
             $newGroup->setGroupTypes((array)$groupConf['groupTypes']);
         }
         $newGroup->setMailEnabled($groupConf['mailEnabled']);
         $newGroup->setSecurityEnabled($groupConf['securityEnabled']);
+
+        // Scope
+        if (array_key_exists('visibility', $groupAttributes)) {
+            $newGroup->setVisibility($groupAttributes["visibility"]);
+        }
+
+    
         return $newGroup;
     }
 
@@ -462,12 +499,28 @@ class UserGraphAPI
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $groupAttibutes['DeleteFlag'] == 0 ? true : false;
             $uID = $groupAttibutes['externalID'];
-            $groupAttibutes = array_only($groupAttibutes, ['displayName']);
-            $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($groupAttibutes));
+            $onlyDisplayName = array_only($groupAttibutes, ['displayName']);
+            // $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($groupAttibutes));
+            $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($onlyDisplayName));
+
+            // Scope
+            if (array_key_exists('visibility', $groupAttibutes)) {
+                $newGroup->setVisibility($groupAttibutes["visibility"]);
+            }
+
             var_dump($newGroup);
             $this->graph->createRequest("PATCH", "/groups/$uID")
                 ->attachBody($newGroup)
                 ->execute();
+
+            if (array_key_exists('owners', $groupAttibutes)) {
+                $this->checkGroupOwner($uID, $groupAttibutes["owners"]);
+            }
+        
+            if (array_key_exists('team', $groupAttibutes)) {
+                $this->createTeamFromGroup($uID);
+            }
+
             echo "\n- \t\t Group [$uID] updated \n";
             $this->settingManagement->detailLogger($scimInfo);
 
@@ -480,6 +533,73 @@ class UserGraphAPI
             return null;
         }
     }
+
+    public function checkGroupOwner($gID, $uID)
+    {
+        // Get Group owners
+        $ownerList = $this->graph->createRequest("GET", "/groups/$gID/owners/")
+            ->setReturnType(User::class)
+            ->execute();
+
+        $owners = [];
+        foreach ($ownerList as $key => $item) {
+            $sitem = (array)$item;
+            foreach ($sitem as $sitem) {
+                $owners[] = $sitem['id'];
+            }
+        }
+
+        // Get owner's externalID
+        $groupOwner = DB::table("User")->select("externalID")->where("ID", $uID);
+        $results = $groupOwner->get()->toArray();
+
+        if ($results) {
+            $userRecord = null;
+            foreach ($results as $key => $value) {
+                $userRecord = (array)$value;
+            }
+
+            $groupOwnerExternalID = $userRecord["externalID"];
+            // $groupOwnerExternalID = $results[0]["externalID"];
+            if (!array_key_exists($groupOwnerExternalID, $owners)) {
+                $this->addGroupOwner($gID, $groupOwnerExternalID);
+            }
+        }
+    }
+
+    public function addGroupOwner($gID, $uID)
+    {
+        $body = json_decode('{"@odata.id": "https://graph.microsoft.com/v1.0/users/' . $uID . '"}', true);
+        $response = $this->graph->createRequest("POST", "/groups/$gID/owners/\$ref")
+            ->attachBody($body)
+            ->setReturnType("GuzzleHttp\Psr7\Stream")
+            ->execute();
+    }
+
+    public function createTeamFromGroup($gID)
+    {
+        $json = '{
+            "memberSettings": {
+                "allowCreatePrivateChannels": true,
+                "allowCreateUpdateChannels": true
+            },
+            "messagingSettings": {
+                "allowUserEditMessages": true,
+                "allowUserDeleteMessages": true
+            },
+            "funSettings": {
+                "allowGiphy": true,
+                "giphyContentRating": "strict"
+            }
+        }';
+
+        $body = json_decode($json, true);
+        $response = $this->graph->createRequest("PUT", "/groups/$gID/team")
+            ->attachBody($body)
+            ->setReturnType("GuzzleHttp\Psr7\Stream")
+            ->execute();
+    }
+
 
     // public function deleteResource($id, $table): void
     public function deleteResource($id, $table)
