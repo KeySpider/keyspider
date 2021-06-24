@@ -4,300 +4,281 @@ namespace App\Ldaplibs\SCIM\Box;
 
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\SCIM\Curl;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
-use Throwable;
 use RuntimeException;
 
 class SCIMToBox
 {
-    const SCIM_CONFIG = 'SCIM Authentication Configuration';
-
     protected $setting;
+
+    private $externalIdName;
 
     /**
      * SCIMToBox constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
         $this->settingManagement = new SettingsManager();
+        $this->externalIdName = $externalIdName;
+    }
+
+    public function getServiceName() {
+        return "BOX";
     }
 
     private function getAccessToken()
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'token',
-            'table' => '',
-            'itemId' => '',
-            'itemName' => '',
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "token", "", "", "", ""
         );
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
 
-        $endPoint = "https://api.box.com/oauth2/token";
+        $url = "https://api.box.com/oauth2/token";
         $params = [
-            "client_id" => $scimOptions['clientId'],
-            "client_secret" => $scimOptions['clientSecret'],
+            "client_id" => $scimOptions["clientId"],
+            "client_secret" => $scimOptions["clientSecret"],
             "grant_type" => "client_credentials",
             "box_subject_type" => "enterprise",
-            "box_subject_id" => $scimOptions['enterpriseId']
+            "box_subject_id" => $scimOptions["enterpriseId"]
         ];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $endPoint);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $params);
+        $curl = new Curl();
+        $curl->init($url, "POST", null, $params);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    throw new RuntimeException("Failed to get access token");
-                    return null;
-                }
-    
-                if ( array_key_exists('access_token', $responce)) {
-                    Log::info('Token ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-                    return $responce['access_token'];
-                }
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-    
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute();
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
-        return null;
+        else if ($result == "http_code_error") {
+            Log::debug("Failed to get access token");
+            $scimInfo["message"] = "Failed to get access token";
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("Token " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $returnValue = $response["access_token"];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
     public function createResource($resourceType, $item)
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'create',
-            'table' => ucfirst(strtolower($resourceType)),
-            'itemId' => $item['ID'],
-            'itemName' => $item['name'],
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "create", ucfirst(strtolower($resourceType)), $item["ID"], $item["name"], ""
         );
 
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
-        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . strtolower($resourceType) . "s/";
         $auth = "Bearer " . $this->getAccessToken();
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "POST", $curlHeader, $tmpl);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-                
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return null;
-                }
-    
-                if ( array_key_exists('id', $responce)) {
-                    Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $responce['id'];
-                }
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute("id");
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
-        return null;
+        else if ($result == "http_code_error") {
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("Create " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            $returnValue = $response["id"];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
     public function updateResource($resourceType, $item)
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'update',
-            'table' => ucfirst(strtolower($resourceType)),
-            'itemId' => $item['ID'],
-            'itemName' => $item['name'],
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "update", ucfirst(strtolower($resourceType)), $item["ID"], $item["name"], ""
         );
 
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
-        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . strtolower($resourceType) . "s/" . $item[$this->externalIdName];
         $auth = "Bearer " . $this->getAccessToken();
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $item['externalBOXID']);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "PUT", $curlHeader, $tmpl);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return null;
-                }
-                
-                if (array_key_exists('id', $responce)) {
-                    Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $item['externalBOXID'];
-                }
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute("id");
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
-        return null;
+        else if ($result == "http_code_error") {
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            Log::info("Replace " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            $returnValue = $item[$this->externalIdName];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
     public function deleteResource($resourceType, $item)
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'delete',
-            'table' => ucfirst(strtolower($resourceType)),
-            'itemId' => $item['ID'],
-            'itemName' => $item['name'],
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "delete", ucfirst(strtolower($resourceType)), $item["ID"], $item["name"], ""
         );
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
-        $url = $scimOptions['url'] . strtolower($resourceType) . 's/';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . strtolower($resourceType) . "s/" . $item[$this->externalIdName];
         $auth = "Bearer " . $this->getAccessToken();
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $item['externalBOXID']);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "accept: */*")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        $curlHeader = array("Authorization: $auth", "accept: */*");
+        $curl = new Curl();
+        $curl->init($url, "DELETE", $curlHeader, null);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return null;
-                }
-
-                Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                $this->settingManagement->detailLogger($scimInfo);
-                curl_close($tuCurl);
-                return $item['externalBOXID'];
-
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute();
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
-        return null;
+        else if ($result == "http_code_error") {
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            Log::info("Delete " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            $returnValue = true;
+        }
+        $curl->close();
+        return $returnValue;
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function statusResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId): void
+    {
+        if ($resourceType != "User" || empty($externalId)) {
+            return;
+        }
+
+        // Import data role info
+        $memberOf = $this->getListOfGroupsUserBelongedTo($item["ID"], "BOX");
+
+        // Now stored role info
+        $groupIDListOnBOX = $this->getMemberOfBOX($externalId);
+
+        foreach ($memberOf as $groupID) {
+            if (!empty($groupID) && !array_key_exists($groupID, $groupIDListOnBOX)) {
+                $this->addMemberToGroup($externalId, $groupID);
+            }
+        }
+
+        foreach ($groupIDListOnBOX as $key => $groupID) {
+            if (!in_array($key, $memberOf)) {
+                $this->removeMemberOfGroup($externalId, $groupID);
+            }
+        }
+    }
+
+    public function userRole($resourceType, $item, $externalId) {
+        return;
+    }
+
+    private function replaceResource($resourceType, $item)
     {
         $getEncryptedFields = $this->settingManagement->getEncryptedFields();
 
-        $tmp = Config::get('scim-box.createUser');
-        if ($resourceType === 'Group') {
-            $tmp = Config::get('scim-box.createGroup');
+        $tmp = Config::get("scim-box.createUser");
+        if ($resourceType === "Group") {
+            $tmp = Config::get("scim-box.createGroup");
         }
 
         foreach ($item as $key => $value) {
-            if ($key === 'state') {
+            if ($key === "state") {
                 $address = sprintf(
                     "%s, %s, %s",
-                    $item['state'],
-                    $item['city'],
-                    $item['streetAddress']
+                    $item["state"],
+                    $item["city"],
+                    $item["streetAddress"]
                 );
                 $tmp = str_replace("(User.joinAddress)", $address, $tmp);
                 continue;
             }
 
-            if ($key === 'locked') {
-                $isActive = 'active';
-                if ($value == '1') $isActive = 'inactive';
+            if ($key === "locked") {
+                $isActive = "active";
+                if ($value == "1") $isActive = "inactive";
                 $tmp = str_replace("(User.DeleteFlag)", $isActive, $tmp);
                 continue;
             }
@@ -310,217 +291,142 @@ class SCIMToBox
         }
 
         // if not yet replace als code, replace to null
-        $tmp = str_replace('    "status": "(User.DeleteFlag)",', '', $tmp);
+        $tmp = str_replace('    "status": "(User.DeleteFlag)",', "", $tmp);
 
         return $tmp;
     }
 
-    public function addMemberToGroups($userAttibutes, $uPN): void
-    {
-        // Import data role info
-        $memberOf = $this->getListOfGroupsUserBelongedTo($userAttibutes, 'BOX');
-
-        // Now stored role info
-        $groupIDListOnBOX = $this->getMemberOfBOX($uPN);
-
-        foreach ($memberOf as $groupID) {
-            if (!array_key_exists($groupID, $groupIDListOnBOX)) {
-                $this->addMemberToGroup($uPN, $groupID);
-            }
-        }
-
-        foreach ($groupIDListOnBOX as $key => $groupID) {
-            if (!in_array($key, $memberOf)) {
-                $this->removeMemberOfGroup($uPN, $groupID);
-            }
-        }
-    }
-
-    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
+    private function getListOfGroupsUserBelongedTo($id, $scims = ""): array
     {
         $memberOf = [];
-        $memberOf = (new RegExpsManager())->getGroupInExternalID($userAttibutes['ID'], $scims);
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($id, $scims);
         return $memberOf;
     }
 
-    public function getMemberOfBOX($uPN)
+    private function getMemberOfBOX($uPN)
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'getMemberOfBox',
-            'table' => "BOX",
-            'itemId' => $uPN,
-            'itemName' => '',
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "getMemberOfBox", "BOX", $uPN, "", ""
         );
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
-        $url = $scimOptions['url'] . 'users/';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . "users/" . $uPN . "/memberships/";
         $auth = "Bearer " . $this->getAccessToken();
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $uPN . '/memberships/');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "GET", $curlHeader,  null);
 
         $groupIDList = [];
-
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $groupIDList;
-                }
-                
-                if (array_key_exists('total_count', $responce)) {
-                    $groupIDList = [];
-                    for ($i = 0; $i < $responce['total_count']; $i++) {
-                        $groupIDList[$responce['entries'][$i]['group']['id']] = $responce['entries'][$i]['id'];
-                    }
-                    $this->settingManagement->detailLogger($scimInfo);
-                    curl_close($tuCurl);
-                    return $groupIDList;
-                };
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-    
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute("total_count");
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
+        else if ($result == "http_code_error") {
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $response = json_decode($curl->getResponse(), true);
+            for ($i = 0; $i < $response["total_count"]; $i++) {
+                $groupIDList[$response["entries"][$i]["group"]["id"]] = $response["entries"][$i]["id"];
+            }
+            $this->settingManagement->detailLogger($scimInfo);
+        }
+        $curl->close();
         return $groupIDList;
     }
 
     private function addMemberToGroup($uPCN, $groupId): void
     {
-        // $getEncryptedFields = $this->settingManagement->getEncryptedFields();
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'addMemberToGroup',
-            'table' => '',
-            'itemId' => $uPCN,
-            'itemName' => $groupId,
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "addMemberToGroup", "", $uPCN, $groupId, ""
         );
 
-        $tmpl = Config::get('scim-box.addGroup');
-        $tmpl = str_replace('(upn)', $uPCN, $tmpl);
-        $tmpl = str_replace('(gpn)', $groupId, $tmpl);
+        $tmpl = Config::get("scim-box.addGroup");
+        $tmpl = str_replace("(upn)", $uPCN, $tmpl);
+        $tmpl = str_replace("(gpn)", $groupId, $tmpl);
 
-        $url = 'https://api.box.com/2.0/group_memberships';
-
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . "group_memberships";
         $auth = "Bearer " . $this->getAccessToken();
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "POST", $curlHeader, $tmpl);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                }
-                Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                $this->settingManagement->detailLogger($scimInfo);
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute();
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
+        else if ($result == "http_code_error") {
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            Log::info("Create " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+        }
+        $curl->close();
     }
 
-    public function removeMemberOfGroup($uPCN, $groupId)
+    private function removeMemberOfGroup($uPCN, $groupId)
     {
-        $scimInfo = array(
-            'provisoning' => 'BOX',
-            'scimMethod' => 'removeMemberOfGroup',
-            'table' => 'BOX',
-            'itemId' => $uPCN,
-            'itemName' => $groupId,
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "BOX", "removeMemberOfGroup", "BOX", $uPCN, $groupId, ""
         );
 
-        $url = 'https://api.box.com/2.0/group_memberships/' . $groupId . '/';
-
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true)['BOX Keys'];
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true)["BOX Keys"];
+        $url = $scimOptions["url"] . "group_memberships/" . $groupId . "/";
         $auth = "Bearer " . $this->getAccessToken();
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "accept: */*")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
+        $curlHeader = array("Authorization: $auth", "accept: */*");
+        $curl = new Curl();
+        $curl->init($url, "DELETE", $curlHeader, null);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    Log::error($responce['error_description']);
-                    $scimInfo['message'] = $responce['error_description'];
-                    $this->settingManagement->faildLogger($scimInfo);
-                    curl_close($tuCurl);
-                }
-                Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                $this->settingManagement->detailLogger($scimInfo);
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-                $scimInfo['message'] = 'Curl error: ' . curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute();
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
         }
-        curl_close($tuCurl);
+        else if ($result == "http_code_error") {
+            Log::error($response["error_description"]);
+            $scimInfo["message"] = $response["error_description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            Log::info("Delete " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+        }
+        $curl->close();
     }
+
 }

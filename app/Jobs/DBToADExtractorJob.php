@@ -20,6 +20,7 @@
 
 namespace App\Jobs;
 
+use App\Commons\Consts;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\QueueManager;
 use Illuminate\Bus\Queueable;
@@ -78,9 +79,9 @@ class DBToADExtractorJob extends DBExtractor implements ShouldQueue, JobInterfac
     {
         $setting = $this->setting;
         $details = [];
-        $details['Conversion'] = $setting[self::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
-        $details['Extract table'] = $setting[self::EXTRACTION_CONFIGURATION]['ExtractionTable'];
-        $details['Extract condition'] = $setting[self::EXTRACTION_CONDITION];
+        $details['Conversion'] = $setting[Consts::OUTPUT_PROCESS_CONVERSION]['output_conversion'];
+        $details['Extract table'] = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
+        $details['Extract condition'] = $setting[Consts::EXTRACTION_PROCESS_CONDITION];
         return $details;
     }
 

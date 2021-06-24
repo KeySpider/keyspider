@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 
 use Exception;
@@ -27,12 +28,6 @@ use Illuminate\Support\Facades\Log;
 
 class DBImporter
 {
-    /**
-     * define const
-     */
-    public const CONVERSION = 'CSV Import Process Format Conversion';
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-
     /**
      * @var array $setting
      * @var string $fileName
@@ -63,27 +58,8 @@ class DBImporter
     public function import()
     {
         try {
-            $processedFilePath = $this->setting[self::CONFIGURATION]['ProcessedFilePath'];
-            mkDirectory($processedFilePath);
-
-            // get name table base
-            $nameTableBase = $this->csvReader->getNameTableBase($this->setting);
-
-            $columns = $this->csvReader->getAllColumnFromSetting($this->setting);
-            // $this->csvReader->createTable($nameTableBase, $columns);
-
-            $params = [
-                'CONVERSATION' => $this->setting[self::CONVERSION],
-            ];
-
             // process import
-            $this->csvReader->getDataFromOneFile(
-                $this->fileName,
-                $params,
-                $columns,
-                $nameTableBase,
-                $processedFilePath
-            );
+            $this->csvReader->getDataFromOneFile($this->fileName,$this->setting);
         } catch (Exception $e) {
             Log::error($e);
             echo ("\e[0;31;47m$e \e[0m \n");

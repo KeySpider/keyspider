@@ -18,93 +18,92 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  ******************************************************************************/
 return [
-   'createUser' => '{
-      "schemas":[
-          "urn:scim:schemas:core:1.0"
-       ],
-       "externalId":"(User.ID)",
-       "userName":"(User.userName)",
-       "nickName":"",
-       "name":{
-          "givenName": "(User.givenName)",
-          "familyName": "(User.familyName)"
-      },
-       "displayName":"(User.displayName)",
-       "profileUrl":"",
-       "title":"(User.title)",
-       "timezone":"Asia/Tokyo",
+  'createUser' => '{
+    "schemas":[
+      "urn:scim:schemas:core:1.0"
+    ],
+    "externalId":"(User.ID)",
+    "userName":"(User.userName)",
+    "nickName":"",
+    "name":{
+      "givenName": "(User.givenName)",
+      "familyName": "(User.familyName)"
+    },
+    "displayName":"(User.displayName)",
+    "profileUrl":"",
+    "title":"(User.title)",
+    "timezone":"Asia/Tokyo",
 accountLockStatus
-       "emails":[
-          {
-             "value":"(User.mail)",
-             "primary":true
-          }
-       ],
-       "photos":[
-          {
-             "value":"",
-             "type":"photo"
-          }
-       ],
-       "addresses": [
-          {
-              "streetAddress": "(User.streetAddress)",
-              "locality": "(User.locality)",
-              "region": "(User.region)",
-              "postalCode": "(User.postalCode)",
-              "country": "(User.country)",
-          }
-       ],
-       "phoneNumbers": [
-          {
-              "value": "(User.telephone)",
-              "type": "work",
-              "primary": true
-          }
-       ],
-       "userType": "Employee",
-       "roles": [
-          {
-              "value": "(User.RoleName)",
-              "primary": true
-          }
-      ],
-       "preferredLanguage": "ja_JP",
-       "locale": "ja_JP",
-       "groups":[
-       ]
-    }',
-   'createGroup' => '{
-  "schemas": [
-    "urn:scim:schemas:core:1.0"
-  ],
-  "id": "(Organization.externalID)",
-  "displayName": "(Organization.DisplayName)",
-  "members": [],
-  "meta": {
+    "emails":[
+      {
+        "value":"(User.mail)",
+        "primary":true
+      }
+    ],
+    "photos":[
+      {
+        "value":"",
+        "type":"photo"
+      }
+    ],
+    "addresses": [
+      {
+        "streetAddress": "(User.streetAddress)",
+        "locality": "(User.locality)",
+        "region": "(User.region)",
+        "postalCode": "(User.postalCode)",
+        "country": "(User.country)"
+      }
+    ],
+    "phoneNumbers": [
+      {
+        "value": "(User.telephone)",
+        "type": "work",
+        "primary": true
+      }
+    ],
+    "userType": "Employee",
+    "roles": [
+      {
+        "value": "(User.RoleName)",
+        "primary": true
+      }
+    ],
+    "preferredLanguage": "ja_JP",
+    "locale": "ja_JP",
+    "groups":[
+    ]
+  }',
+  'createGroup' => '{
+    "schemas": [
+      "urn:scim:schemas:core:1.0"
+    ],
+    "displayName": "(Group.DisplayName)",
+    "members": [],
+    "meta": {
       "created": "",
       "location": ""
-  }
-}',
-   'patchGroup' => '{
-   "schemas": [
+    }
+  }',
+  'patchGroup' => '{
+    "schemas": [
       "urn:scim:schemas:core:1.0"
     ],
     "members": [
-       {
-          "value": "(memberOfSlack)",
+      {
+        "value": "(memberOfSlack)",
       },      
     ]
   }',
-   'removeGroup' => '{
-   "schemas": [
-     "urn:scim:schemas:core:1.0"
-   ],
-   "members": [
+  'removeGroup' => '{
+    "schemas": [
+      "urn:scim:schemas:core:1.0"
+    ],
+    "members": [
       {
-         "value": "(memberOfSlack)",
-         "operation": "delete"
-     },      
-   ]
-}'
+        "value": "(memberOfSlack)",
+        "operation": "delete"
+      },      
+    ]
+  }'
 ];

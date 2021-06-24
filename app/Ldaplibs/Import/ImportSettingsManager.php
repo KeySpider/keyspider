@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -27,11 +28,6 @@ use TablesBuilder;
 
 class ImportSettingsManager extends SettingsManager
 {
-    /**
-     * define const
-     */
-    public const CSV_IMPORT_PROCESS_CONFIGRATION = 'CSV Import Process Configration';
-
     /**
      * @var array
      */
@@ -43,9 +39,6 @@ class ImportSettingsManager extends SettingsManager
      *
      * @param $iniSettingsFiles
      */
-    public const SCIM_INPUT_BACIC_CONFIGURATION = 'SCIM Input Bacic Configuration';
-    public const SCIM_INPUT_FORMAT_CONVERSION = 'SCIM Input Format Conversion';
-
     public function __construct($iniSettingsFiles = null)
     {
         parent::__construct();
@@ -59,20 +52,20 @@ class ImportSettingsManager extends SettingsManager
     public function getScheduleImportExecution(): array
     {
         if ($this->keySpider === null) {
-            Log::error('Wrong key spider! Do nothing.');
+            Log::error("Wrong key spider! Do nothing.");
             return [];
         }
 
-        $this->iniImportSettingsFiles = $this->keySpider[self::CSV_IMPORT_PROCESS_CONFIGRATION]['import_config'];
+        $this->iniImportSettingsFiles = $this->keySpider[Consts::CSV_IMPORT_PROCESS_CONFIGURATION][Consts::IMPORT_CONFIG];
 
         $rule = $this->getRuleOfImport();
 
         $timeArray = array();
         foreach ($rule as $tableContents) {
-            foreach ($tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
+            foreach ($tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
                 $filesFromPattern = $this->getFilesFromPattern(
-                    $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FilePath'],
-                    $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['FileName']
+                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_PATH],
+                    $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::FILE_NAME]
                 );
 
                 if (count($filesFromPattern) === 0) {
@@ -80,8 +73,8 @@ class ImportSettingsManager extends SettingsManager
                 }
 
                 $filesArray = [];
-                $filesArray['setting'] = $tableContents;
-                $filesArray['files'] = $filesFromPattern;
+                $filesArray["setting"] = $tableContents;
+                $filesArray["files"] = $filesFromPattern;
                 $timeArray[$specifyTime][] = $filesArray;
             }
         }
@@ -112,22 +105,22 @@ class ImportSettingsManager extends SettingsManager
         foreach ($this->iniImportSettingsFiles as $iniImportSettingsFile) {
             $tableContents = parse_ini_file($iniImportSettingsFile, true);
             if ($tableContents === null) {
-                Log::error('Can not run import schedule');
+                Log::error("Can not run import schedule");
                 return [];
             }
 
             // set filename in json file
-            $tableContents['IniFileName'] = $iniImportSettingsFile;
+            $tableContents["IniFileName"] = $iniImportSettingsFile;
 
             // Set destination table in database
-            $tableNameInput = $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['ImportTable'];
+            $tableNameInput = $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
             $tableNameOutput = $master[(string)$tableNameInput][(string)$tableNameInput];
-            $tableContents[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION]['TableNameInDB'] = $tableNameOutput;
+            $tableContents[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION]["TableNameInDB"] = $tableNameOutput;
 
             $masterDBConversion = $master[$tableNameInput];
 
             // Column conversion
-            $columnNameConversion = $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+            $columnNameConversion = $tableContents[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
             foreach ($columnNameConversion as $key => $value) {
                 $newKey = array_get($masterDBConversion, $key, null);
                 if (isset($newKey)) {
@@ -136,7 +129,7 @@ class ImportSettingsManager extends SettingsManager
                         unset($columnNameConversion[$key]);
                 }
             }
-            $tableContents[SettingsManager::CSV_IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
+            $tableContents[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
             $this->allTableSettingsContent[] = $tableContents;
         }
         return $this->allTableSettingsContent;
@@ -181,8 +174,8 @@ class ImportSettingsManager extends SettingsManager
     private function isImportIniValid($iniArray, $fileName = null): bool
     {
         $rules = [
-            self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION => 'required',
-            self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION => 'required'
+            Consts::IMPORT_PROCESS_BASIC_CONFIGURATION => "required",
+            Consts::IMPORT_PROCESS_FORMAT_CONVERSION => "required"
         ];
         // Validate main keys
         $validate = Validator::make($iniArray, $rules);
@@ -193,7 +186,7 @@ class ImportSettingsManager extends SettingsManager
         // Validate children
         $validate = $this->validateBasicConfiguration($iniArray);
         if ($validate === null) {
-            Log::error('Please create the folder in your server');
+            Log::error("Please create the folder in your server");
             return false;
         }
         if ($validate->fails()) {
@@ -210,23 +203,23 @@ class ImportSettingsManager extends SettingsManager
     private function validateBasicConfiguration($iniArray)
     {
         $tempIniArray = [];
-        $tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION'] = $iniArray[self::CSV_IMPORT_PROCESS_BASIC_CONFIGURATION];
-        $tempIniArray['CSV_IMPORT_PROCESS_FORMAT_CONVERSION'] = $iniArray[self::CSV_IMPORT_PROCESS_FORMAT_CONVERSION];
+        $tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"] = $iniArray[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray["IMPORT_PROCESS_FORMAT_CONVERSION"] = $iniArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         $rules = [
-            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable' => 'required',
-            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath' => 'required',
-            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.FileName' => 'required',
-            'CSV_IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath' => 'required'
+            "IMPORT_PROCESS_BASIC_CONFIGURATION.ImportTable" => "required",
+            "IMPORT_PROCESS_BASIC_CONFIGURATION.FilePath" => "required",
+            "IMPORT_PROCESS_BASIC_CONFIGURATION.FileName" => "required",
+            "IMPORT_PROCESS_BASIC_CONFIGURATION.ProcessedFilePath" => "required"
         ];
         if (
-            $this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']) &&
-            $this->isFolderExisted($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath'])
+            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::FILE_PATH]) &&
+            $this->isFolderExisted($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::PROCESSED_FILE_PATH])
         ) {
             return Validator::make($tempIniArray, $rules);
         }
-        Log::error('Double check folders are existed or not');
-        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['FilePath']);
-        Log::info($tempIniArray['CSV_IMPORT_PROCESS_BASIC_CONFIGURATION']['ProcessedFilePath']);
+        Log::error("Double check folders are existed or not");
+        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::FILE_PATH]);
+        Log::info($tempIniArray["IMPORT_PROCESS_BASIC_CONFIGURATION"][Consts::PROCESSED_FILE_PATH]);
         return null;
     }
 
@@ -241,7 +234,7 @@ class ImportSettingsManager extends SettingsManager
     private function getFilesFromPattern($path, $pattern): array
     {
         $data = [];
-        $validateFile = ['csv'];
+        $validateFile = ["csv"];
 
         if (is_dir($path)) {
             foreach (scandir($path, SCANDIR_SORT_NONE) as $key => $file) {
@@ -268,8 +261,8 @@ class ImportSettingsManager extends SettingsManager
         try {
             $iniArray = parse_ini_file($filePath, true);
             $rules = [
-                self::SCIM_INPUT_BACIC_CONFIGURATION => 'required',
-                self::SCIM_INPUT_FORMAT_CONVERSION => 'required'
+                Consts::IMPORT_PROCESS_BASIC_CONFIGURATION => "required",
+                Consts::IMPORT_PROCESS_FORMAT_CONVERSION => "required"
             ];
             // Validate main keys
             $validate = Validator::make($iniArray, $rules);
@@ -277,7 +270,7 @@ class ImportSettingsManager extends SettingsManager
                 throw new \RuntimeException($validate->getMessageBag());
             }
         } catch (\Exception $exception) {
-            Log::error('Key error SCIM import validation');
+            Log::error("Key error SCIM import validation");
         }
 
         $iniSCIMSettingsArray = [];
@@ -296,11 +289,11 @@ class ImportSettingsManager extends SettingsManager
      */
     public function getColumnsConversion(): array
     {
-        $importSettings = parse_ini_file(storage_path('ini_configs/import/UserInfoSCIMInput.ini'), true);
-        $masterDBConf = parse_ini_file(storage_path('ini_configs/MasterDBConf.ini'), true);
+        $importSettings = parse_ini_file(storage_path("ini_configs/import/UserInfoSCIMInput.ini"), true);
+        $masterDBConf = parse_ini_file(storage_path("ini_configs/MasterDBConf.ini"), true);
 
-        $tableName = $importSettings[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
-        $formatConversion = $importSettings[self::SCIM_INPUT_FORMAT_CONVERSION];
+        $tableName = $importSettings[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
+        $formatConversion = $importSettings[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         $dbConfigOfTable = $masterDBConf[$tableName];
         $result = [];
 
@@ -320,10 +313,10 @@ class ImportSettingsManager extends SettingsManager
     private function getSCIMFieldFromExpression($value)
     {
         $parsedArray = array();
-        $pattern = '/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/';
+        $pattern = "/\(\s*(?<exp1>\w+)\s*(,(?<exp2>.*(?=,)))?(,?(?<exp3>.*(?=\))))?\)/";
         $success = preg_match($pattern, $value, $parsedArray);
-        if ($success && isset($parsedArray['exp1'])) {
-            return $parsedArray['exp1'];
+        if ($success && isset($parsedArray["exp1"])) {
+            return $parsedArray["exp1"];
         }
         return $value;
     }
@@ -331,7 +324,7 @@ class ImportSettingsManager extends SettingsManager
     /**
      * Problem: Data from DB is conflict with data from AzureAD cause fields' name
      * Need to convert based on INI settings file.
-     * @param $resource : like: '001' => string(25) "montes.nascetur.ridiculus"
+     * @param $resource : like: "001" => string(25) "montes.nascetur.ridiculus"
      * @param $iniFilePathOfResource : path of Ini settings file
      * @return array
      */
@@ -340,14 +333,14 @@ class ImportSettingsManager extends SettingsManager
         //Get Scim format conversion from ini settings file.
         $conversion = [];
         try {
-            $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[self::SCIM_INPUT_FORMAT_CONVERSION];
+            $conversion = $this->getSCIMImportSettings($iniFilePathOfResource)[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         } catch (\Exception $e) {
             Log::error($e->getMessage());
         }
 
         //AAA.001 should be 001 (column name)
         $newKeys = array_map(function ($k) {
-            return substr($k, strpos($k, '.') + 1);
+            return substr($k, strpos($k, ".") + 1);
         }, array_keys($conversion));
 
         //get standard name from expression.
@@ -372,8 +365,8 @@ class ImportSettingsManager extends SettingsManager
      */
     private function logErrorOfValidation($fileName, $validate): void
     {
-        Log::error('Key error validation');
-        Log::error(('Error file: ' . $fileName) ? $fileName : '');
+        Log::error("Key error validation");
+        Log::error(("Error file: " . $fileName) ? $fileName : "");
         /** @noinspection PhpUndefinedMethodInspection */
         Log::info(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
@@ -386,9 +379,9 @@ class ImportSettingsManager extends SettingsManager
     private function getSCIMInputFormatConversion($filePath)
     {
         $iniSCIMSettingsArray = parse_ini_file($filePath, true);
-        $tableNameInput = $iniSCIMSettingsArray[self::SCIM_INPUT_BACIC_CONFIGURATION]['ImportTable'];
+        $tableNameInput = $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
         $masterDBConversion = $this->masterDBConfigData[$tableNameInput];
-        $columnNameConversion = $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION];
+        $columnNameConversion = $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
         foreach ($columnNameConversion as $key => $value) {
             if (isset($masterDBConversion[$key])) {
                 $columnNameConversion[$masterDBConversion[$key]] = $value;
@@ -396,7 +389,7 @@ class ImportSettingsManager extends SettingsManager
                     unset($columnNameConversion[$key]);
             }
         }
-        $iniSCIMSettingsArray[self::SCIM_INPUT_FORMAT_CONVERSION] = $columnNameConversion;
+        $iniSCIMSettingsArray[Consts::IMPORT_PROCESS_FORMAT_CONVERSION] = $columnNameConversion;
         return $iniSCIMSettingsArray;
     }
 }

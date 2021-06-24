@@ -20,6 +20,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Commons\Consts;
 use App\Exceptions\SCIMException;
 use App\Http\Models\AAA;
 use App\Jobs\DBImporterFromScimJob;
@@ -44,8 +45,6 @@ class UserController extends LaravelController
 {
     use EloquentBuilderTrait;
 
-    public const SCHEMAS_EXTENSION_USER = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
-
     protected $masterDB;
     protected $path;
 
@@ -53,10 +52,10 @@ class UserController extends LaravelController
     {
         $this->importSetting = new ImportSettingsManager();
 
-        $SCIMImportSettingFiles = $this->importSetting->keySpider['SCIM Input Process Configration']['import_config'] ?? [];
+        $SCIMImportSettingFiles = $this->importSetting->keySpider[Consts::SCIM_IMPORT_PROCESS_CONFIGURATION][Consts::IMPORT_CONFIG] ?? [];
         foreach ($SCIMImportSettingFiles as $file) {
             $fileContent = parse_ini_file($file);
-            if ($fileContent['ImportTable'] == 'User') {
+            if ($fileContent["ImportTable"] == "User") {
                 $this->path = $file;
                 break;
             }
@@ -70,7 +69,7 @@ class UserController extends LaravelController
      */
     public function welcome()
     {
-        return view('welcome');
+        return view("welcome");
     }
 
     /**
@@ -83,10 +82,10 @@ class UserController extends LaravelController
         $columnDeleted = $this->importSetting->getDeleteFlagColumnName($this->masterDB);
 
         $sqlQuery = DB::table($this->importSetting->getTableUser());
-        $scimQuery = $request->input('filter', null);
+        $scimQuery = $request->input("filter", null);
         $keyTable = $this->importSetting->getTableKey();
 
-        if ($request->has('filter')) {
+        if ($request->has("filter")) {
             if ($scimQuery) {
                 $parser = new Parser(Mode::FILTER());
                 $node = $parser->parse($scimQuery);
@@ -104,9 +103,9 @@ class UserController extends LaravelController
         if (!empty($dataQuery->toArray())) {
             foreach ($dataQuery as $data) {
                 $dataFormat = $this->importSetting->formatDBToSCIMStandard((array)$data, $this->path);
-                $dataFormat['id'] = $dataFormat['userName'];
-                $dataFormat['externalId'] = $dataFormat['userName'];
-                $dataFormat['userName'] = $result ? "{$dataFormat['userName']}@{$result[2]}" : $dataFormat['userName'];
+                $dataFormat["id"] = $dataFormat["userName"];
+                $dataFormat["externalId"] = $dataFormat["userName"];
+                $dataFormat["userName"] = $result ? "{$dataFormat["userName"]}@{$result[2]}" : $dataFormat["userName"];
                 unset($dataFormat[0]);
                 array_push($dataConvert, $dataFormat);
             }
@@ -116,11 +115,11 @@ class UserController extends LaravelController
         if (!empty($dataConvert)) {
             foreach ($dataConvert as $data) {
                 $dataTmp = [
-                    'id' => $data['id'],
-                    "externalId" => $data['externalId'],
-                    "userName" => str_replace("\"", "", $data['userName']),
-                    "active" => $data['active'] === '1' ? false : true,
-                    "displayName" => $data['displayName'],
+                    "id" => $data["id"],
+                    "externalId" => $data["externalId"],
+                    "userName" => str_replace("\"", "", $data["userName"]),
+                    "active" => $data["active"] === "1" ? false : true,
+                    "displayName" => $data["displayName"],
                     "meta" => [
                         "resourceType" => "User",
                     ],
@@ -130,7 +129,7 @@ class UserController extends LaravelController
                         "givenName" => "",
                     ],
                     "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                        "department" => array_get($data, 'department', "")
+                        "department" => array_get($data, "department", "")
                     ],
                 ];
 
@@ -186,9 +185,10 @@ class UserController extends LaravelController
         // save user resources model
         $queue = new ImportQueueManager();
         $queue->push(new DBImporterFromScimJob($dataPost, $setting));
+        $userId = DB::table("User")->select("ID")->where("user-PrincipalName", $dataPost["userName"])->first();
         $dataResponse = $dataPost;
-        $dataResponse['id'] = array_get($dataPost, 'externalId', null);
-        $dataResponse['meta']['location'] = $request->fullUrl() . '/' . $dataPost['externalId'];
+        $dataResponse["id"] = $userId->{"ID"};
+        $dataResponse["meta"]["location"] = $request->fullUrl() . "/" . $dataResponse["id"];
         return $this->response($dataResponse, $code = 201);
     }
 
@@ -225,7 +225,7 @@ class UserController extends LaravelController
         $updateFlagsColumnName = $this->importSetting->getUpdateFlagsColumnName($this->masterDB);
 
         $setValues = [];
-        $setValues[$deleteFlagColumnName] = config('const.SET_ALL_EXTRACTIONS_IS_TRUE');
+        $setValues[$deleteFlagColumnName] = config("const.SET_ALL_EXTRACTIONS_IS_TRUE");
         $setValues[$updateFlagsColumnName] = $this->importSetting->makeUpdateFlagsJson();
 
         $keyTable = $this->importSetting->getTableKey();
@@ -236,7 +236,7 @@ class UserController extends LaravelController
             DB::table($this->importSetting->getTableUser())
                 ->where($keyTable, $id)->update($setValues);
         } else {
-            throw (new SCIMException('User Not Found'))->setCode(404);
+            throw (new SCIMException("User Not Found"))->setCode(404);
             return false;
         }
         return true;
@@ -282,13 +282,13 @@ class UserController extends LaravelController
     private function toSCIMArray($dataArray)
     {
         $arr = [
-            'totalResults' => count($dataArray),
+            "totalResults" => count($dataArray),
             "itemsPerPage" => 10,
             "startIndex" => 1,
             "schemas" => [
                 "urn:ietf:params:scim:api:messages:2.0:ListResponse"
             ],
-            'Resources' => $dataArray,
+            "Resources" => $dataArray,
         ];
 
         return $arr;
@@ -306,7 +306,7 @@ class UserController extends LaravelController
         if ($userRecord) {
             $userResouce = (array)$userRecord;
             $dataFormat = $this->importSetting->formatDBToSCIMStandard($userResouce, $this->path);
-            $dataFormat['id'] = $dataFormat['userName'];
+            $dataFormat["id"] = $dataFormat["userName"];
             unset($dataFormat[0]);
         }
 
@@ -314,8 +314,8 @@ class UserController extends LaravelController
         if (!empty($dataFormat)) {
             $jsonData = [
                 "schemas" => ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                'id' => $dataFormat['externalId'],
-                "externalId" => $dataFormat['externalId'],
+                'id' => $userResouce['ID'],
+                "externalId" => $userResouce['externalID'],
                 "userName" => $dataFormat['userName'],
                 "active" => $userRecord->{"{$columnDeleted}"} === '1' ? false : true,
                 "displayName" => $dataFormat['userName'],
@@ -332,7 +332,7 @@ class UserController extends LaravelController
                     "primary" => true
                 ]],
                 "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" => [
-                    "department" => array_get($dataFormat, 'department', "")
+                    "department" => array_get($dataFormat, "department", "")
                 ],
             ];
         }
@@ -356,7 +356,7 @@ class UserController extends LaravelController
         }
 
         if (!$user) {
-            throw (new SCIMException('User Not Found'))->setCode(404);
+            throw (new SCIMException("User Not Found"))->setCode(404);
         }
     }
 
@@ -382,19 +382,19 @@ class UserController extends LaravelController
         }
 
         if (!$user) {
-            throw (new SCIMException('User Not Found'))->setCode(404);
+            throw (new SCIMException("User Not Found"))->setCode(404);
         }
 
-        if ($input['schemas'] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+        if ($input["schemas"] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
             throw (new SCIMException(sprintf(
                 'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
-                json_encode($input['schemas'])
+                json_encode($input["schemas"])
             )))->setCode(404);
         }
 
-        if (isset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'])) {
-            $input['Operations'] = $input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations'];
-            unset($input['urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations']);
+        if (isset($input["urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations"])) {
+            $input["Operations"] = $input["urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations"];
+            unset($input["urn:ietf:params:scim:api:messages:2.0:PatchOp:Operations"]);
         }
 
         return $input;

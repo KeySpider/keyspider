@@ -2,14 +2,13 @@
 
 namespace App\Logging;
 
+use App\Commons\Consts;
 use Monolog\Logger;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\LineFormatter;
 
 class CreateValidationLogger
 {
-    const dateFormat = 'Y/m/d H:i:s';
-
     /**
      * カスタムMonologインスタンスの生成
      *
@@ -19,14 +18,14 @@ class CreateValidationLogger
     public function __invoke(array $config)
     {
         // monologが理解できるlevel表記に変更
-        $level = Logger::toMonologLevel($config['level']);
+        $level = Logger::toMonologLevel($config["level"]);
         // ルーティング設定
-        $hander = new RotatingFileHandler($config['path'], $config['days'], $level);  
+        $hander = new RotatingFileHandler($config["path"], $config["days"], $level);  
         // ログのフォーマット指定
         // ここでは指定(null)しないが、1つ目の引数にログのformatを指定することも可能
-        $hander->setFormatter(new LineFormatter(null, self::dateFormat, true, true));
+        $hander->setFormatter(new LineFormatter(null, Consts::DATE_FORMAT_YMDHIS, true, true));
         // ログ作成 Custom1はログに表記される
-        $logger = new Logger('Validation');  
+        $logger = new Logger("Validation");  
         $logger->pushHandler($hander);
         return $logger;
     }

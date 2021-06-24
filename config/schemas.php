@@ -45,7 +45,7 @@ return [
       "LocaleSidKey": "ja_JP",
       "EmailEncodingKey": "UTF-8",
       "LanguageLocaleKey": "ja",
-      "ProfileId": "00e2w000001hwZO"
+      "ProfileId": "00e7F000001YSDN"
   }',
     'createGroup' => '{
       "Name":"G1",

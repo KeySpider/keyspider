@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -10,7 +11,6 @@ use Illuminate\Support\Facades\Log;
 
 class ExportRDB extends Command
 {
-    public const EXPORT_RDB_CONFIG = 'RDB Extract Process Configration';
     /**
      * The name and signature of the console command.
      *
@@ -44,9 +44,9 @@ class ExportRDB extends Command
     {
         $sections = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
         
-        if (array_key_exists(self::EXPORT_RDB_CONFIG, $sections)) {
+        if (array_key_exists(Consts::RDB_EXTRACT_PROCESS_CONFIGURATION, $sections)) {
             // Setup schedule for Extract
-            $extractSettingManager = new ExtractSettingsManager(self::EXPORT_RDB_CONFIG);
+            $extractSettingManager = new ExtractSettingsManager(Consts::RDB_EXTRACT_PROCESS_CONFIGURATION);
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
             $arrayOfSetting = [];
             foreach ($extractSetting as $ex) {

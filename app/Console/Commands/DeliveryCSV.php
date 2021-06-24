@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Jobs\DeliveryJob;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Delivery\DeliveryQueueManager;
@@ -29,22 +30,19 @@ use Illuminate\Support\Facades\Log;
 
 class DeliveryCSV extends Command
 {
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-    public const DELIVERRY_CSV_CONFIG = 'CSV Output Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:delivery';
+    protected $signature = "command:delivery";
     
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Reader setting import file and process it';
+    protected $description = "Reader setting import file and process it";
 
     /**
      * Execute the console command.
@@ -56,7 +54,7 @@ class DeliveryCSV extends Command
     {
         $sections = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
         
-        if (array_key_exists(self::DELIVERRY_CSV_CONFIG, $sections)) {
+        if (array_key_exists(Consts::CSV_OUTPUT_PROCESS_CONFIGURATION, $sections)) {
             $scheduleDeliveryExecution = (new DeliverySettingsManager())->getScheduleDeliveryExecution();
             if ($scheduleDeliveryExecution) {
                 Log::info(json_encode($scheduleDeliveryExecution, JSON_PRETTY_PRINT));
@@ -64,10 +62,10 @@ class DeliveryCSV extends Command
                     $this->deliveryDataForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run delivery schedule, getting error from config ini files');
+                Log::error("Can not run delivery schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
     }
 
@@ -75,7 +73,7 @@ class DeliveryCSV extends Command
     {
         $queue = new DeliveryQueueManager();
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $delivery = new DeliveryJob($setting);
             $queue->push($delivery);
         }

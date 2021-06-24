@@ -20,36 +20,30 @@
 
 namespace App\Ldaplibs\Extract;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ExtractSettingsManager extends SettingsManager
 {
-    public const EXTRACTION_PROCESS_FORMAT_CONVERSION = 'Extraction Process Format Conversion';
-    public const OUTPUT_PROCESS_CONVERSION = 'Output Process Conversion';
-
     protected $iniExportSettingsFiles = [];
 
     /**
      * ExtractSettingsManager constructor.
      * @param null $iniSettingsFiles
      */
-    const CSV_EXTRACT_PROCESS_CONFIGRATION = 'CSV Extract Process Configration';
-
-    const EXTRACT_CONFIG = 'extract_config';
-
     public function __construct($extract_config_tag = null)
     {
         parent::__construct();
-        //        $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+        //        $this->iniExportSettingsFiles = $this->keySpider[Consts::CSV_EXTRACT_PROCESS_CONFIGURATION][Consts::EXTRACT_CONFIG];
         if ($extract_config_tag == null) {
-            $this->iniExportSettingsFiles = $this->keySpider[self::CSV_EXTRACT_PROCESS_CONFIGRATION][self::EXTRACT_CONFIG];
+            $this->iniExportSettingsFiles = $this->keySpider[Consts::CSV_EXTRACT_PROCESS_CONFIGURATION][Consts::EXTRACT_CONFIG];
         } else {
-            if (empty($this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG])) {
+            if (empty($this->keySpider[$extract_config_tag][Consts::EXTRACT_CONFIG])) {
                 $this->iniExportSettingsFiles = [];
             } else {
-                $this->iniExportSettingsFiles = $this->keySpider[$extract_config_tag][self::EXTRACT_CONFIG];
+                $this->iniExportSettingsFiles = $this->keySpider[$extract_config_tag][Consts::EXTRACT_CONFIG];
             }
         }
     }
@@ -68,20 +62,20 @@ class ExtractSettingsManager extends SettingsManager
                 $masterDB = $this->masterDBConfigData;
                 $tableContent = $this->convertFollowingDbMaster(
                     $tableContent,
-                    self::EXTRACTION_CONDITION,
+                    Consts::EXTRACTION_PROCESS_CONDITION,
                     $masterDB
                 );
 
                 $tableContent = $this->convertValueFromDBMaster($tableContent, $masterDB);
-                foreach ($tableContent[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION]['ExecutionTime'] as $specifyTime) {
-                    $filesArray['setting'] = $tableContent;
+                foreach ($tableContent[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXECUTION_TIME] as $specifyTime) {
+                    $filesArray["setting"] = $tableContent;
                     $timeArray[$specifyTime][] = $filesArray;
                 }
             }
             ksort($timeArray);
             return $timeArray;
         }
-        Log::error('Error in Extract INI file');
+        Log::error("Error in Extract INI file");
         return [];
     }
 
@@ -125,10 +119,11 @@ class ExtractSettingsManager extends SettingsManager
     private function isExtractIniValid($iniArray, $filename = null): bool
     {
         $rules = [
-            self::EXTRACTION_PROCESS_BASIC_CONFIGURATION => 'required',
-            self::EXTRACTION_CONDITION => 'required',
-            self::EXTRACTION_PROCESS_FORMAT_CONVERSION => 'required',
-            // self::OUTPUT_PROCESS_CONVERSION => 'required'
+            Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION => "required",
+            Consts::EXTRACTION_PROCESS_CONDITION => "required",
+            Consts::EXTRACTION_PROCESS_FORMAT_CONVERSION => "required",
+            // Consts::OUTPUT_PROCESS_CONVERSION => "required"
+            // Consts::EXTRACTION_LDAP_CONNECTING_CONFIGURATION => "required",
         ];
 
         $validate = Validator::make($iniArray, $rules);
@@ -144,17 +139,21 @@ class ExtractSettingsManager extends SettingsManager
             return false;
         }
 
-        if (!isset($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
+        if (!isset($tempIniArray["OUTPUT_PROCESS_CONVERSION"]["output_conversion"])) {
             return true;
         }
 
-        if (file_exists($tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'])) {
+        if (file_exists($tempIniArray["OUTPUT_PROCESS_CONVERSION"]["output_conversion"])) {
             return true;
         }
 
-        Log::error('Error file: ' . ($filename ?: ''));
-        $outputProcessConversion = $tempIniArray['OUTPUT_PROCESS_CONVERSION']['output_conversion'];
-        Log::error('The file is not existed: ' . $outputProcessConversion);
+        if(!isset($tempIniArray["EXTRACTION_LDAP_CONNECTING_CONFIGURATION"])) {
+            return true;
+        }
+
+        Log::error("Error file: " . ($filename ?: ""));
+        $outputProcessConversion = $tempIniArray["OUTPUT_PROCESS_CONVERSION"]["output_conversion"];
+        Log::error("The file is not existed: " . $outputProcessConversion);
         return false;
     }
 
@@ -188,7 +187,7 @@ class ExtractSettingsManager extends SettingsManager
         $jsonData = json_encode($table_contents);
         foreach ($masterDB as $table => $masterTable) {
             foreach ($masterTable as $key => $value) {
-                if (strpos($key, '.') !== false) {
+                if (strpos($key, ".") !== false) {
                     $jsonData = str_replace($key, $value, $jsonData);
                 }
             }
@@ -203,12 +202,12 @@ class ExtractSettingsManager extends SettingsManager
     private function getValidatorOfBasicConfiguration($iniArray): array
     {
         $tempIniArray = [];
-        $tempIniArray['EXTRACTION_PROCESS_BASIC_CONFIGURATION'] =
-            $iniArray[self::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
-        $tempIniArray['OUTPUT_PROCESS_CONVERSION'] = $iniArray[self::OUTPUT_PROCESS_CONVERSION];
+        $tempIniArray["EXTRACTION_PROCESS_BASIC_CONFIGURATION"] =
+            $iniArray[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION];
+        $tempIniArray["OUTPUT_PROCESS_CONVERSION"] = $iniArray[Consts::OUTPUT_PROCESS_CONVERSION];
         $rules = [
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime' => ['required', 'array'],
-            'EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType' => ['required', 'in:CSV,SCIM,AzureAD,Salesforce,RDB'],
+            "EXTRACTION_PROCESS_BASIC_CONFIGURATION.ExecutionTime" => ["required", "array"],
+            "EXTRACTION_PROCESS_BASIC_CONFIGURATION.OutputType" => ["required", "in:CSV,SCIM,AzureAD,Salesforce,LDAP,RDB"],
         ];
         $validate = Validator::make($tempIniArray, $rules);
         return array($tempIniArray, $validate);
@@ -220,8 +219,8 @@ class ExtractSettingsManager extends SettingsManager
      */
     private function doLogsForValidation($filename, $validate): void
     {
-        Log::error('Key error validation');
-        Log::error('Error file: ' . ($filename ?: ''));
+        Log::error("Key error validation");
+        Log::error("Error file: " . ($filename ?: ""));
         Log::error(json_encode($validate->getMessageBag(), JSON_PRETTY_PRINT));
     }
 }

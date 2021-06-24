@@ -20,6 +20,8 @@
 
 namespace App\Ldaplibs\Import;
 
+use App\Commons\Consts;
+use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use Carbon\Carbon;
@@ -35,23 +37,20 @@ class RDBReader
     /**
      * define const
      */
-    public const RDB_IMPORT_DATABASE_CONFIGRATION = 'RDB Import Database Configuration';
-    public const RDB_INPUT_BASIC_CONFIGURATION = 'RDB Input Basic Configuration';
-    public const CONVERSION = 'RDB Input Format Conversion';
-    public const ORACLE = 'oracle';
-
+    const ORACLE = 'oracle';
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
+
+    private $cnvMethod = array('ins'=>'create', 'upd'=>'update', 'del'=>'delete');
 
     protected $prefix;
     protected $rdbRecords;
-
-    private $cnvMethod = array('ins'=>'create', 'upd'=>'update', 'del'=>'delete');
+    protected $settingManagement;
 
     public function __construct()
     {
         $this->prefix = null;
         $this->rdbRecords = [];
-        $this->settingManagement = new SettingsManager();
+        $this->settingManagement = new SettingsManager;
     }
 
     /**
@@ -60,7 +59,7 @@ class RDBReader
      */
     public function importFromRDBData($dataPost, $setting)
     {
-        $this->prefix = $dataPost[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
+        $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
         var_dump($this->prefix . ' is processing now');
 
         // get real config
@@ -68,11 +67,11 @@ class RDBReader
 
         try {
             // Get data from Oracle.
-            $conn = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['Connection'];
-            $table = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ImportTable'];
-            $pkColumn = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['PrimaryColmn'];
-            $conversions = $setting[self::CONVERSION];
-            $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]['ExternalID'];
+            $conn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::CONNECTION_TYPE];
+            $table = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::IMPORT_TABLE];
+            $pkColumn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::PRIMARY_COLUMN];
+            $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
+            $conversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
 
             // Initialize
             $this->rdbRecords = [];
@@ -228,7 +227,8 @@ class RDBReader
      */
     private function insertTodayData($mode, $setting, $records)
     {
-        $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
+        $externalID = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
         try {
             DB::beginTransaction();
             DB::statement('ALTER TABLE "' . $table . $mode . '" ALTER COLUMN "jsonColumn" TYPE text;');
@@ -236,7 +236,7 @@ class RDBReader
             foreach ($records as $record) {
                 ksort($record);
                 $data = [
-                    'ID' => $record['ID'],
+                    'ID' => $record[$externalID],
                     'jsonColumn' => json_encode($record, JSON_UNESCAPED_UNICODE),
                 ];
                 DB::table($table . $mode)->insert($data);
@@ -250,7 +250,7 @@ class RDBReader
 
     private function CRUDRecord($setting)
     {
-        $table = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
+        $table = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
 
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
@@ -314,13 +314,13 @@ class RDBReader
      */
     private function doCudOperation($mode, $setting, $sarray)
     {
-        $diffTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['OutputTable'];
-        $itemTable = $setting[self::RDB_INPUT_BASIC_CONFIGURATION]['Prefix'];
-        $externalID = $setting[self::RDB_IMPORT_DATABASE_CONFIGRATION]["ExternalID"];
+        $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
+        $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
+        $externalId = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
 
         // Sanitize ID array
         $varray = json_decode(json_encode($sarray), true);
-        $validNumber = array_column($varray, 'ID');
+        $validNumber = array_column($varray, "ID");
 
         $scimInfo = array(
             'provisoning' => 'RDBImport',
@@ -335,16 +335,16 @@ class RDBReader
         
         try {
             // Master table CUD -CU process
-            if ($mode == 'del') {
+            if ($mode == "del") {
                 foreach ($validNumber as $id) {
                     DB::beginTransaction();
                     //DB::enableQueryLog();
-                    DB::table($itemTable)->where("ID", $id)
-                        ->update(['DeleteFlag' => '1', $externalID => NULL]);
+                    DB::table($itemTable)->where($externalID, $id)
+                        ->update(["DeleteFlag" => '1', $externalID => NULL]);
                     //var_dump(DB::getQueryLog());
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($id, $itemTable);
+                    $this->setUpdateFlags($id, $itemTable, "ID");
                     DB::commit();
 
                     $scimInfo['itemId'] = $id;
@@ -357,18 +357,19 @@ class RDBReader
             // Master table CUD -D process
             foreach ($this->rdbRecords as $rdbRecord) {
                 // Target of processing 
-                if (in_array($rdbRecord['ID'], $validNumber)) {
+                if (in_array($rdbRecord[$externalId], $validNumber)) {
                     DB::beginTransaction();
 
-                    $data = DB::table($itemTable)->where("ID", $rdbRecord['ID'])->first();
+                    $data = DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->first();
                     if ($data) {
-                        DB::table($itemTable)->where("ID", $rdbRecord['ID'])->update($rdbRecord);
+                        DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->update($rdbRecord);
                     } else {
+                        $rdbRecord["ID"] = (new Creator())->makeIdBasedOnMicrotime($itemTable);
                         DB::table($itemTable)->insert($rdbRecord);
                     }
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($rdbRecord['ID'], $itemTable);
+                    $this->setUpdateFlags($rdbRecord[$externalId], $itemTable, $externalId);
                     DB::commit();
 
                     $scimInfo['itemId'] = $rdbRecord['ID'];
@@ -393,13 +394,13 @@ class RDBReader
      * Update flag reset process
      * 
      */
-    private function setUpdateFlags($id, $itemTable)
+    private function setUpdateFlags($id, $itemTable, $searchClumn)
     {
         $settingManagement = new SettingsManager();
         $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($itemTable);
         $setValues[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($itemTable);
 
-        DB::table($itemTable)->where("ID", $id)
+        DB::table($itemTable)->where($searchClumn, $id)
             ->update($setValues);
     }
 }

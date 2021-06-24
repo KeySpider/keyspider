@@ -6,12 +6,12 @@ use OneLogin\api\OneLoginClient;
 
 class Client extends OneLoginClient
 {
-    const CREATE_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles';
-    const UPDATE_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s';
-    const DELETE_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s';
-    const GET_USERS_FOR_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s/users';
-    const ADD_USER_TO_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s/users';
-    const DELETE_USER_TO_ROLE_URL = 'https://api.%s.onelogin.com/api/2/roles/%s/users';
+    private const CREATE_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles";
+    private const UPDATE_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles/%s";
+    private const DELETE_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles/%s";
+    private const GET_USERS_FOR_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles/%s/users";
+    private const ADD_USER_TO_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles/%s/users";
+    private const DELETE_USER_TO_ROLE_URL = "https://api.%s.onelogin.com/api/2/roles/%s/users";
 
     public function createRole($roleParams)
     {
@@ -25,8 +25,8 @@ class Client extends OneLoginClient
             $response = $this->client->post(
                 $url,
                 array(
-                    'json' => $roleParams,
-                    'headers' => $headers
+                    "json" => $roleParams,
+                    "headers" => $headers
                 )
             );
 
@@ -55,8 +55,8 @@ class Client extends OneLoginClient
             $response = $this->client->put(
                 $url,
                 array(
-                    'json' => $roleParams,
-                    'headers' => $headers
+                    "json" => $roleParams,
+                    "headers" => $headers
                 )
             );
 
@@ -85,7 +85,7 @@ class Client extends OneLoginClient
             $response = $this->client->delete(
                 $url,
                 array(
-                    'headers' => $headers
+                    "headers" => $headers
                 )
             );
 
@@ -115,7 +115,7 @@ class Client extends OneLoginClient
             $response = $this->client->get(
                 $url,
                 array(
-                    'headers' => $headers
+                    "headers" => $headers
                 )
             );
 
@@ -143,8 +143,8 @@ class Client extends OneLoginClient
             $response = $this->client->post(
                 $url,
                 array(
-                    'json' => $userIds,
-                    'headers' => $headers
+                    "json" => $userIds,
+                    "headers" => $headers
                 )
             );
 
@@ -174,8 +174,8 @@ class Client extends OneLoginClient
             $response = $this->client->delete(
                 $url,
                 array(
-                    'json' => $userIds,
-                    'headers' => $headers
+                    "json" => $userIds,
+                    "headers" => $headers
                 )
             );
 

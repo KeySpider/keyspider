@@ -20,6 +20,7 @@
 
 namespace App\Ldaplibs\Delivery;
 
+use App\Commons\Consts;
 use App\Http\Models\DeliveryHistory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
@@ -27,8 +28,6 @@ use Illuminate\Support\Facades\Log;
 
 class CSVDelivery implements DataDelivery
 {
-    public const CSV_OUTPUT_PROCESS_CONFIGURATION = 'CSV Output Process Configuration';
-
     protected $setting;
     protected $deliveryHistoryModel;
 
@@ -51,13 +50,13 @@ class CSVDelivery implements DataDelivery
      */
     public function delivery()
     {
-        $deliverySource = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['TempPath'];
-        $deliveryDestination = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FilePath'];
-        $filePattern = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['FileName'];
-        $outputType = $this->setting[self::CSV_OUTPUT_PROCESS_CONFIGURATION]['OutputType'];
+        $deliverySource = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::TEMP_PATH];
+        $deliveryDestination = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::FILE_PATH];
+        $filePattern = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::FILE_NAME];
+        $outputType = $this->setting[Consts::CSV_OUTPUT_PROCESS_CONFIGURATION][Consts::OUTPUT_TYPE];
 
-        Log::info('From: ' . $deliverySource);
-        Log::info('To  : ' . $deliveryDestination);
+        Log::info("From: " . $deliverySource);
+        Log::info("To  : " . $deliveryDestination);
 
         if (!is_dir($deliverySource)) {
             return;
@@ -67,35 +66,35 @@ class CSVDelivery implements DataDelivery
 
         foreach ($sourceFiles as $sourceFile) {
             if ($this->isMatchedWithPattern($sourceFile, $filePattern)) {
-                $deliverySourcePath = $deliverySource . '/' . $sourceFile;
-                $deliveryTarget = $deliveryDestination . '/' . $sourceFile;
+                $deliverySourcePath = $deliverySource . "/" . $sourceFile;
+                $deliveryTarget = $deliveryDestination . "/" . $sourceFile;
 
                 $sizeOfSourceFile = File::size($deliverySourcePath);
                 // data delivery history
-                Log::info('Delivery file: ' . $sourceFile);
+                Log::info("Delivery file: " . $sourceFile);
                 $deliveryHistories = [
-                    'output_type' => $outputType,
-                    'delivery_source' => $deliverySourcePath,
-                    'file_size' => (string)$sizeOfSourceFile, // byte
-                    'execution_at' => Carbon::now()->format('Y/m/d h:i'),
-                    'status' => 1 // success
+                    "output_type" => $outputType,
+                    "delivery_source" => $deliverySourcePath,
+                    "file_size" => (string)$sizeOfSourceFile, // byte
+                    "execution_at" => Carbon::now()->format("Y/m/d h:i"),
+                    "status" => 1 // success
                 ];
 
                 mkDirectory($deliveryDestination);
 
                 if (file_exists($deliveryTarget)) {
-                    $newFileName = Carbon::now()->format('Ymd') . random_int(100, 999);
-                    $deliveryTarget = $this->removeExt($sourceFile) . '_' . $newFileName . '.csv';
-                    $deliveryTarget = $deliveryDestination . '/' . $deliveryTarget;
+                    $newFileName = Carbon::now()->format("Ymd") . random_int(100, 999);
+                    $deliveryTarget = $this->removeExt($sourceFile) . "_" . $newFileName . ".csv";
+                    $deliveryTarget = $deliveryDestination . "/" . $deliveryTarget;
                 }
 
                 // move file
                 File::move($deliverySourcePath, $deliveryTarget);
 
                 // save history
-                $deliveryHistories['delivery_target'] = $deliveryTarget;
+                $deliveryHistories["delivery_target"] = $deliveryTarget;
                 $rowsColumn = $this->rowsColumnCSV($deliveryTarget);
-                $deliveryHistories['rows_count'] = $rowsColumn;
+                $deliveryHistories["rows_count"] = $rowsColumn;
                 $this->saveToHistory($this->buildHistoryData($deliveryHistories));
             }
         }
@@ -108,7 +107,7 @@ class CSVDelivery implements DataDelivery
      */
     private function isMatchedWithPattern($fileName, $pattern)
     {
-        return !($fileName[0] === '.');
+        return !($fileName[0] === ".");
     }
 
     /**
@@ -117,7 +116,7 @@ class CSVDelivery implements DataDelivery
      */
     public function removeExt($file_name)
     {
-        return preg_replace('/\\.[^.\\s]{3,4}$/', '', $file_name);
+        return preg_replace("/\\.[^.\\s]{3,4}$/", "", $file_name);
     }
 
     /**

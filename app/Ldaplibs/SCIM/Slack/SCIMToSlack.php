@@ -4,40 +4,42 @@ namespace App\Ldaplibs\SCIM\Slack;
 
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\SCIM\Curl;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
-use MacsiDigital\Zoom\Facades\Zoom;
-
 class SCIMToSlack
 {
-    const SCIM_CONFIG = 'SCIM Authentication Configuration';
-
     protected $setting;
     protected $settingManagement;
 
+    private $externalIdName;
+
     /**
      * SCIMToSlack constructor.
-     * @param $setting
      */
-    public function __construct($setting)
+    public function __construct()
+    {
+    }
+
+    public function initialize($setting, $externalIdName)
     {
         $this->setting = $setting;
+        $this->externalIdName = $externalIdName;
         $this->settingManagement = new SettingsManager();
+    }
 
+    public function getServiceName() {
+        return "Slack";
     }
 
     public function createResource($resourceType, $item)
     {
         $camelTableName = ucfirst(strtolower($resourceType));
-        $scimInfo = array(
-            'provisoning' => 'Slack',
-            'scimMethod' => 'create',
-            'table' => $camelTableName,
-            'itemId' => $item['ID'],
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "Slack", "create", $camelTableName, $item['ID'], "", ""
         );
 
         if ($camelTableName == 'User') {
@@ -52,78 +54,52 @@ class SCIMToSlack
 
         $tmpl = $this->replaceResource($resourceType, $item);
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
-        $url = $scimOptions['url'] . $resourceType . 's/';
-        $auth = $scimOptions['authorization'];
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
-        $return_id = '';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
+        $url = $scimOptions["url"] . $resourceType . "s/";
+        $auth = $scimOptions["authorization"];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url);
-        curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "POST", $curlHeader, $tmpl);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if(!curl_errno($tuCurl)){
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    $curl_status = $responce['Errors']['description'];
-                    Log::error('Create faild ststus = ' . $curl_status);
-                    Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-
-                    $scimInfo['message'] = $curl_status;
-                    $this->settingManagement->faildLogger($scimInfo);
-                    return null;
-                }
-
-                if ( array_key_exists('id', $responce)) {
-                    $return_id = $responce['id'];
-                    Log::info('Create ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-
-                    $this->settingManagement->detailLogger($scimInfo);
-
-                    return $return_id;
-                }
-
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-
-                $scimInfo['message'] = curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-
-            }
-            curl_close($tuCurl);
-            return null;
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute("id");
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
-            return null;
         }
+        else if ($result == "http_code_error") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::error("Create faild ststus = " . $responce["Errors"]["description"]);
+            Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $scimInfo["message"] = $response["Errors"]["description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("Create " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            $returnValue = $response["id"];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
     public function updateResource($resourceType, $item)
     {
         $camelTableName = ucfirst(strtolower($resourceType));
-        $scimInfo = array(
-            'provisoning' => 'Slack',
-            'scimMethod' => 'update',
-            'table' => $camelTableName,
-            'itemId' => $item['ID'],
-            'message' => '',
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "Slack", "update", $camelTableName, $item['ID'], "", ""
         );
 
         if ($camelTableName == 'User') {
@@ -137,153 +113,149 @@ class SCIMToSlack
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
-        $externalID = $item['externalSlackID'];
 
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
-        $url = $scimOptions['url'] . $resourceType . 's/';
-        $auth = $scimOptions['authorization'];
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
-        $return_id = '';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
+        $url = $scimOptions["url"] . $resourceType . "s/" . $item[$this->externalIdName];
+        $auth = $scimOptions["authorization"];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        // curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "PUT", $curlHeader, $tmpl);
 
-        try {
-            $tuData = curl_exec($tuCurl);
-            if(!curl_errno($tuCurl)){
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    $curl_status = $responce['Errors']['description'];
-                    Log::error('Replace faild ststus = ' . $curl_status);
-                    Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-
-                    $scimInfo['message'] = $curl_status;
-                    $this->settingManagement->faildLogger($scimInfo);
-                    return null;
-                }
-
-                if ( array_key_exists('id', $responce)) {
-                    $return_id = $responce['id'];
-                    Log::info('Replace ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-
-                    $this->settingManagement->detailLogger($scimInfo);
-
-                    return $return_id;
-                };
-
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
-
-                $scimInfo['message'] = curl_error($tuCurl);
-                $this->settingManagement->faildLogger($scimInfo);
-            }
-            curl_close($tuCurl);
-            return null;
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-
-            $scimInfo['message'] = $exception->getMessage();
+        $result = $curl->execute("id");
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
             $this->settingManagement->faildLogger($scimInfo);
-            return null;
         }
+        else if ($result == "http_code_error") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::error("Replace faild ststus = " . $responce["Errors"]["description"]);
+            Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $scimInfo["message"] = $response["Errors"]["description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("Replace " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            $returnValue = $item[$this->externalIdName];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
     public function deleteResource($resourceType, $item)
     {
-        $scimInfo = array(
-            'provisoning' => 'Slack',
-            'scimMethod' => 'delete',
-            'table' => ucfirst(strtolower($resourceType)),
-            'itemId' => $item['ID'],
-            'itemName' => $item['userName'],
-            'message' => '',
+        $camelTableName = ucfirst(strtolower($resourceType));
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "Slack", "delete", $camelTableName, $item['ID'], "", ""
         );
 
-        $externalID = $item['externalSlackID'];
-
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
-        $url = $scimOptions['url'] . $resourceType . 's/';
-        $auth = $scimOptions['authorization'];
-
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $externalID);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "accept: */*")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-
-        try {
-            $tuData = curl_exec($tuCurl);
-            if (!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                $responce = json_decode($tuData, true);
-
-                if ((int)$info['http_code'] >= 300) {
-                    $curl_status = $responce['Errors']['description'];
-                    Log::error('Delete faild ststus = ' . $curl_status);
-                    Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                    curl_close($tuCurl);
-
-                    $scimInfo['message'] = $curl_status;
-                    $this->settingManagement->faildLogger($scimInfo);
-                    return null;
-                }
-
-                Log::info('Delete ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-                curl_close($tuCurl);
-
-                $this->settingManagement->detailLogger($scimInfo);
-
-                return $externalID;
-            }
-            return null;
-            
-        } catch (\Exception $exception) {
-            Log::debug($exception->getMessage());
-
-            $scimInfo['message'] = $exception->getMessage();
-            $this->settingManagement->faildLogger($scimInfo);
-            return null;
+        if ($camelTableName == 'User') {
+            $scimInfo['itemName'] = $item['userName'];
+        } else {
+            $scimInfo['itemName'] = $item['displayName'];
         }
 
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
+        $url = $scimOptions["url"] . $resourceType . "s/" . $item[$this->externalIdName];
+        $auth = $scimOptions["authorization"];
+
+        $curlHeader = array("Authorization: $auth", "accept: */*");
+        $curl = new Curl();
+        $curl->init($url, "DELETE", $curlHeader);
+
+        $result = $curl->execute();
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+            $scimInfo["message"] = "Curl error: " . $curl->getError();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "http_code_error") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::error("Delete faild ststus = " . $responce["Errors"]["description"]);
+            Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $scimInfo["message"] = $response["Errors"]["description"];
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
+        }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("Delete " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $this->settingManagement->detailLogger($scimInfo);
+            if ($camelTableName == "User") {
+                $returnValue = $item[$this->externalIdName];
+            } else {
+                $returnValue = true;
+            }
+        }
+        $curl->close();
+        return $returnValue;
     }
 
-    public function replaceResource($resourceType, $item)
+    public function passwordResource($resourceType, $item, $externalId)
     {
-        if ($resourceType == 'User') {
+        return;
+    }
+
+    public function statusResource($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    public function userGroup($resourceType, $item, $externalId)
+    {
+        if (strtolower($resourceType) == "user") {
+            $memberOf = $this->getListOfGroupsUserBelongedTo($item["ID"], "Slack");
+            foreach ($memberOf as $groupID) {
+                $addMemberResult = $this->addMemberToGroups($externalId, $groupID, "0");
+            }
+            $addMemberResult = $this->removeMemberToGroup($item["ID"], $externalId);
+        }
+    }
+
+    public function userRole($resourceType, $item, $externalId)
+    {
+        return;
+    }
+
+    private function replaceResource($resourceType, $item)
+    {
+        if ($resourceType == "User") {
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
-            $tmp = Config::get('scim-slack.createUser');
-            $isActive = 'true';
+            $tmp = Config::get("scim-slack.createUser");
+            $isActive = "true";
 
-            $macnt = explode('@', $item['mail']);
+            $macnt = explode("@", $item["mail"]);
             if (strlen($macnt[0]) > 20) {
-                $item['userName'] = substr($macnt[0], -21);
+                $item["userName"] = substr($macnt[0], -21);
             } else {
-                $item['userName'] = $macnt[0];
+                $item["userName"] = $macnt[0];
             }
 
             foreach ($item as $key => $value) {
-                if ($key === 'locked') {
-                    if ( $value == '1') $isActive = 'false';
+                if ($key === "locked") {
+                    if ( $value == "1") $isActive = "false";
                     $als = sprintf("       \"active\":%s,", $isActive);
                     $tmp = str_replace("accountLockStatus", $als, $tmp);
                     continue;
@@ -300,9 +272,8 @@ class SCIMToSlack
             $tmp = str_replace("accountLockStatus\n", '', $tmp);
 
         } else {
-            $tmp = Config::get('scim-slack.createGroup');
-            $tmp = str_replace("(Organization.DisplayName)", $item['displayName'], $tmp);
-            $tmp = str_replace("(Organization.externalID)", $item['externalSlackID'], $tmp);
+            $tmp = Config::get("scim-slack.createGroup");
+            $tmp = str_replace("(Group.DisplayName)", $item["displayName"], $tmp);
         }
         $pattern = '/"\((.*)\)"/';
         $nullable = preg_replace($pattern, '""', $tmp);
@@ -310,27 +281,14 @@ class SCIMToSlack
         return $nullable;
     }
 
-    public function updateGroupMemebers($resourceType, $item, $externalID)
-    {
-        if (strtolower($resourceType) == 'user') {
-            $memberOf = $this->getListOfGroupsUserBelongedTo($item, 'Slack');
-            foreach ($memberOf as $groupID) {
-                $addMemberResult = $this->addMemberToGroups($externalID, $groupID, '0');
-                echo "\nAdd member to group result:\n";
-                var_dump($addMemberResult);
-            }
-            $addMemberResult = $this->removeMemberToGroup($item['ID'], $externalID);
-        }
-    }
-
-    public function getListOfGroupsUserBelongedTo($userAttibutes, $scims = ''): array
+    private function getListOfGroupsUserBelongedTo($id, $scims = ""): array
     {
         $memberOf = [];
-        $memberOf = (new RegExpsManager())->getOrganizationInExternalID($userAttibutes['ID'], $scims);
+        $memberOf = (new RegExpsManager())->getGroupInExternalID($id, $scims);
         return $memberOf;
     }
 
-    public function addMemberToGroups($memberId, $groupId, $delFlag)
+    private function addMemberToGroups($memberId, $groupId, $delFlag)
     {
         try {
             return $this->addMemberToGroup($memberId, $groupId, $delFlag);
@@ -341,73 +299,69 @@ class SCIMToSlack
 
     private function addMemberToGroup($memberId, $groupId, $delFlag)
     {
-        $scimOptions = parse_ini_file(storage_path('ini_configs/GeneralSettings.ini'), true) ['Slack Keys'];
-        $url = $scimOptions['url'] . 'Groups/';
-        $auth = $scimOptions['authorization'];
-        $accept = $scimOptions['accept'];
-        $contentType = $scimOptions['ContentType'];
-        $return_id = '';
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Slack Keys"];
+        $url = $scimOptions["url"] . "Groups/" . $groupId;
+        $auth = $scimOptions["authorization"];
+        $accept = $scimOptions["accept"];
+        $contentType = $scimOptions["ContentType"];
 
-        $tmpl = Config::get('scim-slack.patchGroup');
-        if ($delFlag == '1') {
-            $tmpl = Config::get('scim-slack.removeGroup');
+        $tmpl = Config::get("scim-slack.patchGroup");
+        if ($delFlag == "1") {
+            $tmpl = Config::get("scim-slack.removeGroup");
         }
         $tmpl = str_replace("(memberOfSlack)", $memberId, $tmpl);
 
-        $tuCurl = curl_init();
-        curl_setopt($tuCurl, CURLOPT_URL, $url . $groupId);
-        // curl_setopt($tuCurl, CURLOPT_POST, 1);
-        curl_setopt($tuCurl, CURLOPT_CUSTOMREQUEST, 'PATCH');
-        curl_setopt(
-            $tuCurl,
-            CURLOPT_HTTPHEADER,
-            array("Authorization: $auth", "Content-type: $contentType", "accept: $accept")
-        );
-        curl_setopt($tuCurl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($tuCurl, CURLOPT_POSTFIELDS, $tmpl);
+        $curlHeader = array("Authorization: $auth", "Content-type: $contentType", "accept: $accept");
+        $curl = new Curl();
+        $curl->init($url, "PATCH", $curlHeader, $tmpl);
 
-        $tuData = curl_exec($tuCurl);
-        $responce = json_decode($tuData, true);
-        $info = curl_getinfo($tuCurl);
-
-        if (empty($responce)) {
-            if(!curl_errno($tuCurl)) {
-                $info = curl_getinfo($tuCurl);
-                Log::info('add member ' . $info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            } else {
-                Log::error('Curl error: ' . curl_error($tuCurl));
+        $result = $curl->execute();
+        $returnValue = null;
+        if ($result == "curl_error") {
+            Log::error("Curl error: " . $curl->getError());
+        }
+        else if ($result == "http_code_error") {
+            if (array_key_exists("Errors", $responce)) {
+                $info = $curl->getInfo();
+                $response = json_decode($curl->getResponse(), true);
+                Log::error("add member faild ststus = " . $response["Errors"]["description"]);
+                Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
             }
-            curl_close($tuCurl);
-            return $responce['id'];
         }
-        
-        if (array_key_exists("Errors", $responce)) {
-            $curl_status = $responce['Errors']['description'];
-            Log::error('add member faild ststus = ' . $curl_status);
-            Log::error($info['total_time'] . ' seconds to send a request to ' . $info['url']);
-            curl_close($tuCurl);
-            return null;
+        else if ($result == "exception") {
+            Log::debug($curl->getException()->getMessage());
+            $scimInfo["message"] = $curl->getException()->getMessage();
+            $this->settingManagement->faildLogger($scimInfo);
         }
+        else if ($result == "success") {
+            $info = $curl->getInfo();
+            $response = json_decode($curl->getResponse(), true);
+            Log::info("add member " . $info["total_time"] . " seconds to send a request to " . $info["url"]);
+            $returnValue = $response["id"];
+        }
+        $curl->close();
+        return $returnValue;
     }
 
-    private function removeMemberToGroup($uid, $externalID)
+    private function removeMemberToGroup($id, $externalId)
     {
-        $table = 'UserToOrganization';
+        $table = "UserToGroup";
         $queries = DB::table($table)
-                    ->select('Organization_ID')
-                    ->where('User_ID', $uid)
-                    ->where('DeleteFlag', '1')->get();
+                    ->select("Group_ID")
+                    ->where("User_ID", $id)
+                    ->where("DeleteFlag", "1")->get();
 
         foreach ($queries as $key => $value) {
 
-            $table = 'Organization';
+            $table = "Group";
             $slackQueries = DB::table($table)
-                        ->select('externalSlackID')
-                        ->where('ID', $value->Organization_ID)
+                        ->select($this->externalIdName)
+                        ->where("ID", $value->Group_ID)
                         ->get();
-                       
+
+            $externalIdName = $this->externalIdName;
             foreach ($slackQueries as $key => $value) {
-                $addMemberResult = $this->addMemberToGroup($externalID, $value->externalSlackID, '1');
+                $addMemberResult = $this->addMemberToGroup($externalId, $value->$externalIdName, "1");
             }
         }
     }
@@ -415,20 +369,20 @@ class SCIMToSlack
     private function requiredItemCheck($scimInfo, $item)
     {
         $rules = [
-            'userName' => 'required',
-            'mail' => ['required', 'email:strict'],
+            "userName" => "required",
+            "mail" => ["required", "email:strict"],
         ];
 
         $validate = Validator::make($item, $rules);
         if ($validate->fails()) {
-            $reqStr = 'Validation error :';
+            $reqStr = "Validation error :";
             foreach ($validate->getMessageBag()->keys() as $index => $value) {
                 if ($index != 0) {
-                    $reqStr = $reqStr . ',';                    
+                    $reqStr = $reqStr . ",";
                 }
-                $reqStr = $reqStr . ' ' . $value;
+                $reqStr = $reqStr . " " . $value;
             }
-            $scimInfo['message'] = $reqStr;
+            $scimInfo["message"] = $reqStr;
 
             $this->settingManagement->validationLogger($scimInfo);
             return false;
@@ -436,6 +390,4 @@ class SCIMToSlack
         return true;
     }
 }
-
-
 

@@ -19,8 +19,9 @@ use MongoDB\Driver\Exception\ExecutionTimeoutException;
 class UserGraphAPI
 {
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
+    private $externalIdName;
 
-    public function __construct()
+    public function __construct($externalIdName)
     {
         $options = parse_ini_file(
             storage_path('ini_configs/GeneralSettings.ini'),
@@ -29,8 +30,8 @@ class UserGraphAPI
 
         $tenantId = $options['tenantId'];
         $clientId = $options['clientId'];
-        $clientSecret = $options['clientSecret'];;
-        $this->initialPassword = $options['initialPassword'];;
+        $clientSecret = $options['clientSecret'];
+        $this->initialPassword = $options['initialPassword'];
 
         $guzzle = new \GuzzleHttp\Client();
         $url = 'https://login.microsoftonline.com/' . $tenantId . '/oauth2/token?api-version=1.0';
@@ -56,6 +57,8 @@ class UserGraphAPI
 
         $this->settingManagement = new SettingsManager();
         $this->getOfficeLicenseField = $this->settingManagement->getOfficeLicenseFields();
+
+        $this->externalIdName = $externalIdName;
     }
 
     private function createUserObject($userAttibutes = []): User
@@ -162,12 +165,11 @@ class UserGraphAPI
             echo "\n- \t\tupdating User: \n";
             // $accountEnable = $userAttibutes['DeleteFlag'] == 0 ? true : false;
             $uPN = $userAttibutes['userPrincipalName'];
-            $uID = $userAttibutes['externalID'];
+            $uID = $userAttibutes[$this->externalIdName];
             //Can not update userPrincipalName
             unset($userAttibutes['userPrincipalName']);
             $newUser = new User($this->getAttributesAfterRemoveUnused($userAttibutes));
 
-            var_dump($newUser);
             $this->graph->createRequest("PATCH", "/users/$uPN")
                 ->attachBody($newUser)
                 ->execute();
@@ -349,7 +351,6 @@ class UserGraphAPI
         if (array_key_exists('visibility', $groupAttributes)) {
             $newGroup->setVisibility($groupAttributes["visibility"]);
         }
-
     
         return $newGroup;
     }
@@ -498,9 +499,8 @@ class UserGraphAPI
             Log::info("Update group: " . json_encode($groupAttibutes));
             echo "\n- \t\tupdating User: \n";
             $accountEnable = $groupAttibutes['DeleteFlag'] == 0 ? true : false;
-            $uID = $groupAttibutes['externalID'];
+            $uID = $groupAttibutes[$this->externalIdName];
             $onlyDisplayName = array_only($groupAttibutes, ['displayName']);
-            // $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($groupAttibutes));
             $newGroup = new Group($this->getGroupAttributesAfterRemoveUnused($onlyDisplayName));
 
             // Scope
@@ -652,8 +652,11 @@ class UserGraphAPI
         return $groups;
     }
 
-    public function removeLicenseDetail($uID)
+    public function removeLicenseDetail($uID, $table)
     {
+        if ($table != 'User') {
+            return;
+        }
         echo "--- RemoveUserLicense ---\n";
         // $data = Config::get('GraphAPISchemas.updateUserAssignLicenseJson');
         // $data = str_replace("($field)", $license, $data);

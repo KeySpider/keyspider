@@ -20,6 +20,7 @@
 
 namespace App\Console\Commands;
 
+use App\Commons\Consts;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\Extract\DBExtractor;
 use App\Ldaplibs\Extract\ExtractSettingsManager;
@@ -28,22 +29,19 @@ use Illuminate\Support\Facades\Log;
 
 class ExportCSV extends Command
 {
-    public const CONFIGURATION = 'CSV Import Process Basic Configuration';
-    public const EXPORT_CSV_CONFIG = 'CSV Extract Process Configration';
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:export';
+    protected $signature = "command:export";
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Reader setting import file and process it';
+    protected $description = "Reader setting import file and process it";
 
     /**
      * Execute the console command.
@@ -55,7 +53,7 @@ class ExportCSV extends Command
     {
         $keyspider = (new SettingsManager())->getAllConfigsFromKeyspiderIni();
 
-        if (array_key_exists(self::EXPORT_CSV_CONFIG, $keyspider)) {
+        if (array_key_exists(Consts::CSV_EXTRACT_PROCESS_CONFIGURATION, $keyspider)) {
             // Setup schedule for Extract
             $extractSettingManager = new ExtractSettingsManager();
             $extractSetting = $extractSettingManager->getRuleOfDataExtract();
@@ -68,10 +66,10 @@ class ExportCSV extends Command
                     $this->exportDataForTimeExecution($settingOfTimeExecution);
                 }
             } else {
-                Log::error('Can not run export schedule, getting error from config ini files');
+                Log::error("Can not run export schedule, getting error from config ini files");
             }
         } else {
-            Log::Info('nothing to do.');
+            Log::Info("nothing to do.");
         }
         return null;
     }
@@ -84,7 +82,7 @@ class ExportCSV extends Command
     public function exportDataForTimeExecution($settings)
     {
         foreach ($settings as $dataSchedule) {
-            $setting = $dataSchedule['setting'];
+            $setting = $dataSchedule["setting"];
             $extractor = new DBExtractor($setting);
             $extractor->processExtract();
         }

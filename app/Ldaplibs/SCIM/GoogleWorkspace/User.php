@@ -10,20 +10,11 @@ class User
 {
     private $service;
     private $user;
-    private $useLockflag = false;
-
-    const FORMAT_CONVERSION = 'Extraction Process Format Conversion';
-    const INI_PATH = 'ini_configs/extract/UserToGWExtraction.ini';
 
     public function __construct($client, $user = null)
     {
         $this->service = new Google_Service_Directory($client);
         $this->user = new Google_Service_Directory_User();
-
-        $fcSection = parse_ini_file(storage_path(self::INI_PATH), true) [self::FORMAT_CONVERSION];
-        if ( array_key_exists('suspended', $fcSection) ) {
-            $this->useLockflag = true;
-        }
     }
 
     public function getUser()
@@ -215,13 +206,11 @@ class User
                 $this->setSshPublicKeysAttribute($type, $value);
                 break;
             case $key == 'suspended':
-                if ($this->useLockflag) {
+                $convBool = false;
+                if ((int)$value == 1) {
                     $convBool = true;
-                    if ((int)$value == 1) {
-                        $convBool = false;
-                    }                    
-                    $this->setSuspended($convBool);
-                }
+                }                    
+                $this->setSuspended($convBool);
                 break;
             case $key == 'websites':
                 $this->setWebsites($value);
