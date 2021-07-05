@@ -17,7 +17,7 @@ class ValidationController extends Controller
 
         $messages = $this->execValidations($nameTable, $requestData);
 
-        $status = 412;
+        $status = 200;
         if (empty($messages)) {
             $status = 200;
             $messages = "validation ok";
