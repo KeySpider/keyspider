@@ -21,6 +21,7 @@
 namespace App\Ldaplibs;
 
 use App\Commons\Consts;
+use App\Commons\Creator;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -729,4 +730,39 @@ class SettingsManager
     }
 
 
+    /**
+     * create summary report record.
+     * 
+     * @param $operation     : 'IN' or 'OUT'
+     * @param $target        : service name
+     * @param $table         : table name
+     * @param $total         : total data count
+     * @param $create        : create data count
+     * @param $update        : update data count
+     * @param $delete        : delete data count
+     * @param $error         : error data count
+     * @param $startDatetime : process start datetime
+     */
+    public function summaryReport($operation, $target, $table,
+        $total, $create, $update, $delete, $error, $startDatetime
+    ) {
+        $tableName = "SummaryReport";
+        $id = (new Creator())->makeIdBasedOnMicrotime($tableName);
+        $report = array(
+            "ID"        => $id,
+            "Operation" => $operation,
+            "Target"    => $target,
+            "Table"     => $table,
+            "Total"     => $total,
+            "Create"    => $create,
+            "Update"    => $update,
+            "Delete"    => $delete,
+            "Error"     => $error,
+            "StartDatetime" => $startDatetime,
+            "EndDatetime" => date(Consts::DATE_FORMAT_YMDHIS),
+        );
+        DB::beginTransaction();
+        DB::table($tableName)->insert($report);
+        DB::commit();
+    }
 }

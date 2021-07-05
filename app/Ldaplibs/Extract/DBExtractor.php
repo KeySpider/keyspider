@@ -21,6 +21,7 @@
 namespace App\Ldaplibs\Extract;
 
 use App\Commons\Consts;
+use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
@@ -341,6 +342,7 @@ class DBExtractor
     public function processOutputDataExtract($settingOutput, $results, $selectColumns, $table)
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
@@ -478,6 +480,11 @@ class DBExtractor
             );
             $settingManagement->summaryLogger($scimInfo);
 
+            $errorCount = count($results) - ($putCount);
+            $settingManagement->summaryReport(
+                "OUT", "CSV", $table, count($results), $putCount, 0, 0, $errorCount, $processStartDatatime
+            );
+
             // Traceing
             $cmd = "Extract";
             $message = sprintf(
@@ -497,8 +504,12 @@ class DBExtractor
             );
             $this->settingManagement->faildLogger($scimInfo);
 
-            // Traceing
             $faildCnt = count($results) - $putCount;
+            $settingManagement->summaryReport(
+                "OUT", "CSV", $table, count($results), $putCount, 0, 0, $faildCnt, $processStartDatatime
+            );
+
+            // Traceing
             $cmd = "Faild";
             $message = sprintf(
                 "Extract %s Object Faild. %d records faild. %s",
@@ -604,6 +615,7 @@ class DBExtractor
     public function processExtractToAD()
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $setting = $this->setting;
 
             $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -791,6 +803,12 @@ class DBExtractor
             );
             $settingManagement->summaryLogger($scimInfo);
 
+            $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "Azure Active Directory", $table, count($results), $createCount, $updateCount,
+                $deleteCount, $errorCount, $processStartDatatime
+            );
+
             // Traceing
             $cmd = $table . " Provisioning done --> Azure Active Directory";
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
@@ -814,6 +832,11 @@ class DBExtractor
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "Azure Active Directory", $table, count($results), $createCount, $updateCount,
+                $deleteCount, $faildCnt, $processStartDatatime
+            );
+
             $cmd = $table . " Provisioning Faild --> Azure Active Directory";
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
@@ -829,6 +852,7 @@ class DBExtractor
     public function processExtractToSCIM($scimLib)
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $setting = $this->setting;
 
             $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -956,6 +980,12 @@ class DBExtractor
             );
             $settingManagement->summaryLogger($scimInfo);
 
+            $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "SCIM(" . $scimLib->getServiceName() . ")", $table, count($results),
+                $createCount, $updateCount, $deleteCount, $errorCount, $processStartDatatime
+            );
+
             // Traceing
             $cmd = $table . " Provisioning done --> " . $scimLib->getServiceName();
             $summarys = "create = $createCount, update = $updateCount, delete = $deleteCount";
@@ -984,6 +1014,11 @@ class DBExtractor
             $this->settingManagement->faildLogger($scimInfo);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "SCIM(" . $scimLib->getServiceName() . ")", $table, count($results),
+                $createCount, $updateCount, $deleteCount, $faildCnt, $processStartDatatime
+            );
+
             $cmd = $table . " Provisioning Faild --> " . $scimLib->getServiceName();
             $message = sprintf(
                 "Provisioning %s Object Faild. %d objects faild.\n%s\n%s",
@@ -999,6 +1034,7 @@ class DBExtractor
     public function processExtractToRDB()
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $setting = $this->setting;
 
             $extractiontable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -1160,12 +1196,23 @@ class DBExtractor
             );
             $settingManagement->summaryLogger($scimInfo);
 
+            $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "RDB", $extractiontable, count($results), $createCount, $updateCount, $deleteCount,
+                $errorCount, $processStartDatatime
+            );
+
         } catch (\Exception $exception) {
             DB::rollback();
             echo ("\e[0;31;47m [$extractionProcessID] $exception \e[0m \n");
             Log::debug($exception);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
+            $settingManagement->summaryReport(
+                "OUT", "RDB", $extractiontable, count($results), $createCount, $updateCount, $deleteCount,
+                $faildCnt, $processStartDatatime
+            );
+
             $cmd = $extractiontable . ' Extracting Faild --> RDB';
             $message = sprintf(
                 "Extracting %s Object Faild. %d objects faild.\n%s\n%s",
@@ -1184,6 +1231,7 @@ class DBExtractor
     public function processExtractToLDAP($worker)
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $setting = $this->setting;
             $worker->initialize($setting);
 
@@ -1193,9 +1241,6 @@ class DBExtractor
 
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
-
-            // If a successful connection is made to your server, the provider will be returned.
-            $worker->setProvider($worker->configureLDAPServer()->connect());
 
             $whereData = $worker->extractCondition2($extractCondition, $nameColumnUpdate);
             $worker->setTableMaster($tableMaster);
@@ -1210,6 +1255,9 @@ class DBExtractor
             if ($results) {
                 Log::info("Export to AD from " . $tableMaster . " entry(".count($results).")");
                 echo "Export to AD from " . $tableMaster . " entry(".count($results).")\n";
+
+                // If a successful connection is made to your server, the provider will be returned.
+                $worker->setProvider($worker->configureLDAPServer()->connect());
 
                 foreach ($results as $data) {
                     $array = json_decode(json_encode($data), true);
@@ -1237,8 +1285,22 @@ class DBExtractor
                     }
                 }
             }
+
+            $errorCount = count($results) - 
+                          ($worker->getCreateCount() + $worker->getUpdateCount() + $worker->getDeleteCount());
+            $settingManagement->summaryReport(
+                "OUT", "LDAP", $tableMaster, count($results), $worker->getCreateCount(),
+                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount, $processStartDatatime
+            );
         } catch (Exception $exception) {
             Log::error($exception);
+
+            $errorCount = count($results) - 
+                          ($worker->getCreateCount() + $worker->getUpdateCount() + $worker->getDeleteCount());
+            $settingManagement->summaryReport(
+                "OUT", "LDAP", $tableMaster, count($results), $worker->getCreateCount(),
+                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount, $processStartDatatime
+            );
         }
     }
 

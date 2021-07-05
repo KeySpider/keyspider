@@ -632,4 +632,16 @@ class ExtractToLdap
         return $this->tableMaster;
     }
 
+    public function getCreateCount() {
+        return $this->createCount;
+    }
+
+    public function getUpdateCount() {
+        return $this->updateCount;
+    }
+
+    public function getDeleteCount() {
+        return $this->deleteCount;
+    }
+
 }

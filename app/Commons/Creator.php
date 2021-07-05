@@ -17,8 +17,9 @@ class Creator
         "UserToGroup" => "m",
         "UserToOrganization" => "s",
         "UserToRole" => "e",
-        "UserToPrivilege" => "t", 
-        "RoleToPrivilege" => "y"
+        "UserToPrivilege" => "t",
+        "RoleToPrivilege" => "y",
+        "SummaryReport" => "r"
     );
 
     public function makeIdBasedOnMicrotime($table)

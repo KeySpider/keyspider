@@ -103,6 +103,7 @@ class SCIMReader
     public function importFromSCIMData($dataPost, $setting)
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             $settingManagement = new SettingsManager();
 
             $nameTable = $this->getTableName($setting);
@@ -154,12 +155,19 @@ class SCIMReader
 
                 $dataCreate[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                 DB::table($nameTable)->insert($dataCreate);
+
+                $this->settingImport->summaryReport(
+                    "IN", "SCIM", $nameTable, "1", "1", "0", "0", "0", $processStartDatatime
+                );
             }
 
             return true;
         } catch (\Exception $e) {
             echo ("Import from SCIM failed: $e");
             Log::error($e->getMessage());
+            $this->settingImport->summaryReport(
+                "IN", "SCIM", $nameTable, "1", "0", "0", "0", "1", $processStartDatatime
+            );
         }
     }
 
@@ -317,56 +325,73 @@ class SCIMReader
 
     public function updateRsource($memberId, $inputRequest, $setting)
     {
-        $resourceType = $this->getTableName($setting);
-        $operations = $inputRequest['Operations'];
-        $pathToColumn = $this->getScimPathToColumnMap($setting);
+        try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $settingManagement = new SettingsManager();
 
-        // Bug fix: UpdateUserID not contain SCIM Object
-        $formatConversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
-        $UpdateUserID = null;
-        foreach ($formatConversions as $fcKey => $fcValue) {
-            if ($fcKey == 'User.UpdateUserID') {
-                $UpdateUserID = $fcValue;
+            $resourceType = $this->getTableName($setting);
+            $operations = $inputRequest['Operations'];
+            $pathToColumn = $this->getScimPathToColumnMap($setting);
+
+            // Bug fix: UpdateUserID not contain SCIM Object
+            $formatConversions = $setting[Consts::IMPORT_PROCESS_FORMAT_CONVERSION];
+            $UpdateUserID = null;
+            foreach ($formatConversions as $fcKey => $fcValue) {
+                if ($fcKey == 'User.UpdateUserID') {
+                    $UpdateUserID = $fcValue;
+                }
             }
-        }
 
-        if (count($pathToColumn) < 1) {
-            return false;
-        }
+            if (count($pathToColumn) < 1) {
+                return false;
+            }
 
-        $formattedOperations = $this->getFormatedOperationsFromRequest($operations);
+            $formattedOperations = $this->getFormatedOperationsFromRequest($operations);
 
-        foreach ($formattedOperations as $operation) {
-            //Update user attribute. Replace or Add is both ok.
-            if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))
-            {
-                // Convert Operation double coat to single coat
-                $operation['path'] = str_replace('"', "'", $operation['path']);
+            foreach ($formattedOperations as $operation) {
+                //Update user attribute. Replace or Add is both ok.
+                if (in_array(array_get($operation, 'op'), ["Replace", "Add"]))
+                {
+                    // Convert Operation double coat to single coat
+                    $operation['path'] = str_replace('"', "'", $operation['path']);
 
-                if (isset($pathToColumn[array_get($operation, 'path')])) {
-                    $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
-                    foreach ($mapColumnsInDB as $column) {
-                        // Bugfix : logical delete flag value is not boolean
-                        if ($column == 'LockFlag') {
-                            if ($operation['value'] == 'False') {
-                                $operation['value'] = 1;
-                            } else {
-                                $operation['value'] = 0;
+                    if (isset($pathToColumn[array_get($operation, 'path')])) {
+                        $mapColumnsInDB = $pathToColumn[array_get($operation, 'path')];
+                        foreach ($mapColumnsInDB as $column) {
+                            // Bugfix : logical delete flag value is not boolean
+                            if ($column == 'LockFlag') {
+                                if ($operation['value'] == 'False') {
+                                    $operation['value'] = 1;
+                                } else {
+                                    $operation['value'] = 0;
+                                }
                             }
+                            $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                         }
-                        $this->updateSCIMResource($memberId, [$column => $operation['value']], $resourceType);
                     }
                 }
             }
-        }
 
-        // Bugfix : UpdateDate and UpdateUserID columns not updated
-        $nowString = Carbon::now()->format(Consts::DATE_FORMAT_YMD);
-        $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
-        if (!empty($UpdateUserID)) {
-            $this->updateSCIMResource($memberId, ['UpdateUserID' => $UpdateUserID], $resourceType);
+            // Bugfix : UpdateDate and UpdateUserID columns not updated
+            $nowString = Carbon::now()->format(Consts::DATE_FORMAT_YMD);
+            $this->updateSCIMResource($memberId, ['UpdateDate' => $nowString], $resourceType);
+            if (!empty($UpdateUserID)) {
+                $this->updateSCIMResource($memberId, ['UpdateUserID' => $UpdateUserID], $resourceType);
+            }
+
+            $this->settingImport->summaryReport(
+                "IN", "SCIM", $resourceType, "1", "0", "1", "0", "0", $processStartDatatime
+            );
+
+            return true;
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            $this->importSetting->summaryReport(
+                "IN", "SCIM", $resourceType, "1", "0", "0", "0", "1", $processStartDatatime
+            );
+
+            throw $e;
         }
-        return true;
     }
 
     public function updateMembersOfGroup($groupId, $inputRequest)

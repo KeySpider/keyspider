@@ -128,6 +128,7 @@ class CSVReader
     public function getDataFromOneFile($fileCSV, $setting)
     {
         try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
             DB::beginTransaction();
 
             $regExpManagement = new RegExpsManager();
@@ -301,6 +302,12 @@ class CSVReader
             $settingManagement->summaryLogger($scimInfo);
 
             DB::commit();
+
+            $errorCount = count($records) - ($createCount + $updateCount);
+            $settingManagement->summaryReport(
+                "IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0,
+                $errorCount, $processStartDatatime
+            );
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
@@ -313,6 +320,12 @@ class CSVReader
                 'message' => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
+
+            $errorCount = count($records) - ($createCount + $updateCount);
+            $this->settingManagement->summaryReport(
+                "IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0,
+                $errorCount, $processStartDatatime
+            );
         }
     }
 

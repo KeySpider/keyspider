@@ -46,6 +46,11 @@ class RDBReader
     protected $rdbRecords;
     protected $settingManagement;
 
+    private $casesHandle = 0;
+    private $insertCount = 0;
+    private $updateCount = 0;
+    private $deleteCount = 0;
+
     public function __construct()
     {
         $this->prefix = null;
@@ -59,6 +64,7 @@ class RDBReader
      */
     public function importFromRDBData($dataPost, $setting)
     {
+        $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
         $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
         var_dump($this->prefix . ' is processing now');
 
@@ -93,10 +99,25 @@ class RDBReader
             // Insert record to DiffOld
             $this->insertTodayData('Old', $setting, $this->rdbRecords);
 
+            $errorCount =
+                $this->casesHandle - ($this->insertCount + $this->updateCount + $this->deleteCount);
+            $this->settingManagement->summaryReport(
+                "IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount, $this->updateCount,
+                $this->deleteCount, $errorCount, $processStartDatatime
+            );
+
             return true;
         } catch (\Exception $e) {
             echo ("Import from RDB failed: $e\n");
             Log::error($e->getMessage());
+
+            $errorCount =
+                $this->casesHandle - ($this->insertCount + $this->updateCount + $this->deleteCount);
+            $this->settingManagement->summaryReport(
+                "IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount, $this->updateCount,
+                $this->deleteCount, $errorCount, $processStartDatatime
+            );
+
             return false;
         }
     }
@@ -255,10 +276,10 @@ class RDBReader
         // DB::enableQueryLog();
         // var_dump(DB::getQueryLog());
 
-        $casesHandle = 0;
-        $insertCount = 0;
-        $updateCount = 0;
-        $deleteCount = 0;
+        $this->casesHandle = 0;
+        $this->insertCount = 0;
+        $this->updateCount = 0;
+        $this->deleteCount = 0;
 
         $inserts = DB::table($table . "New")->select($table . "New.ID")
             ->leftJoin($table . "Old", $table . "New.ID", '=', $table . "Old.ID")
@@ -266,8 +287,8 @@ class RDBReader
 
         // Intentionally indented
         if (count($inserts) != 0) {
-            $casesHandle += count($inserts);
-            $insertCount = $this->doCudOperation('ins', $setting, $inserts);
+            $this->casesHandle += count($inserts);
+            $this->insertCount = $this->doCudOperation('ins', $setting, $inserts);
             echo "debug ==== insert (" . count($inserts) . ")\n";
             Log::info("== " . $this->prefix . " import insert record(s) = " . count($inserts));
         }
@@ -278,8 +299,8 @@ class RDBReader
 
         // Intentionally indented
         if (count($deletes) != 0) {
-            $casesHandle += count($deletes);
-            $deleteCount = $this->doCudOperation('del', $setting, $deletes);
+            $this->casesHandle += count($deletes);
+            $this->deleteCount = $this->doCudOperation('del', $setting, $deletes);
             echo "debug ==== delete (" . count($deletes) . ")\n";
             Log::info("== " . $this->prefix . " import delete record(s) = " . count($deletes));
         }
@@ -290,8 +311,8 @@ class RDBReader
 
         // Intentionally indented
         if (count($updates) != 0) {
-            $casesHandle += count($updates);
-            $updateCount = $this->doCudOperation('upd', $setting, $updates);
+            $this->casesHandle += count($updates);
+            $this->updateCount = $this->doCudOperation('upd', $setting, $updates);
             echo "debug ==== update (" . count($updates) . ")\n";
             Log::info("== " . $this->prefix . " import update record(s) = " . count($updates));
         }
@@ -299,10 +320,10 @@ class RDBReader
         $scimInfo = array(
             'provisoning' => 'RDBImport',
             'table' => ucfirst(strtolower($this->prefix)),
-            'casesHandle' => $casesHandle,
-            'createCount' => $insertCount,
-            'updateCount' => $updateCount,
-            'deleteCount' => $deleteCount,
+            'casesHandle' => $this->casesHandle,
+            'createCount' => $this->insertCount,
+            'updateCount' => $this->updateCount,
+            'deleteCount' => $this->deleteCount,
         );
         $this->settingManagement->summaryLogger($scimInfo);
 

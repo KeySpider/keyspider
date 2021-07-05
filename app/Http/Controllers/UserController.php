@@ -194,22 +194,39 @@ class UserController extends LaravelController
 
     public function destroy($id, Request $request)
     {
-        $this->checkToResponseErrorUserNotFound($id);
-        $this->logicalDeleteUser($id);
+        try {
+            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
 
-        $jsonResponse = [
-            "schemas" => [
-                "urn:ietf:params:scim:api:messages:2.0:Success"
-            ],
-            "detail" => "Delete User success",
-            "id" => $id,
-            "meta" => [
-                "resourceType" => "User"
-            ],
-            "status" => 200
-        ];
+            $this->checkToResponseErrorUserNotFound($id);
+            $this->logicalDeleteUser($id);
 
-        return $this->response($jsonResponse);
+            $jsonResponse = [
+                "schemas" => [
+                    "urn:ietf:params:scim:api:messages:2.0:Success"
+                ],
+                "detail" => "Delete User success",
+                "id" => $id,
+                "meta" => [
+                    "resourceType" => "User"
+                ],
+                "status" => 200
+            ];
+
+            $this->importSetting->summaryReport(
+                "IN", "SCIM", $this->importSetting->getTableUser(),
+                "1", "0", "0", "1", "0", $processStartDatatime
+            );
+
+            return $this->response($jsonResponse);
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            $this->importSetting->summaryReport(
+                "IN", "SCIM", $this->importSetting->getTableUser(),
+                "1", "0", "0", "0", "1", $processStartDatatime
+            );
+
+            throw $e;
+        }
     }
 
     /**
