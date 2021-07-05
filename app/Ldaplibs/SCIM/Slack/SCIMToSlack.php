@@ -74,7 +74,7 @@ class SCIMToSlack
         else if ($result == "http_code_error") {
             $info = $curl->getInfo();
             $response = json_decode($curl->getResponse(), true);
-            Log::error("Create faild ststus = " . $responce["Errors"]["description"]);
+            Log::error("Create faild ststus = " . $response["Errors"]["description"]);
             Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
             $scimInfo["message"] = $response["Errors"]["description"];
             $this->settingManagement->faildLogger($scimInfo);
@@ -134,7 +134,7 @@ class SCIMToSlack
         else if ($result == "http_code_error") {
             $info = $curl->getInfo();
             $response = json_decode($curl->getResponse(), true);
-            Log::error("Replace faild ststus = " . $responce["Errors"]["description"]);
+            Log::error("Replace faild ststus = " . $response["Errors"]["description"]);
             Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
             $scimInfo["message"] = $response["Errors"]["description"];
             $this->settingManagement->faildLogger($scimInfo);
@@ -186,7 +186,7 @@ class SCIMToSlack
         else if ($result == "http_code_error") {
             $info = $curl->getInfo();
             $response = json_decode($curl->getResponse(), true);
-            Log::error("Delete faild ststus = " . $responce["Errors"]["description"]);
+            Log::error("Delete faild ststus = " . $response["Errors"]["description"]);
             Log::error($info["total_time"] . " seconds to send a request to " . $info["url"]);
             $scimInfo["message"] = $response["Errors"]["description"];
             $this->settingManagement->faildLogger($scimInfo);

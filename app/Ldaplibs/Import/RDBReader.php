@@ -317,18 +317,15 @@ class RDBReader
         $diffTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::OUTPUT_TABLE];
         $itemTable = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
         $externalId = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::EXTERNAL_ID];
+        $primaryKey = Consts::TABLE_ID;
 
         // Sanitize ID array
         $varray = json_decode(json_encode($sarray), true);
-        $validNumber = array_column($varray, "ID");
+        $validNumber = array_column($varray, $primaryKey);
 
-        $scimInfo = array(
-            'provisoning' => 'RDBImport',
-            'scimMethod' => $this->cnvMethod[$mode],
-            'table' => ucfirst(strtolower($itemTable)),
-            'itemId' => '',
-            'itemName' => '',
-            'message' => '',
+
+        $scimInfo = $this->settingManagement->makeScimInfo(
+            "RDBImport", $this->cnvMethod[$mode], ucfirst(strtolower($itemTable)), "", "", ""
         );
 
         $recCount = 0;
@@ -339,12 +336,12 @@ class RDBReader
                 foreach ($validNumber as $id) {
                     DB::beginTransaction();
                     //DB::enableQueryLog();
-                    DB::table($itemTable)->where($externalID, $id)
-                        ->update(["DeleteFlag" => '1', $externalID => NULL]);
+                    DB::table($itemTable)->where($externalId, $id)
+                        ->update(["DeleteFlag" => '1', $externalId => NULL]);
                     //var_dump(DB::getQueryLog());
 
                     // Add 'LDAP status' to UpdateFlags
-                    $this->setUpdateFlags($id, $itemTable, "ID");
+                    $this->setUpdateFlags($id, $itemTable, $primaryKey);
                     DB::commit();
 
                     $scimInfo['itemId'] = $id;
@@ -358,14 +355,18 @@ class RDBReader
             foreach ($this->rdbRecords as $rdbRecord) {
                 // Target of processing 
                 if (in_array($rdbRecord[$externalId], $validNumber)) {
+                    unset($rdbRecord[$primaryKey]);
+
                     DB::beginTransaction();
 
                     $data = DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->first();
                     if ($data) {
                         DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->update($rdbRecord);
+                        $itemId = $data->{$primaryKey};
                     } else {
-                        $rdbRecord["ID"] = (new Creator())->makeIdBasedOnMicrotime($itemTable);
+                        $rdbRecord[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($itemTable);
                         DB::table($itemTable)->insert($rdbRecord);
+                        $itemId = $rdbRecord[$primaryKey];
                     }
 
                     // Add 'LDAP status' to UpdateFlags

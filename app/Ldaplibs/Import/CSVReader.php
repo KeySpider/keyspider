@@ -153,7 +153,6 @@ class CSVReader
 
             $getEncryptedFields = $settingManagement->getEncryptedFields();
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
-            $primaryKey = $settingManagement->getTableKey();
 
             $roleMaps = $settingManagement->getRoleMapInName($nameTable);
 
@@ -190,8 +189,13 @@ class CSVReader
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $params);
 
+                $itemId  = "";
+                if (array_key_exists($externalId, $getDataAfterConvert)) {
+                    $itemId = $getDataAfterConvert[$externalId] ;
+                }
+
                 $scimInfo = $this->settingManagement->makeScimInfo(
-                    "CSVImport", "import", ucfirst(strtolower($nameTable)), $getDataAfterConvert['ID'], "", ""
+                    "CSVImport", "import", ucfirst(strtolower($nameTable)), $itemId, "", ""
                 );
 
                 if (
@@ -213,8 +217,7 @@ class CSVReader
                     $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
-                    // unset($getDataAfterConvert['ID']);
-                    $getDataAfterConvert['ID'] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
+                    $getDataAfterConvert[Consts::TABLE_ID] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert["User_ID"]);
@@ -255,13 +258,13 @@ class CSVReader
                 $externalIdValue = $getDataAfterConvert[$externalId];
                 $data = DB::table($nameTable)->where($externalId, $externalIdValue)->first();
                 if ($data) {
+                    unset($getDataAfterConvert[Consts::TABLE_ID]);
                     DB::table($nameTable)->where($externalId, $getDataAfterConvert[$externalId])
                         ->update($getDataAfterConvert);
-                        $scimInfo['scimMethod'] = 'update';
+                    $scimInfo['scimMethod'] = 'update';
                     $updateCount++;
-
                 } else {
-                    $getDataAfterConvert[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
+                    $getDataAfterConvert[Consts::TABLE_ID] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                     DB::table($nameTable)->insert($getDataAfterConvert);
                     $scimInfo['scimMethod'] = 'create';
                     $createCount++;

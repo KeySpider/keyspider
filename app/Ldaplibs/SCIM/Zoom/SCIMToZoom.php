@@ -233,9 +233,9 @@ class SCIMToZoom
         }
         else if ($result == "failed") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             if (array_key_exists("status", $response)) {
                 $curl_status = $response["status"];
-                $info = $curl->getInfo();
                 Log::error($info);
                 Log::error($response);
                 Log::error(
@@ -325,14 +325,14 @@ class SCIMToZoom
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
-            $scimInfo["message"] = "Create Role faild : " . $responce["message"];
+            $scimInfo["message"] = "Create Role faild : " . $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "failed") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             if (array_key_exists("status", $response)) {
                 $curl_status = $response["status"];
-                $info = $curl->getInfo();
                 Log::error($info);
                 Log::error($response);
                 Log::error(
@@ -391,14 +391,14 @@ class SCIMToZoom
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
-            $scimInfo["message"] = "Create Group faild : " . $responce["message"];
+            $scimInfo["message"] = "Create Group faild : " . $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "failed") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             if (array_key_exists("status", $response)) {
                 $curl_status = $response["status"];
-                $info = $curl->getInfo();
                 Log::error($info);
                 Log::error($response);
                 Log::error(
@@ -463,8 +463,9 @@ class SCIMToZoom
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             Log::error(
-                "Update User faild status = " . $responce["code"] . " " . $info["total_time"]
+                "Update User faild status = " . $response["code"] . " " . $info["total_time"]
                 . " seconds to send a request to " . $info["url"]);
             $scimInfo["message"] = "Update User faild : " . $response["message"];
             $this->settingManagement->faildLogger($scimInfo);

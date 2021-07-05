@@ -25,6 +25,7 @@ return [
   }',
     'createUser' => '{
       "UserName": "user@keyspider.jp",
+      "IsActive": true,
       "LastName": "LastName",
       "FirstName": "FirstName",
       "Email": "ks@keyspider.jp",

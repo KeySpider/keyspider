@@ -73,9 +73,9 @@ class SCIMToTrustLogin
         }
         else if ($result == "failed") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             if (array_key_exists("status", $response)) {
                 $curl_status = $response["status"];
-                $info = $curl->getInfo();
                 Log::error($info);
                 Log::error($response);
                 Log::error(
@@ -117,7 +117,6 @@ class SCIMToTrustLogin
         }
 
         $tmpl = $this->replaceResource($resourceType, $item);
-var_dump($tmpl);
         $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["TrustLogin Keys"];
         $url = $scimOptions["url"] . "/" . $item[$this->externalIdName];
         $auth = $scimOptions["authorization"];
@@ -142,9 +141,9 @@ var_dump($tmpl);
         }
         else if ($result == "failed") {
             $response = json_decode($curl->getResponse(), true);
+            $info = $curl->getInfo();
             if (array_key_exists("status", $response)) {
                 $curl_status = $response["status"];
-                $info = $curl->getInfo();
                 Log::error($info);
                 Log::error($response);
                 Log::error(

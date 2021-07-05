@@ -63,7 +63,7 @@ class Curl
     }
 
     public function getInfo() {
-        return curl_getinfo($this->curl, true);
+        return curl_getinfo($this->curl);
     }
 
     public function getErrorNo() {

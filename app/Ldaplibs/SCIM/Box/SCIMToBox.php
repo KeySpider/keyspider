@@ -108,8 +108,8 @@ class SCIMToBox
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {
@@ -155,8 +155,8 @@ class SCIMToBox
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {
@@ -197,8 +197,8 @@ class SCIMToBox
         }
         else if ($result == "http_code_error") {
             $response = json_decode($curl->getResponse(), true);
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {
@@ -327,8 +327,9 @@ class SCIMToBox
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "http_code_error") {
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {
@@ -374,8 +375,9 @@ class SCIMToBox
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "http_code_error") {
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {
@@ -412,8 +414,9 @@ class SCIMToBox
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "http_code_error") {
-            Log::error($response["error_description"]);
-            $scimInfo["message"] = $response["error_description"];
+            $response = json_decode($curl->getResponse(), true);
+            Log::error($response["message"]);
+            $scimInfo["message"] = $response["message"];
             $this->settingManagement->faildLogger($scimInfo);
         }
         else if ($result == "exception") {

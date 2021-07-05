@@ -8,21 +8,21 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class AjustUpdateFlags extends Command
+class AdjustUpdateFlags extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'command:ajust_updateflags';
+    protected $signature = 'command:adjust_updateflags';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Ajust UpdateFlags';
+    protected $description = 'Adjust UpdateFlags';
 
     /**
      * Create a new command instance.
@@ -73,12 +73,8 @@ class AjustUpdateFlags extends Command
 
         $effectives = 0;
         foreach ($users as $user) {
-            $updateFlags = [];
-            $keys = [];
-            if (!is_null(json_decode($user->UpdateFlags, true))) {
             $updateFlags = json_decode($user->UpdateFlags, true);
-                $keys = array_keys(json_decode($user->UpdateFlags, true));
-            }
+            $keys = array_keys($updateFlags);
             $ajustUpdateFlags = [];
             $addFlagCount = 0;
             

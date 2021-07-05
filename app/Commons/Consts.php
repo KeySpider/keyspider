@@ -71,6 +71,7 @@ class Consts
     public const FILENAME_GENERAL_SETTINGS_INI  =  "GeneralSettings.ini";
 
     public const JOB_TITLE  =  "jobTitle";
+    public const TABLE_ID = "ID";
 
     public const VALIDATION_TYPES = array(
         "required" => "required",  // 必須
