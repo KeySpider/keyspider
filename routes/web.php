@@ -30,4 +30,6 @@
 
 Route::get('/', 'UserController@welcome');
 
+Route::get('/api/Validations', 'ValidationController@index');
+
 Route::get('import/upload','ImportController@readSettings')->name('get.upload.file');

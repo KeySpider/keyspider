@@ -18,16 +18,23 @@ class ExtractToLdap
      * see set attribute value detail
      * https://support.microsoft.com/ja-jp/help/305144/how-to-use-useraccountcontrol-to-manipulate-user-account-properties
      */
-    private const NORMAL_ACCOUNT = 544;
-    private const DISABLE_ACCOUNT = 514;
-    private const HOLDING_ACCOUNT = 66050;
+    const GROUP_SCOPE_DOMAIN_LOCAL = -2147483644;
+    const GROUP_SCOPE_GLOBAL = -2147483646;
+    const GROUP_SCOPE_UNIVERSAL = -2147483640;
 
-    private const GROUP_SCOPE_DOMAIN_LOCAL = -2147483644;
-    private const GROUP_SCOPE_GLOBAL = -2147483646;
-    private const GROUP_SCOPE_UNIVERSAL = -2147483640;
+    const GROUP_TYPE_365 = 2;
+    const GROUP_TYPE_SECURITY = self::GROUP_SCOPE_GLOBAL;
 
-    private const GROUP_TYPE_365 = 2;
-    private const GROUP_TYPE_SECURITY = self::GROUP_SCOPE_GLOBAL;
+    const AD_GROUP_TYPE = array(
+        "Microsoft 365" => self::GROUP_TYPE_365,
+        "Security" => self::GROUP_TYPE_SECURITY
+    );
+
+    const AAD_GROUP_TYPE_365 = "Microsoft 365";
+    const AAD_GROUP_TYPE_SECURITY ="Security";
+
+    const AAD_GROUP_SCOPE_PRIVATE = "Private";
+    const AAD_GROUP_SCOPE_PUBLIC = "Public";
 
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
@@ -294,13 +301,16 @@ class ExtractToLdap
                     } else if ($key == "objectclass") {
                         $entry->setAttribute($key, explode(",", $value));
                     } else {
-                        $entry->setAttribute($key, $value);
+                        if (!is_null($value)) {
+                            $entry->setAttribute($key, $value);
+                        }
                     }
                 }
 
                 if ($useSSL) {
                     $entry->setPassword($defaultPassword);
                 }
+
                 $is_success = $entry->save();
 
                 $scimInfo['scimMethod'] = 'create';

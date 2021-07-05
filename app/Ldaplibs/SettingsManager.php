@@ -712,4 +712,21 @@ class SettingsManager
             Log::channel('summary')->info($logStr);
         }
     }
+
+    public function validateRequestData($nameTable, $request)
+    {
+        $scimOptions = parse_ini_file(storage_path("ini_configs/GeneralSettings.ini"), true) ["Validation Keys"];
+        $url = $scimOptions["url"] . "/api/Validations";
+
+        $guzzle = new \GuzzleHttp\Client();
+        $result = $guzzle->get($url, [
+            "query" => [
+                "nameTable" => $nameTable,
+                "body" => $request,
+            ],
+        ])->getBody()->getContents();
+        return $result;
+    }
+
+
 }

@@ -73,8 +73,12 @@ class AjustUpdateFlags extends Command
 
         $effectives = 0;
         foreach ($users as $user) {
+            $updateFlags = [];
+            $keys = [];
+            if (!is_null(json_decode($user->UpdateFlags, true))) {
             $updateFlags = json_decode($user->UpdateFlags, true);
-            $keys = array_keys($updateFlags);
+                $keys = array_keys(json_decode($user->UpdateFlags, true));
+            }
             $ajustUpdateFlags = [];
             $addFlagCount = 0;
             

@@ -71,4 +71,36 @@ class Consts
     public const FILENAME_GENERAL_SETTINGS_INI  =  "GeneralSettings.ini";
 
     public const JOB_TITLE  =  "jobTitle";
+
+    public const VALIDATION_TYPES = array(
+        "required" => "required",  // 必須
+        "required_if" => "required",  // 前提あり必須
+        "unique" => "unique",  // ユニーク制約
+        "numeric" => "numeric",  // フォーマット：数値
+        "boolean" => "boolean",  // フォーマット：boolean
+        "array" => "array",  // フォーマット：array
+        "email" => "email:strict,dns,spoof",  // フォーマット：email
+        "date" => null,  // フォーマット：日付
+        "flag" => "boolean",  // フォーマット：フラグ（0 or 1 のチェック）
+        "flagsArray" => null,  // フォーマット：arrayフラグ
+        "regex" => null,  // フォーマット：正規表現
+        "digits" => "digits",  // 桁数
+        "max" => "max",  // 最大値
+        "min" => "min"  // 最小値        
+    );
+
+    public const APPEND_RULES_TYPE = array(
+        "max", "min"
+    );
+
+    public const DATE_FORMAT = array(
+        "Y/m/d", "Y/n/d", "Y/m/j", "Y/n/j"
+    );
+
+    public const INDIVIDUAL_LOGIC = array(
+        "required_if", "date", "digits", "flagsArray", "regex"
+    );
+
+    public const VALIDATION_OK = '{"message":"validation ok"}';
+
 }
