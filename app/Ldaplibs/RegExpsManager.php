@@ -334,6 +334,28 @@ class RegExpsManager
         return $attrs;
     }
 
+    public function getExternalIdFromID($table, $id, $externalIdColumn)
+    {
+        $query = DB::table($table)->where("ID", $id);
+        $attrs = (array) $query->first();
+
+        if (array_key_exists($externalIdColumn, $attrs)) {
+            return $attrs[$externalIdColumn];
+        }
+        return "";
+    }
+
+    public function getIDFromExternalId($table, $externalId, $externalIdColumn)
+    {
+        $query = DB::table($table)->where($externalIdColumn, $externalId);
+        $attrs = (array) $query->first();
+
+        if (array_key_exists("ID", $attrs)) {
+            return $attrs["ID"];
+        }
+        return "";
+    }
+
     public function getUpperValue($item, $key, $value, $default = null)
     {
         if (strpos($value, 'ELOQ;') !== false) {

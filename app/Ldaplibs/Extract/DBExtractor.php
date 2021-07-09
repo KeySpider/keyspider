@@ -25,6 +25,8 @@ use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
+use App\Ldaplibs\Report\DetailReport;
+use App\Ldaplibs\Report\SummaryReport;
 use Adldap\Laravel\Facades\Adldap;
 use Carbon\Carbon;
 use Exception;
@@ -342,7 +344,11 @@ class DBExtractor
     public function processOutputDataExtract($settingOutput, $results, $selectColumns, $table)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
             $settingManagement = new SettingsManager();
             $getEncryptedFields = $settingManagement->getEncryptedFields();
 
@@ -392,9 +398,15 @@ class DBExtractor
 
             // create csv file
             foreach ($results as $data) {
+                $detailReport->clear();
+                $detailReport->setCrudType("C");
+                $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
                 // Captude primary_key
                 $cnvData = (array)$data;
                 $uid = $cnvData["ID"];
+                $detailReport->setKeyspiderId($uid);
+
                 $data = array_only((array)$data, $selectColumns);
 
                 $dataTmp = [];
@@ -467,6 +479,10 @@ class DBExtractor
                     array_push($dataTmp, $line);
                 }
                 fputcsv($file, $dataTmp, ",");
+
+                $detailReport->setDataDetail(json_encode($dataTmp, JSON_UNESCAPED_UNICODE));
+                $detailReport->create("success");
+
                 $putCount++;
             }
 
@@ -481,9 +497,7 @@ class DBExtractor
             $settingManagement->summaryLogger($scimInfo);
 
             $errorCount = count($results) - ($putCount);
-            $settingManagement->summaryReport(
-                "OUT", "CSV", $table, count($results), $putCount, 0, 0, $errorCount, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "CSV", $table, count($results), $putCount, 0, 0, $errorCount);
 
             // Traceing
             $cmd = "Extract";
@@ -504,10 +518,10 @@ class DBExtractor
             );
             $this->settingManagement->faildLogger($scimInfo);
 
+            $detailReport->create("error");
+
             $faildCnt = count($results) - $putCount;
-            $settingManagement->summaryReport(
-                "OUT", "CSV", $table, count($results), $putCount, 0, 0, $faildCnt, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "CSV", $table, count($results), $putCount, 0, 0, $faildCnt);
 
             // Traceing
             $cmd = "Faild";
@@ -515,7 +529,7 @@ class DBExtractor
                 "Extract %s Object Faild. %d records faild. %s",
                 $nameTable,
                 $faildCnt,
-                $e->getMessage()
+                $exception->getMessage()
             );
             $settingManagement->traceProcessInfo($dbt, $cmd, $message);
             fclose($file);
@@ -615,7 +629,11 @@ class DBExtractor
     public function processExtractToAD()
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
             $setting = $this->setting;
 
             $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -680,6 +698,9 @@ class DBExtractor
             $deleteCount = 0;
 
             if ($results) {
+                $detailReport->clear();
+                $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
                 $userGraph = new UserGraphAPI($externalIdName);
 
                 //Set updateFlags for key ('ID')
@@ -707,8 +728,10 @@ class DBExtractor
                             }
                         }
                     }
-                    
+
                     $item = json_decode(json_encode($item));
+                    $detailReport->setKeyspiderId($item->ID);
+                    $detailReport->setDataDetail(json_encode($item, JSON_UNESCAPED_UNICODE));
 
                     DB::beginTransaction();
                     // check resource is existed on AD or not
@@ -718,14 +741,20 @@ class DBExtractor
                         if ($item->DeleteFlag == 1) {
                             //Delete resource
                             Log::info("Delete $table [$uPN] on AzureAD");
+                            $detailReport->setExternalId($item->$externalIdName);
+                            $detailReport->setCrudType("D");
 
                             if ($isSoftwareDelete) {
                                 $userUpdated = $userGraph->updateResource((array)$item, $table);
                                 if ($userUpdated == null) {
+                                    $detailReport->create("error");
+
                                     DB::commit();
                                     continue;
                                 }
                                 $userGraph->removeLicenseDetail($item->$externalIdName, $table);
+                                $$detailReport->create("success");
+
                                 $deleteCount++;
                             } else {
                                 $userGraph->removeLicenseDetail($item->$externalIdName, $table);
@@ -740,20 +769,30 @@ class DBExtractor
                                         $updateQuery->where("Group_ID", $item->{"$primaryKey"});
                                         $updateQuery->delete();
                                     }
+                                    $detailReport->create("success");
+
                                     $deleteCount++;
                                 }
                             }
                         } else {
+                            $detailReport->setCrudType("U");
                             $userUpdated = $userGraph->updateResource((array)$item, $table);
                             if ($userUpdated == null) {
+                                $detailReport->setExternalId($item->$externalIdName);
+                                $detailReport->create("error");
                                 DB::commit();
+
                                 continue;
                             }
+                            $detailReport->setExternalId($item->$externalIdName);
+                            $detailReport->create("success");
+
                             $updateCount++;
                         }
                         $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                     } //Not found resource, create it!
                     else {
+                        $detailReport->setCrudType("C");
                         if ($item->DeleteFlag == 1) {
                             $settingManagement->setUpdateFlags($extractedId, $item->{"$primaryKey"}, $table, $value = 0);
                             Log::info("User [$uPN] has DeleteFlag=1 and not existed on AzureAD, do nothing!");
@@ -772,12 +811,16 @@ class DBExtractor
                             );
                             $this->settingManagement->faildLogger($scimInfo);
 
+
+                            $detailReport->create("error");
+
                             DB::commit();
                             continue;
                         }
 
                         $userOnAD = $userGraph->createResource((array)$item, $table);
                         if ($userOnAD == null) {
+                            $detailReport->create("error");
                             DB::commit();
                             continue;
                         }
@@ -786,6 +829,10 @@ class DBExtractor
                         $updateQuery = DB::table($setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE]);
                         $updateQuery->where($primaryKey, $item->{"$primaryKey"});
                         $updateQuery->update([$externalIdName => $userOnAD->getID()]);
+
+                        $detailReport->setExternalId($userOnAD->getID());
+                        $detailReport->create("success");
+
                         $createCount++;
                         var_dump($userOnAD);
                     }
@@ -804,10 +851,8 @@ class DBExtractor
             $settingManagement->summaryLogger($scimInfo);
 
             $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
-            $settingManagement->summaryReport(
-                "OUT", "Azure Active Directory", $table, count($results), $createCount, $updateCount,
-                $deleteCount, $errorCount, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "Azure Active Directory", $table, count($results),
+                $createCount, $updateCount, $deleteCount, $errorCount);
 
             // Traceing
             $cmd = $table . " Provisioning done --> Azure Active Directory";
@@ -831,11 +876,11 @@ class DBExtractor
             );
             $this->settingManagement->faildLogger($scimInfo);
 
+            $detailReport->create("error");
+
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $settingManagement->summaryReport(
-                "OUT", "Azure Active Directory", $table, count($results), $createCount, $updateCount,
-                $deleteCount, $faildCnt, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "Azure Active Directory", $table, count($results),
+                $createCount, $updateCount, $deleteCount, $faildCnt);
 
             $cmd = $table . " Provisioning Faild --> Azure Active Directory";
             $message = sprintf(
@@ -852,7 +897,11 @@ class DBExtractor
     public function processExtractToSCIM($scimLib)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
             $setting = $this->setting;
 
             $table = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -913,16 +962,25 @@ class DBExtractor
                 $scimLib->initialize($setting, $externalIdName);
 
                 foreach ($results as $key => $item) {
+                    $detailReport->clear();
+                    $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
+
+                    $detailReport->setKeyspiderId($item["ID"]);
+                    $detailReport->setDataDetail(json_encode($item, JSON_UNESCAPED_UNICODE));
 
                     foreach ($formatConvention as $key => $value) {
                         $item[$key] = $this->regExpManagement->getUpperValue($item, $key, $value, "default");
                     }
 
                     if ($item["DeleteFlag"] == "1") {
+                        $detailReport->setCrudType("D");
+
                         $ext_id = "1";
                         if (!empty($item[$externalIdName])) {
+                            $detailReportInfo["externalId"] = $item[$externalIdName];
                             $ext_id = $scimLib->deleteResource($table, $item);
                         }
                         if ($ext_id != null) {
@@ -936,17 +994,24 @@ class DBExtractor
                             $deleteCount++;
                             DB::commit();
                         }
+                        $detailReport->create("success");
+
                         continue;
                     }
 
                     $ext_id = null;
                     if (!empty($item[$externalIdName])) {
+                        $detailReport->setExternalId($item[$externalIdName]);
+                        $detailReport->setCrudType("U");
+
                         // Update
                         $ext_id = $scimLib->updateResource($table, $item);
                         if ($ext_id != null) {
                             $updateCount++;
                         }
                     } else {
+                        $detailReport->setCrudType("C");
+
                         // Create
                         $ext_id = $scimLib->createResource($table, $item);
                         if ($ext_id != null) {
@@ -966,6 +1031,10 @@ class DBExtractor
                         $updateQuery->update(["UpdateDate" => Carbon::now()->format("Y/m/d H:i:s")]);
                         $updateQuery->update([$externalIdName => $ext_id]);
                         DB::commit();
+
+                        $detailReport->create("success");
+                    } else {
+                        $detailReport->create("error");
                     }
                 }
             }
@@ -981,9 +1050,9 @@ class DBExtractor
             $settingManagement->summaryLogger($scimInfo);
 
             $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
-            $settingManagement->summaryReport(
+            $summaryReport->create(
                 "OUT", "SCIM(" . $scimLib->getServiceName() . ")", $table, count($results),
-                $createCount, $updateCount, $deleteCount, $errorCount, $processStartDatatime
+                $createCount, $updateCount, $deleteCount, $errorCount
             );
 
             // Traceing
@@ -1013,10 +1082,12 @@ class DBExtractor
             );
             $this->settingManagement->faildLogger($scimInfo);
 
+            $detailReport->create("error");
+
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $settingManagement->summaryReport(
+            $summaryReport->create(
                 "OUT", "SCIM(" . $scimLib->getServiceName() . ")", $table, count($results),
-                $createCount, $updateCount, $deleteCount, $faildCnt, $processStartDatatime
+                $createCount, $updateCount, $deleteCount, $faildCnt
             );
 
             $cmd = $table . " Provisioning Faild --> " . $scimLib->getServiceName();
@@ -1034,7 +1105,11 @@ class DBExtractor
     public function processExtractToRDB()
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
             $setting = $this->setting;
 
             $extractiontable = $setting[Consts::EXTRACTION_PROCESS_BASIC_CONFIGURATION][Consts::EXTRACTION_TABLE];
@@ -1092,9 +1167,15 @@ class DBExtractor
 
             if ($results) {
                 foreach ($results as $key => $item) {
+                    $detailReport->clear();
+                    $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
                     $item = (array)$item;
                     $item = $this->overlayItem($formatConvention, $item);
                     $exportDate = array_intersect_key($item, $formatConvention);
+
+                    $detailReport->setKeyspiderId($item["ID"]);
+                    $detailReport->setDataDetail(json_encode($exportDate, JSON_UNESCAPED_UNICODE));
 
                     $scimInfo = array(
                         'provisoning' => 'RDB',
@@ -1117,7 +1198,9 @@ class DBExtractor
                     $rdbTable = DB::connection($connectionType)->table($exportTable);
 
                     if ($item[$deleteFlagName] == '1') {
+                        $detailReport->setCrudType("D");
                         if (!empty($item[$externalId])) {
+                            $detailReportInfo["externalId"] = $item[$externalId];
                             $deleteData = $rdbTable->where($primaryColumn, $item[$externalId]);
                             if ($rdbDeleteType == "logical") {
                                 // Logical Delete
@@ -1135,7 +1218,9 @@ class DBExtractor
                                 Log::error("Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.");
                                 $scimInfo['message'] = "Delete for $primaryKey = $item[$primaryKey] failed. Please set [logical] or [physical] in database.php.";
                                 $this->settingManagement->faildLogger($scimInfo);
-                    
+
+                                $detailReport->create("error");
+
                                 continue;
                             }
                         }
@@ -1146,17 +1231,24 @@ class DBExtractor
                         DB::commit();
                         $this->settingManagement->detailLogger($scimInfo);
 
+                        $detailReport->create("success");
+
                         continue;
                     }
 
                     $rdbId = $item[$externalId];
                     if (!empty($item[$externalId])) {
+                        $detailReport->setExternalId($item[$externalId]);
+                        $detailReport->setCrudType("U");
+
                         // UPDATE
                         $rdbTable->where($primaryColumn, $item[$externalId])->update($exportDate);
                         $updateCount++;
                         $scimInfo['scimMethod'] = "update";
 
                     } else {
+                        $detailReport->setCrudType("C");
+
                         // CREATE
                         $rdbId = $rdbTable->insertGetId($exportDate, $primaryColumn);
                         $createCount++;
@@ -1169,6 +1261,8 @@ class DBExtractor
                     DB::commit();
 
                     $this->settingManagement->detailLogger($scimInfo);
+
+                    $detailReport->create("success");
                 }
             }
 
@@ -1197,10 +1291,8 @@ class DBExtractor
             $settingManagement->summaryLogger($scimInfo);
 
             $errorCount = count($results) - ($createCount + $updateCount + $deleteCount);
-            $settingManagement->summaryReport(
-                "OUT", "RDB", $extractiontable, count($results), $createCount, $updateCount, $deleteCount,
-                $errorCount, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "RDB", $extractiontable, count($results),
+                $createCount, $updateCount, $deleteCount, $errorCount);
 
         } catch (\Exception $exception) {
             DB::rollback();
@@ -1208,10 +1300,8 @@ class DBExtractor
             Log::debug($exception);
 
             $faildCnt = count($results) - ($updateCount + $createCount + $deleteCount);
-            $settingManagement->summaryReport(
-                "OUT", "RDB", $extractiontable, count($results), $createCount, $updateCount, $deleteCount,
-                $faildCnt, $processStartDatatime
-            );
+            $summaryReport->create("OUT", "RDB", $extractiontable, count($results), $createCount,
+                $updateCount, $deleteCount, $faildCnt);
 
             $cmd = $extractiontable . ' Extracting Faild --> RDB';
             $message = sprintf(
@@ -1225,13 +1315,19 @@ class DBExtractor
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+
+            $detailReport->create("error");
         }
     }
 
     public function processExtractToLDAP($worker)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $worker->detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $worker->detailReport->setReportId($reportId);
+
             $setting = $this->setting;
             $worker->initialize($setting);
 
@@ -1260,7 +1356,19 @@ class DBExtractor
                 $worker->setProvider($worker->configureLDAPServer()->connect());
 
                 foreach ($results as $data) {
+                    $worker->detailReport->clear();
+                    $worker->detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+                    $worker->detailReport->setKeyspiderId($data->ID);
+
                     $array = json_decode(json_encode($data), true);
+                    $worker->detailReport->setDataDetail(json_encode(((array) $data), JSON_UNESCAPED_UNICODE));
+
+                    $tmpCrud = [
+                        "C" => $worker->getCreateCount(),
+                        "U" => $worker->getUpdateCount(),
+                        "D" => $worker->getDeleteCount(),
+                    ];
+
                     // Skip because 'cn' cannot be created
                     if (empty($array["Name"])) {
                         if (empty($array["displayName"])) {
@@ -1288,18 +1396,20 @@ class DBExtractor
 
             $errorCount = count($results) - 
                           ($worker->getCreateCount() + $worker->getUpdateCount() + $worker->getDeleteCount());
-            $settingManagement->summaryReport(
+            $summaryReport->create(
                 "OUT", "LDAP", $tableMaster, count($results), $worker->getCreateCount(),
-                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount, $processStartDatatime
+                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount
             );
         } catch (Exception $exception) {
             Log::error($exception);
 
+            $worker->detailReport->create("error");
+
             $errorCount = count($results) - 
                           ($worker->getCreateCount() + $worker->getUpdateCount() + $worker->getDeleteCount());
-            $settingManagement->summaryReport(
+            $summaryReport->create(
                 "OUT", "LDAP", $tableMaster, count($results), $worker->getCreateCount(),
-                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount, $processStartDatatime
+                $worker->getUpdateCount(), $worker->getDeleteCount(), $errorCount
             );
         }
     }

@@ -24,6 +24,8 @@ use App\Commons\Consts;
 use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\Report\DetailReport;
+use App\Ldaplibs\Report\SummaryReport;
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
 use Illuminate\Database\Schema\Blueprint;
@@ -46,6 +48,9 @@ class RDBReader
     protected $rdbRecords;
     protected $settingManagement;
 
+    private $summaryReport;
+    private $detailReport;
+
     private $casesHandle = 0;
     private $insertCount = 0;
     private $updateCount = 0;
@@ -64,14 +69,18 @@ class RDBReader
      */
     public function importFromRDBData($dataPost, $setting)
     {
-        $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
-        $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
-        var_dump($this->prefix . ' is processing now');
-
-        // get real config
-        $setting = parse_ini_file(storage_path('ini_configs/import/' . $this->prefix . 'InfoRDBImport.ini'), true);
-
         try {
+            $this->summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $this->detailReport = new DetailReport();
+            $reportId = $this->summaryReport->makeReportId();
+            $this->detailReport->setReportId($reportId);
+
+            $this->prefix = $dataPost[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::PREFIX];
+            var_dump($this->prefix . ' is processing now');
+
+            // get real config
+            $setting = parse_ini_file(storage_path('ini_configs/import/' . $this->prefix . 'InfoRDBImport.ini'), true);
+
             // Get data from Oracle.
             $conn = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::CONNECTION_TYPE];
             $table = $setting[Consts::IMPORT_PROCESS_DATABASE_CONFIGURATION][Consts::IMPORT_TABLE];
@@ -101,10 +110,8 @@ class RDBReader
 
             $errorCount =
                 $this->casesHandle - ($this->insertCount + $this->updateCount + $this->deleteCount);
-            $this->settingManagement->summaryReport(
-                "IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount, $this->updateCount,
-                $this->deleteCount, $errorCount, $processStartDatatime
-            );
+            $this->summaryReport->create("IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount,
+                $this->updateCount, $this->deleteCount, $errorCount);
 
             return true;
         } catch (\Exception $e) {
@@ -113,10 +120,8 @@ class RDBReader
 
             $errorCount =
                 $this->casesHandle - ($this->insertCount + $this->updateCount + $this->deleteCount);
-            $this->settingManagement->summaryReport(
-                "IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount, $this->updateCount,
-                $this->deleteCount, $errorCount, $processStartDatatime
-            );
+            $this->summaryReport->create("IN", "RDB", $this->prefix, $this->casesHandle, $this->insertCount,
+                $this->updateCount, $this->deleteCount, $errorCount);
 
             return false;
         }
@@ -130,9 +135,7 @@ class RDBReader
     private function createWorkFromRdb($conn, $pkColumn, $conversions, $array)
     {
         $fields = [];
-
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
+        $getEncryptedFields = $this->settingManagement->getEncryptedFields();
 
         $regExpManagement = new RegExpsManager();
 
@@ -171,7 +174,7 @@ class RDBReader
                 // EncryptedFields?
                 $realColumnName = $this->prefix . '.' . $key;
                 if (in_array($realColumnName, $getEncryptedFields)) {
-                    $itemValue = $settingManagement->passwordEncrypt($itemValue);
+                    $itemValue = $this->settingManagement->passwordEncrypt($itemValue);
                 }
 
                 // process with regular expressions?
@@ -350,13 +353,24 @@ class RDBReader
         );
 
         $recCount = 0;
-        
+
         try {
             // Master table CUD -CU process
             if ($mode == "del") {
                 foreach ($validNumber as $id) {
+                    $this->detailReport->clear();
+                    $this->detailReport->setExternalId($id);
+                    $this->detailReport->setCrudType("D");
+                    $this->detailReport->setDataDetail(json_encode([$id], JSON_UNESCAPED_UNICODE));
+                    $this->detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
+                    $regExpManagement = new RegExpsManager();
+                    $keyspiderId = $regExpManagement->getIDFromExternalId($itemTable, $id, $externalId);
+                    $this->detailReport->setKeyspiderId($keyspiderId);
+
                     DB::beginTransaction();
                     //DB::enableQueryLog();
+
                     DB::table($itemTable)->where($externalId, $id)
                         ->update(["DeleteFlag" => '1', $externalId => NULL]);
                     //var_dump(DB::getQueryLog());
@@ -367,6 +381,8 @@ class RDBReader
 
                     $scimInfo['itemId'] = $id;
                     $this->settingManagement->detailLogger($scimInfo);
+                    $this->detailReport->create("success");
+
                     $recCount++;
                 }
                 return $recCount;
@@ -377,15 +393,23 @@ class RDBReader
                 // Target of processing 
                 if (in_array($rdbRecord[$externalId], $validNumber)) {
                     unset($rdbRecord[$primaryKey]);
+                    $this->detailReport->clear();
+                    $this->detailReport->setExternalId($rdbRecord[$externalId]);
+                    $this->detailReport->setDataDetail(json_encode($rdbRecord, JSON_UNESCAPED_UNICODE));
+                    $this->detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
 
                     DB::beginTransaction();
 
                     $data = DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->first();
                     if ($data) {
+                        $this->detailReport->setCrudType("U");
+                        $this->detailReport->setKeyspiderId($data->{$primaryKey});
                         DB::table($itemTable)->where($externalId, $rdbRecord[$externalId])->update($rdbRecord);
                         $itemId = $data->{$primaryKey};
                     } else {
                         $rdbRecord[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($itemTable);
+                        $this->detailReport->setCrudType("C");
+                        $this->detailReport->setKeyspiderId($rdbRecord[$primaryKey]);
                         DB::table($itemTable)->insert($rdbRecord);
                         $itemId = $rdbRecord[$primaryKey];
                     }
@@ -395,7 +419,8 @@ class RDBReader
                     DB::commit();
 
                     $scimInfo['itemId'] = $rdbRecord['ID'];
-                    $this->settingManagement->detailLogger($scimInfo);
+                    $this->detailReport->create("success");
+
                     $recCount++;
                 }
             }
@@ -407,6 +432,7 @@ class RDBReader
 
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
 
             return $recCount;
         }

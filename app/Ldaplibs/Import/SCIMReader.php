@@ -26,6 +26,8 @@ use App\Exceptions\SCIMException;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
 use App\Ldaplibs\UserGraphAPI;
+use App\Ldaplibs\Report\DetailReport;
+use App\Ldaplibs\Report\SummaryReport;
 
 use Carbon\Carbon;
 use Flow\JSONPath\JSONPath;
@@ -36,6 +38,8 @@ use Illuminate\Support\Facades\Schema;
 
 class SCIMReader
 {
+    protected $settingImport;
+
     private const SCIM_ENT = 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User';
     private const SCIM_MNG = 'manager';
 
@@ -103,8 +107,15 @@ class SCIMReader
     public function importFromSCIMData($dataPost, $setting)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
-            $settingManagement = new SettingsManager();
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
+            $detailReport->clear();
+            $detailReport->setCrudType("C");
+            $detailReport->setDataDetail(json_encode($dataPost, JSON_UNESCAPED_UNICODE));
+            $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
 
             $nameTable = $this->getTableName($setting);
             $externalId = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
@@ -112,18 +123,19 @@ class SCIMReader
             $colUpdateFlag = $this->updateFlagsColumnName;
             $DeleteFlagColumnName = $this->deleteFlagColumnName;
             $primaryKey = $this->primaryKey;
-            $getEncryptedFields = $settingManagement->getEncryptedFields();
-            $roleMaps = $settingManagement->getRoleMapInName($nameTable);
+            $getEncryptedFields = $this->settingImport->getEncryptedFields();
+            $roleMaps = $this->settingImport->getRoleMapInName($nameTable);
 
             $dataCreate = [];
+            $uObjectId = "";
 
             foreach ($scimInputFormat as $key => $value) {
                 $scimValue = $this->getValueFromScimFormat($value, $dataPost);
                 //Create keys for postgres
                 $keyWithoutTableName = explode('.', $key)[1] ?? null;
                 if ($keyWithoutTableName == Consts::JOB_TITLE) {
-                    $dataCreate = $settingManagement->resetRoleFlagX($dataCreate);
-                    $xIndex = $settingManagement->getRoleFlagX($scimValue, $roleMaps);
+                    $dataCreate = $this->settingImport->resetRoleFlagX($dataCreate);
+                    $xIndex = $this->settingImport->getRoleFlagX($scimValue, $roleMaps);
                     if (!empty($xIndex)) {
                         $keyValue = sprintf("RoleFlag-%d", $xIndex);
                         $dataCreate[$keyValue] = '1';
@@ -134,7 +146,7 @@ class SCIMReader
 
                     // if (in_array($scimValue, $getEncryptedFields)) {
                     if (in_array($key, $getEncryptedFields)) {
-                        $dataCreate[$keyWithoutTableName] = $settingManagement->passwordEncrypt($scimValue);
+                        $dataCreate[$keyWithoutTableName] = $this->settingImport->passwordEncrypt($scimValue);
                     } else {
                         $dataCreate[$keyWithoutTableName] = "$scimValue";
                     }
@@ -144,7 +156,7 @@ class SCIMReader
                     unset($key);
                 }
             }
-            $dataCreate[$colUpdateFlag] = $settingManagement->makeUpdateFlagsJson($nameTable);
+            $dataCreate[$colUpdateFlag] = $this->settingImport->makeUpdateFlagsJson($nameTable);
             $data = DB::table($nameTable)->where("user-PrincipalName", $dataCreate["user-PrincipalName"])->first();
             if ($data) {
                 DB::table($nameTable)->where("user-PrincipalName", $dataCreate["user-PrincipalName"])->update($dataCreate);
@@ -156,18 +168,20 @@ class SCIMReader
                 $dataCreate[$primaryKey] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
                 DB::table($nameTable)->insert($dataCreate);
 
-                $this->settingImport->summaryReport(
-                    "IN", "SCIM", $nameTable, "1", "1", "0", "0", "0", $processStartDatatime
-                );
+                $detailReport->setKeyspiderId($dataCreate[$primaryKey]);
+                $detailReport->setExternalId($uObjectId);
+                $detailReport->create("success");
+                $summaryReport->create("IN", "SCIM", $nameTable, "1", "1", "0", "0", "0");
             }
 
             return true;
         } catch (\Exception $e) {
             echo ("Import from SCIM failed: $e");
             Log::error($e->getMessage());
-            $this->settingImport->summaryReport(
-                "IN", "SCIM", $nameTable, "1", "0", "0", "0", "1", $processStartDatatime
-            );
+
+            $detailReport->setExternalId($uObjectId);
+            $detailReport->create("error");
+            $summaryReport->create("IN", "SCIM", $nameTable, "1", "0", "0", "0", "1");
         }
     }
 
@@ -326,10 +340,24 @@ class SCIMReader
     public function updateRsource($memberId, $inputRequest, $setting)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
-            $settingManagement = new SettingsManager();
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
+            $detailReport->clear();
+            $detailReport->setKeyspiderId($memberId);
+            $detailReport->setCrudType("U");
+            $detailReport->setDataDetail(json_encode($inputRequest, JSON_UNESCAPED_UNICODE));
+            $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
 
             $resourceType = $this->getTableName($setting);
+            $externalIdName = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
+
+            $regExpManagement = new RegExpsManager();
+            $externalId = $regExpManagement->getExternalIdFromID($resourceType, $memberId, $externalIdName);
+            $detailReport->setExternalId($externalId);
+
             $operations = $inputRequest['Operations'];
             $pathToColumn = $this->getScimPathToColumnMap($setting);
 
@@ -379,16 +407,15 @@ class SCIMReader
                 $this->updateSCIMResource($memberId, ['UpdateUserID' => $UpdateUserID], $resourceType);
             }
 
-            $this->settingImport->summaryReport(
-                "IN", "SCIM", $resourceType, "1", "0", "1", "0", "0", $processStartDatatime
-            );
+            $detailReport->create("success");
+            $summaryReport->create("IN", "SCIM", $resourceType, "1", "0", "1", "0", "0");
 
             return true;
         } catch (Exception $e) {
             Log::error($e->getMessage());
-            $this->importSetting->summaryReport(
-                "IN", "SCIM", $resourceType, "1", "0", "0", "0", "1", $processStartDatatime
-            );
+
+            $detailReport->create("error");
+            $summaryReport->create("IN", "SCIM", $resourceType, "1", "0", "0", "0", "1");
 
             throw $e;
         }
@@ -479,15 +506,13 @@ class SCIMReader
     {
         $setValues = $values;
         //Set DeleteFlag to 1 if active = false
-
-        $settingManagement = new SettingsManager();
-        $getEncryptedFields = $settingManagement->getEncryptedFields();
+        $getEncryptedFields = $this->settingImport->getEncryptedFields();
 
         foreach ($setValues as $column => $value) {
 
             $chkEncField = $resourceType . '.' . $column;
             if (in_array($chkEncField, $getEncryptedFields)) {
-                $setValues[$column] = $settingManagement->passwordEncrypt($value);
+                $setValues[$column] = $this->settingImport->passwordEncrypt($value);
             }
 
             if ($column === $this->deleteFlagColumnName) { //If this is patch of deleting user, reset all roleFlags to 0
@@ -504,8 +529,7 @@ class SCIMReader
             }
         }
 
-        $settingManagement = new SettingsManager();
-        $setValues[$this->updateFlagsColumnName] = $settingManagement->makeUpdateFlagsJson($resourceType);
+        $setValues[$this->updateFlagsColumnName] = $this->settingImport->makeUpdateFlagsJson($resourceType);
 
         DB::table($resourceType)->where($this->primaryKey, $memberId)->update($setValues);
     }

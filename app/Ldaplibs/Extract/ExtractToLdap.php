@@ -278,9 +278,11 @@ class ExtractToLdap
                 // disble user
                 if ($user["DeleteFlag"] == "1") {
                     $ldapUser["userAccountControl"] = self::DISABLE_ACCOUNT;
+                    $this->detailReport->setCrudType("D");
                     $scimInfo['scimMethod'] = 'delete';
                     $this->deleteCount++;
                 } else {
+                    $this->detailReport->setCrudType("U");
                     $scimInfo['scimMethod'] = 'update';
                     $this->updateCount++;
                 }
@@ -289,6 +291,8 @@ class ExtractToLdap
                 }
                 $is_success = $entry->update($ldapUser);
             } else {
+                $this->detailReport->setCrudType("C");
+
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 // $ldapUser["userAccountControl"] = self::HOLDING_ACCOUNT;
                 // $ldapUser["userAccountControl"] = self::NORMAL_ACCOUNT;
@@ -310,7 +314,6 @@ class ExtractToLdap
                 if ($useSSL) {
                     $entry->setPassword($defaultPassword);
                 }
-
                 $is_success = $entry->save();
 
                 $scimInfo['scimMethod'] = 'create';
@@ -335,16 +338,18 @@ class ExtractToLdap
                 $this->resetTransferredFlag($user["ID"]);
             }
             $this->settingManagement->detailLogger($scimInfo);
-
+            $this->detailReport->create("success");
         } catch (\Adldap\Auth\BindException $exception) {
             Log::error($exception);
             // There was an issue binding / connecting to the server.
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
         } catch (Exception $exception) {
             Log::error($exception);
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
         }
     }
 
@@ -422,10 +427,12 @@ class ExtractToLdap
                 try {
                     // disble user
                     if ($data['DeleteFlag'] == '1') {
+                        $this->detailReport->setCrudType("D");
                         $group->delete();
                         $scimInfo['scimMethod'] = 'delete';
                         $this->deleteCount++;
                     } else {
+                        $this->detailReport->setCrudType("U");
                         // Group scope can be converted to...
                         $storedGroupType = $group->groupType[0];
                         if ((int)$storedGroupType != (int)$ldapGroup['groupType']) {
@@ -444,10 +451,12 @@ class ExtractToLdap
 
                     $scimInfo['message'] = $exception->getMessage();
                     $this->settingManagement->faildLogger($scimInfo);
-        
+
                     $is_success = false;
                 }
             } else {
+                $this->detailReport->setCrudType("C");
+
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 // $group =  $this->provider->make()->group([
                 //     "cn"     => $ldapGroup["cn"],
@@ -476,14 +485,13 @@ class ExtractToLdap
                         $is_success = $group->update($ldapGroup);
                         $scimInfo['scimMethod'] = 'create';
                         $this->createCount++;
-        
                     } catch (Exception $exception) {
                         Log::info($ldapGroup);
                         Log::error($exception);
 
                         $scimInfo['message'] = $exception->getMessage();
                         $this->settingManagement->faildLogger($scimInfo);
-            
+
                         $is_success = false;
                     }
                 }
@@ -495,17 +503,19 @@ class ExtractToLdap
                 $this->resetTransferredFlag($data["ID"]);
             }
             $this->settingManagement->detailLogger($scimInfo);
-
+            $this->detailReport->create("success");
         } catch (\Adldap\Auth\BindException $exception) {
             Log::error($exception);
             // There was an issue binding / connecting to the server.
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
 
         } catch (Exception $exception) {
             Log::error($exception);
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
 
         }
     }
@@ -547,15 +557,18 @@ class ExtractToLdap
                 $is_success = $ou->update($ldapOu);
                 // disble ou
                 if ($data["DeleteFlag"] == "1") {
+                    $this->detailReport->setCrudType("D");
                     $ou->delete();
                     $scimInfo['scimMethod'] = 'delete';
                     $this->deleteCount++;
                 } else {
+                    $this->detailReport->setCrudType("U");
                     $scimInfo['scimMethod'] = 'update';
                     $this->updateCount++;
                 }
-
             } else {
+                $this->detailReport->setCrudType("C");
+
                 // Creating a new LDAP entry. You can pass in attributes into the make methods.
                 $rdn = sprintf("ou=%s,%s", $ldapOu["cn"], $ldapBasePath);
                 $ou =  $this->provider->make()->ou([
@@ -574,16 +587,18 @@ class ExtractToLdap
                 $this->createCount++;
             }
             $this->settingManagement->detailLogger($scimInfo);
-
+            $this->detailReport->create("success");
         } catch (\Adldap\Auth\BindException $exception) {
             Log::error($exception);
             // There was an issue binding / connecting to the server.
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
         } catch (Exception $exception) {
             Log::error($exception);
             $scimInfo['message'] = $exception->getMessage();
             $this->settingManagement->faildLogger($scimInfo);
+            $this->detailReport->create("error");
         }
     }
 
@@ -643,5 +658,7 @@ class ExtractToLdap
     public function getDeleteCount() {
         return $this->deleteCount;
     }
+
+    public $detailReport;
 
 }

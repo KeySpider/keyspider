@@ -24,6 +24,8 @@ use App\Commons\Consts;
 use App\Commons\Creator;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\Report\DetailReport;
+use App\Ldaplibs\Report\SummaryReport;
 use Carbon\Carbon;
 use http\Exception;
 use Illuminate\Database\Schema\Blueprint;
@@ -41,6 +43,7 @@ use League\Csv\Statement;
 class CSVReader
 {
     protected $setting;
+    protected $settingManagement;
     const PLUGINS_DIR = "App\\Commons\\Plugins\\";
 
     /**
@@ -128,11 +131,14 @@ class CSVReader
     public function getDataFromOneFile($fileCSV, $setting)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
             DB::beginTransaction();
 
             $regExpManagement = new RegExpsManager();
-            $settingManagement = new SettingsManager();
 
             // get name table base
             $nameTable = $this->getNameTableBase($setting);
@@ -155,10 +161,10 @@ class CSVReader
             $getEncryptedFields = $settingManagement->getEncryptedFields();
             $colUpdateFlag = $settingManagement->getUpdateFlagsColumnName($nameTable);
 
-            $roleMaps = $settingManagement->getRoleMapInName($nameTable);
+            $roleMaps = $this->settingManagement->getRoleMapInName($nameTable);
 
             // Configuration file validation
-            if (!$settingManagement->isExtractSettingsFileValid()) {
+            if (!$this->settingManagement->isExtractSettingsFileValid()) {
                 return;
             }
 
@@ -177,23 +183,26 @@ class CSVReader
             // Traceing
             $cmd = "Start";
             $message = "";
-            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+            $this->settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
             // Traceing
             $cmd = "Count --> CSV File";
             $message = sprintf("Processing %s Object %d records", $nameTable, count($records));
-            $settingManagement->traceProcessInfo($dbt, $cmd, $message);
+            $this->settingManagement->traceProcessInfo($dbt, $cmd, $message);
 
             $createCount = 0;
             $updateCount = 0;
 
             foreach ($records as $key => $record) {
                 $getDataAfterConvert = $this->getDataAfterProcess($record, $params);
+                $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+                $detailReport->setDataDetail(json_encode($record, JSON_UNESCAPED_UNICODE));
 
                 $itemId  = "";
                 if (array_key_exists($externalId, $getDataAfterConvert)) {
                     $itemId = $getDataAfterConvert[$externalId] ;
                 }
+                $detailReport->setExternalId($itemId);
 
                 $scimInfo = $this->settingManagement->makeScimInfo(
                     "CSVImport", "import", ucfirst(strtolower($nameTable)), $itemId, "", ""
@@ -214,8 +223,8 @@ class CSVReader
                         ->delete();
 
                     // set UpdateFlags
-                    $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($aliasTable);
-                    $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($aliasTable);
+                    $updateFlagsJson = $this->settingManagement->makeUpdateFlagsJson($aliasTable);
+                    $updateFlagsColumnName = $this->settingManagement->getUpdateFlagsColumnName($aliasTable);
                     $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
                     $getDataAfterConvert[Consts::TABLE_ID] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
@@ -223,16 +232,20 @@ class CSVReader
 
                     $regExpManagement->updateUserUpdateFlags($getDataAfterConvert["User_ID"]);
 
+                    $detailReport->setCrudType("C");
+                    $detailReport->setKeyspiderId($getDataAfterConvert["ID"]);
+                    $detailReport->create("success");
+
                     $createCount++;
                     continue;
                 }
 
                 $roleFlags = [];
                 if ($nameTable == "User") {
-                    $getDataAfterConvert = $settingManagement->resetRoleFlagX($getDataAfterConvert);
+                    $getDataAfterConvert = $this->settingManagement->resetRoleFlagX($getDataAfterConvert);
                     foreach ($getDataAfterConvert as $cl => $item) {
                         if (strpos($cl, config("const.ROLE_ID")) !== false) {
-                            $num = $settingManagement->getRoleFlagX($item, $roleMaps);
+                            $num = $this->settingManagement->getRoleFlagX($item, $roleMaps);
                             if ($num !== null) {
                                 $keyValue = sprintf("RoleFlag-%d", $num);
                                 $roleFlags[$keyValue] = "1";
@@ -246,31 +259,37 @@ class CSVReader
                     foreach ($getDataAfterConvert as $cl => $item) {
                         $tableColumn = $nameTable . "." . $cl;
                         if (in_array($tableColumn, $getEncryptedFields)) {
-                            $getDataAfterConvert[$cl] = $settingManagement->passwordEncrypt($item);
+                            $getDataAfterConvert[$cl] = $this->settingManagement->passwordEncrypt($item);
                         }
                     }
                 }
 
                 // set UpdateFlags
-                $updateFlagsJson = $settingManagement->makeUpdateFlagsJson($nameTable);
-                $updateFlagsColumnName = $settingManagement->getUpdateFlagsColumnName($nameTable);
+                $updateFlagsJson = $this->settingManagement->makeUpdateFlagsJson($nameTable);
+                $updateFlagsColumnName = $this->settingManagement->getUpdateFlagsColumnName($nameTable);
                 $getDataAfterConvert[$updateFlagsColumnName] = $updateFlagsJson;
 
                 $externalIdValue = $getDataAfterConvert[$externalId];
                 $data = DB::table($nameTable)->where($externalId, $externalIdValue)->first();
                 if ($data) {
-                    unset($getDataAfterConvert[Consts::TABLE_ID]);
+                    $scimInfo['scimMethod'] = 'update';
+                    $detailReport->setCrudType("U");
+                    $detailReport->setKeyspiderId($data->ID);
                     DB::table($nameTable)->where($externalId, $getDataAfterConvert[$externalId])
                         ->update($getDataAfterConvert);
                     $scimInfo['scimMethod'] = 'update';
                     $updateCount++;
                 } else {
                     $getDataAfterConvert[Consts::TABLE_ID] = (new Creator())->makeIdBasedOnMicrotime($nameTable);
+                    $scimInfo['scimMethod'] = 'create';
+                    $detailReport->setCrudType("C");
+                    $detailReport->setKeyspiderId($getDataAfterConvert[Consts::TABLE_ID]);
                     DB::table($nameTable)->insert($getDataAfterConvert);
                     $scimInfo['scimMethod'] = 'create';
                     $createCount++;
                 }
                 $this->settingManagement->detailLogger($scimInfo);
+                $detailReport->create("success");
             }
 
             // move file
@@ -284,7 +303,7 @@ class CSVReader
                 $nameTable != "UserToRole"
             ) {
 
-                $deleteColumn = $settingManagement->getDeleteFlagColumnName($nameTable);
+                $deleteColumn = $this->settingManagement->getDeleteFlagColumnName($nameTable);
                 DB::table($nameTable)->whereNull($deleteColumn)->update(["{$deleteColumn}" => "0"]);
             } else {
                 // cleanup dupe recorde
@@ -299,15 +318,12 @@ class CSVReader
                 'updateCount' => $updateCount,
                 'deleteCount' => 0,
             );
-            $settingManagement->summaryLogger($scimInfo);
+            $this->settingManagement->summaryLogger($scimInfo);
 
             DB::commit();
 
             $errorCount = count($records) - ($createCount + $updateCount);
-            $settingManagement->summaryReport(
-                "IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0,
-                $errorCount, $processStartDatatime
-            );
+            $summaryReport->create("IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0, $errorCount);
         } catch (\Exception $exception) {
             Log::debug($exception->getMessage());
 
@@ -320,13 +336,18 @@ class CSVReader
                 'message' => $exception->getMessage(),
             );
             $this->settingManagement->faildLogger($scimInfo);
+            $detailReport->create("error");
 
             $errorCount = count($records) - ($createCount + $updateCount);
-            $this->settingManagement->summaryReport(
-                "IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0,
-                $errorCount, $processStartDatatime
-            );
+            $summaryReport->create("IN", "CSV", $nameTable, count($records), $createCount, $updateCount, 0, $errorCount);
         }
+
+        DB::commit();
+
+        // move file
+        $now = Carbon::now()->format("Ymdhis") . random_int(1000, 9999);
+        $fileName = $nameTable . "_{$now}.csv";
+        moveFile($fileCSV, $processedFilePath . "/" . $fileName);
     }
 
     private function sanitizeRecord($nameTable)

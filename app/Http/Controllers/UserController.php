@@ -29,6 +29,8 @@ use App\Ldaplibs\Import\ImportSettingsManager;
 use App\Ldaplibs\Import\SCIMReader;
 use App\Ldaplibs\RegExpsManager;
 use App\Ldaplibs\SettingsManager;
+use App\Ldaplibs\Report\DetailReport;
+use App\Ldaplibs\Report\SummaryReport;
 use Exception;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
@@ -195,7 +197,17 @@ class UserController extends LaravelController
     public function destroy($id, Request $request)
     {
         try {
-            $processStartDatatime = date(Consts::DATE_FORMAT_YMDHIS);
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
+            $detailReport->clear();
+            $detailReport->setKeyspiderId($id);
+            $detailReport->setExternalId($this->getExternalId($id));
+            $detailReport->setCrudType("D");
+            $detailReport->setDataDetail(json_encode([]));
+            $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
 
             $this->checkToResponseErrorUserNotFound($id);
             $this->logicalDeleteUser($id);
@@ -212,18 +224,17 @@ class UserController extends LaravelController
                 "status" => 200
             ];
 
-            $this->importSetting->summaryReport(
-                "IN", "SCIM", $this->importSetting->getTableUser(),
-                "1", "0", "0", "1", "0", $processStartDatatime
-            );
+            $detailReport->create("success");
+            $summaryReport->create("IN", "SCIM", $this->importSetting->getTableUser(),
+                "1", "0", "0", "1", "0");
 
             return $this->response($jsonResponse);
         } catch (Exception $e) {
             Log::error($e->getMessage());
-            $this->importSetting->summaryReport(
-                "IN", "SCIM", $this->importSetting->getTableUser(),
-                "1", "0", "0", "0", "1", $processStartDatatime
-            );
+
+            $detailReport->create("error");
+            $summaryReport->create("IN", "SCIM", $this->importSetting->getTableUser(),
+                "1", "0", "0", "0", "1");
 
             throw $e;
         }
@@ -399,10 +410,40 @@ class UserController extends LaravelController
         }
 
         if (!$user) {
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
+            $detailReport->clear();
+            $detailReport->setKeyspiderId($id);
+            $detailReport->setExternalId($this->getExternalId($id));
+            $detailReport->setCrudType("U");
+            $detailReport->setDataDetail(json_encode($input, JSON_UNESCAPED_UNICODE));
+            $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
+            $detailReport->create("error");
+            $summaryReport->create("IN", "SCIM", $this->importSetting->getTableUser(), "1", "0", "0", "0", "1");
+
             throw (new SCIMException("User Not Found"))->setCode(404);
         }
 
         if ($input["schemas"] !== ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]) {
+            $summaryReport = new SummaryReport(date(Consts::DATE_FORMAT_YMDHIS));
+            $detailReport = new DetailReport();
+            $reportId = $summaryReport->makeReportId();
+            $detailReport->setReportId($reportId);
+
+            $detailReport->clear();
+            $detailReport->setKeyspiderId($id);
+            $detailReport->setExternalId($this->getExternalId($id));
+            $detailReport->setCrudType("U");
+            $detailReport->setDataDetail(json_encode($input, JSON_UNESCAPED_UNICODE));
+            $detailReport->setProcessedDatetime(date(Consts::DATE_FORMAT_YMDHIS));
+
+            $detailReport->create("error");
+            $summaryReport->create("IN", "SCIM", $this->importSetting->getTableUser(), "1", "0", "0", "0", "1");
+
             throw (new SCIMException(sprintf(
                 'Invalid schema "%s". MUST be "urn:ietf:params:scim:api:messages:2.0:PatchOp"',
                 json_encode($input["schemas"])
@@ -415,5 +456,18 @@ class UserController extends LaravelController
         }
 
         return $input;
+    }
+
+    private function getExternalId($id)
+    {
+        $setting = $this->importSetting->getSCIMImportSettings($this->path);
+        if (!is_array($setting) || !isset($setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION])) {
+            return "";
+        }
+
+        $resourceType = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::IMPORT_TABLE];
+        $externalIdName = $setting[Consts::IMPORT_PROCESS_BASIC_CONFIGURATION][Consts::EXTERNAL_ID];
+        $regExpManagement = new RegExpsManager();
+        return $regExpManagement->getExternalIdFromID($resourceType, $id, $externalIdName);
     }
 }
